@@ -8,6 +8,7 @@
   guessIndex: new Map(),
   namesByLang: new Map(),
   found: new Set(),
+  audioCtx: null,
   timerId: null,
   startTime: null
 };
@@ -26,6 +27,7 @@ const foundList = document.getElementById("found-list");
 const missingList = document.getElementById("missing-list");
 const spriteGrid = document.getElementById("sprite-grid");
 const progressBar = document.getElementById("progress-bar");
+const progressValue = document.getElementById("progress-value");
 const resetBtn = document.getElementById("reset-btn");
 const outlineToggle = document.getElementById("outline-toggle");
 const filtersToggle = document.getElementById("filters-toggle");
@@ -94,6 +96,37 @@ function formatTime(seconds) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+function playTone(type) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    if (!state.audioCtx) state.audioCtx = new AudioCtx();
+    const ctx = state.audioCtx;
+    if (ctx.state === "suspended") ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+
+    const settings =
+      type === "correct"
+        ? { freq: 740, gain: 0.18, dur: 0.14 }
+        : { freq: 220, gain: 0.2, dur: 0.2 };
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(settings.freq, now);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(settings.gain, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + settings.dur);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + settings.dur + 0.05);
+  } catch (err) {
+    // no-op: audio is optional
+  }
+}
+
 function startTimer() {
   if (state.timerId) return;
   state.startTime = Date.now();
@@ -118,6 +151,7 @@ function updateStats() {
   remainingCount.textContent = total - found;
   const progress = total === 0 ? 0 : (found / total) * 100;
   progressBar.style.width = `${progress.toFixed(1)}%`;
+  if (progressValue) progressValue.textContent = `${Math.round(progress)}%`;
 }
 
 function renderFound() {
@@ -187,14 +221,23 @@ function renderSpritesGrouped() {
   [...groups.keys()]
     .sort()
     .forEach((groupName) => {
+      const entries = groups.get(groupName) || [];
+      const total = entries.length;
+      const found = entries.filter((entry) =>
+        state.found.has(entry.normalized)
+      ).length;
+      const percent = total === 0 ? 0 : Math.round((found / total) * 100);
       const section = document.createElement("section");
       section.className = "group-card";
       const title = document.createElement("h3");
       title.className = "group-title";
-      title.textContent = groupName;
+      title.textContent =
+        mode === "generation"
+          ? `${groupName} — ${percent}%`
+          : groupName;
       const grid = document.createElement("div");
       grid.className = "sprite-grid";
-      groups.get(groupName).forEach((entry) => {
+      entries.forEach((entry) => {
         const card = document.createElement("div");
         const isFound = state.found.has(entry.normalized);
         card.className = isFound ? "sprite-card" : "sprite-card sprite-card--hidden";
@@ -236,10 +279,14 @@ function handleGuess(value) {
   if (!normalized) return;
   const canonical = state.guessIndex.get(normalized);
   if (canonical && state.names.includes(canonical)) {
+    const isNew = !state.found.has(canonical);
     state.found.add(canonical);
     updateStats();
     renderFound();
     renderSprites();
+    if (isNew) playTone("correct");
+  } else {
+    playTone("wrong");
   }
 }
 

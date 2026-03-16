@@ -63,7 +63,7 @@ body {
   z-index: 1;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: 32px 20px 64px;
 }
 
 .hero {
@@ -144,9 +144,9 @@ body {
 }
 
 .quiz {
-  margin-top: 36px;
+  margin-top: 28px;
   display: grid;
-  gap: 24px;
+  gap: 20px;
 }
 
 .input-wrap {
@@ -290,6 +290,7 @@ body {
   background: #f2e2c9;
   border-radius: 999px;
   overflow: hidden;
+  position: relative;
 }
 
 .progress-bar {
@@ -297,6 +298,17 @@ body {
   width: 0%;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   transition: width 0.3s ease;
+}
+
+.progress-value {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ink);
+  pointer-events: none;
 }
 
 .lists {
@@ -334,8 +346,8 @@ body {
 
 .sprite-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 8px;
 }
 
 .sprite-groups {
@@ -367,16 +379,16 @@ body {
   background: #fff2db;
   border: 1px solid #f1d8b1;
   border-radius: 18px;
-  padding: 10px 8px 12px;
+  padding: 8px 6px 10px;
   text-align: center;
   display: grid;
   gap: 6px;
-  min-height: 96px;
+  min-height: 88px;
 }
 
 .sprite-card img {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   margin: 0 auto;
   image-rendering: pixelated;
 }
