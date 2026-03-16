@@ -67,6 +67,7 @@ body {
   padding: 32px 20px 64px;
 }
 
+/* Sidebar */
 .sidebar {
   background: #fffdf7;
   border-radius: 18px;
@@ -76,12 +77,12 @@ body {
   display: grid;
   gap: 16px;
   position: fixed;
-  top: 20px;
-  left: 20px;
+  inset: 20px auto auto 20px;
   width: 280px;
+  max-width: 280px;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
-  z-index: 5;
+  z-index: 50;
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
@@ -114,6 +115,7 @@ body {
   pointer-events: none;
 }
 
+/* Hero */
 .hero {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -191,6 +193,11 @@ body {
   color: var(--ink);
 }
 
+.btn.btn-small {
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
 .quiz {
   margin-top: 28px;
   display: grid;
@@ -238,18 +245,6 @@ body {
 
 .status-row .status {
   margin: 0;
-}
-
-.btn.btn-small {
-  padding: 8px 14px;
-  font-size: 0.85rem;
-}
-
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  align-items: center;
 }
 
 .filters {
@@ -436,318 +431,6 @@ body {
   font-weight: 600;
 }
 
-.compact-mode .sprite-card__name {
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(4px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.compact-mode .sprite-card:hover .sprite-card__name {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.compact-mode .sprite-card {
-  padding: 6px 4px 8px;
-  min-height: 76px;
-}
-
-.compact-mode .sprite-card img {
-  width: 40px;
-  height: 40px;
-}
-
-.compact-mode .sprite-grid {
-  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
-  gap: 6px;
-}
-
-.compact-mode .sprite-board {
-  padding: 16px 18px;
-}
-
-.compact-mode .input-wrap {
-  padding: 16px 18px;
-}
-
-.compact-mode .filter {
-  padding: 10px 12px;
-  min-height: 190px;
-}
-
-.compact-mode .hero-card {
-  padding: 18px;
-}
-
-.compact-mode .app {
-  max-width: 1480px;
-  padding: 12px 10px 28px;
-}
-
-
-.compact-mode .hero {
-  gap: 14px;
-}
-
-.compact-mode .hero-copy h1 {
-  font-size: clamp(2rem, 3.6vw, 3rem);
-  margin-bottom: 6px;
-}
-
-.compact-mode .subhead {
-  font-size: 0.92rem;
-}
-
-.compact-mode .quiz {
-  margin-top: 12px;
-  gap: 12px;
-}
-
-.compact-mode #name-input {
-  padding: 8px 10px;
-  font-size: 0.9rem;
-}
-
-.compact-mode .filters {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-}
-
-.compact-mode .filter {
-  padding: 8px 10px;
-  min-height: 150px;
-}
-
-.compact-mode .sprite-board {
-  padding: 10px 12px;
-}
-
-.compact-mode .sprite-grid {
-  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-  gap: 4px;
-}
-
-.compact-mode .sprite-card {
-  padding: 4px 3px 6px;
-  min-height: 58px;
-  border-radius: 12px;
-}
-
-.compact-mode .sprite-card img {
-  width: 32px;
-  height: 32px;
-}
-
-.compact-mode .progress {
-  height: 8px;
-}
-
-.compact-mode .progress-value {
-  font-size: 0.6rem;
-}
-
-.compact-mode .eyebrow,
-.compact-mode .subhead {
-  display: none;
-}
-
-.compact-mode .hero {
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.compact-mode .hero-card {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  box-shadow: none;
-  border: none;
-  padding: 0;
-}
-
-.compact-mode .hero-card .stat {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-.compact-mode .hero-card .value {
-  font-size: 1.1rem;
-}
-
-.compact-mode .hero-card .btn {
-  grid-column: span 4;
-  justify-self: end;
-  padding: 6px 12px;
-  font-size: 0.85rem;
-}
-
-
-.compact-mode .input-wrap {
-  padding: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-.compact-mode .input-label {
-  font-size: 0.7rem;
-  letter-spacing: 1.5px;
-}
-
-.compact-mode .status-row {
-  margin-top: 6px;
-  font-size: 0.8rem;
-}
-
-.compact-mode .progress {
-  height: 6px;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.compact-mode .progress-bar {
-  background: linear-gradient(90deg, #93d54c, #c8ff5e);
-}
-
-.compact-mode .progress-value {
-  color: #0f1b0a;
-}
-
-.compact-mode .sprite-board__header h2 {
-  font-size: 0.95rem;
-}
-
-.compact-mode .sprite-grid {
-  grid-template-columns: repeat(auto-fill, minmax(12px, 1fr));
-  gap: 2px;
-  align-items: center;
-}
-
-.compact-mode .sprite-card {
-  padding: 0;
-  min-height: 14px;
-  border-radius: 0;
-  background: transparent;
-  border: none;
-  display: grid;
-  place-items: center;
-}
-
-.compact-mode .sprite-card img {
-  width: 11px;
-  height: 11px;
-  display: block;
-}
-
-.compact-mode .group-card {
-  padding: 8px;
-  gap: 6px;
-  background: rgba(0, 0, 0, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: none;
-}
-
-.compact-mode .group-title {
-  font-size: 0.7rem;
-  letter-spacing: 0.8px;
-  color: #d7f0b6;
-}
-
-.compact-mode .sprite-groups {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: flex-start;
-}
-
-.compact-mode .group-card {
-  flex: 1 1 220px;
-}
-
-.compact-mode .lists {
-  display: none;
-}
-
-.compact-mode .sprite-board {
-  padding: 0;
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-.compact-mode .sprite-board__header {
-  display: none;
-}
-
-.compact-mode .quiz {
-  gap: 10px;
-}
-
-.compact-mode .hero-copy h1 {
-  color: #2b2b2b;
-}
-
-.compact-mode #name-input {
-  background: #ffffff;
-}
-
-.compact-mode .hero-card {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  align-items: center;
-  column-gap: 10px;
-  row-gap: 4px;
-}
-
-.compact-mode .hero-card .btn {
-  grid-column: auto;
-  justify-self: end;
-}
-
-.compact-mode .input-wrap {
-  background: #fffdf7;
-  border: 1px solid #ead9c2;
-  box-shadow: var(--shadow);
-  padding: 8px 12px;
-  border-radius: 10px;
-}
-
-.compact-mode .progress {
-  background: rgba(40, 40, 40, 0.12);
-}
-
-.compact-mode .progress-value {
-  color: #2b2b2b;
-}
-
-.compact-mode .group-card {
-  background: linear-gradient(180deg, #1f241a 0%, #151a12 100%);
-  border: 1px solid #2a3324;
-}
-
-.compact-mode .sprite-card {
-  background: #2f2d2a;
-  border: 1px solid #3f3d39;
-}
-
-.compact-mode .group-title {
-  color: #cfe6a8;
-}
-
-.compact-mode .sprite-card--hidden {
-  background: transparent;
-  min-height: 0;
-  padding: 0;
-  line-height: 0;
-}
-
-.compact-mode .sprite-card--hidden img {
-  opacity: 0;
-}
-
-
 .sprite-card--hidden {
   background: #f4e8d5;
   border-style: dashed;
@@ -770,11 +453,7 @@ body {
   background-size: 40px 40px;
 }
 
-/* Compact mode: keep visual language consistent with normal mode */
-.compact-mode body {
-  background: radial-gradient(circle at top, #fff6e5 0%, #f7f1e5 55%, #efe2cb 100%);
-}
-
+/* Compact mode */
 .compact-mode .app {
   max-width: none;
   padding: 6px 8px 18px;
@@ -912,7 +591,6 @@ body {
   opacity: 0;
 }
 
-/* Ensure compact-mode pokeball always matches sprite size */
 .compact-mode.outlines-off .sprite-card--hidden::before {
   width: 48px;
   height: 48px;
@@ -969,5 +647,9 @@ body {
     transform: none;
     opacity: 1;
     pointer-events: auto;
+  }
+
+  .compact-mode .sprite-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
