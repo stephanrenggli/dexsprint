@@ -10,6 +10,7 @@
   namesByLang: new Map(),
   found: new Set(),
   audioCtx: null,
+  cryAudio: null,
   timerId: null,
   startTime: null
 };
@@ -33,12 +34,18 @@ const resetBtn = document.getElementById("reset-btn");
 const outlineToggle = document.getElementById("outline-toggle");
 const filtersToggle = document.getElementById("filters-toggle");
 const compactToggle = document.getElementById("compact-toggle");
+const criesToggle = document.getElementById("cries-toggle");
+const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
 
 const speciesUrl = "https://pokeapi.co/api/v2/pokemon-species?limit=2000";
 const generationUrl = "https://pokeapi.co/api/v2/generation?limit=40";
 const typeUrl = "https://pokeapi.co/api/v2/type?limit=40";
 const spriteFallback =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
+const criesLatestBase =
+  "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/";
+const criesLegacyBase =
+  "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 
 function normalizeName(value) {
   if (!value) return "";
@@ -97,32 +104,22 @@ function formatTime(seconds) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
-function playTone(type) {
+async function playCry(canonical) {
+  if (!canonical) return;
+  const entry = state.meta.get(canonical);
+  if (!entry || !entry.cryId) return;
+  if (criesToggle && !criesToggle.checked) return;
   try {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    if (!state.audioCtx) state.audioCtx = new AudioCtx();
-    const ctx = state.audioCtx;
-    if (ctx.state === "suspended") ctx.resume();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    const now = ctx.currentTime;
-
-    const settings =
-      type === "correct"
-        ? { freq: 740, gain: 0.18, dur: 0.14 }
-        : { freq: 220, gain: 0.2, dur: 0.2 };
-
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(settings.freq, now);
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(settings.gain, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + settings.dur);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + settings.dur + 0.05);
+    if (!state.cryAudio) {
+      state.cryAudio = new Audio();
+      state.cryAudio.preload = "auto";
+    }
+    state.cryAudio.pause();
+    const useLegacy = legacyCriesToggle && legacyCriesToggle.checked;
+    const base = useLegacy ? criesLegacyBase : criesLatestBase;
+    state.cryAudio.src = `${base}${entry.cryId}.ogg`;
+    state.cryAudio.volume = 0.1;
+    await state.cryAudio.play();
   } catch (err) {
     // no-op: audio is optional
   }
@@ -285,9 +282,7 @@ function handleGuess(value) {
     updateStats();
     renderFound();
     renderSprites();
-    if (isNew) playTone("correct");
-  } else {
-    playTone("wrong");
+    if (isNew) playCry(canonical);
   }
 }
 
@@ -559,11 +554,14 @@ async function loadPokemon() {
         const match = entry.url.match(/\/pokemon-species\/(\d+)\//);
         if (match) {
           sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${match[1]}.png`;
+          entry.cryId = match[1];
         }
       }
       state.meta.set(normalized, {
         label,
         sprite,
+        cryUrl: "",
+        cryId: entry.cryId || "",
         generation: prettifyName(generation),
         types: types.map(prettifyName),
         normalized
@@ -659,6 +657,12 @@ if (filtersToggle) {
   filtersToggle.addEventListener("click", () => {
     const collapsed = document.body.classList.toggle("sidebar-collapsed");
     filtersToggle.textContent = collapsed ? "Show Settings" : "Hide Settings";
+  });
+}
+
+if (legacyCriesToggle) {
+  legacyCriesToggle.addEventListener("change", () => {
+    if (state.cryAudio) state.cryAudio.pause();
   });
 }
 
