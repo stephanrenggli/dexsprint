@@ -36,6 +36,7 @@ const filtersToggle = document.getElementById("filters-toggle");
 const compactToggle = document.getElementById("compact-toggle");
 const criesToggle = document.getElementById("cries-toggle");
 const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
+const settingsClose = document.getElementById("settings-close");
 
 const speciesUrl = "https://pokeapi.co/api/v2/pokemon-species?limit=2000";
 const generationUrl = "https://pokeapi.co/api/v2/generation?limit=40";
@@ -85,17 +86,32 @@ function normalizeGuess(value) {
 
 function formatGenerationLabel(genName) {
   const map = {
-    "generation-i": "Generation I — Kanto",
-    "generation-ii": "Generation II — Johto",
-    "generation-iii": "Generation III — Hoenn",
-    "generation-iv": "Generation IV — Sinnoh",
-    "generation-v": "Generation V — Unova",
-    "generation-vi": "Generation VI — Kalos",
-    "generation-vii": "Generation VII — Alola",
-    "generation-viii": "Generation VIII — Galar",
-    "generation-ix": "Generation IX — Paldea"
+    "generation-i": "Kanto (Gen I)",
+    "generation-ii": "Johto (Gen II)",
+    "generation-iii": "Hoenn (Gen III)",
+    "generation-iv": "Sinnoh (Gen IV)",
+    "generation-v": "Unova (Gen V)",
+    "generation-vi": "Kalos (Gen VI)",
+    "generation-vii": "Alola (Gen VII)",
+    "generation-viii": "Galar (Gen VIII)",
+    "generation-ix": "Paldea (Gen IX)"
   };
   return map[genName] || prettifyName(genName);
+}
+
+function generationOrder(genName) {
+  const order = {
+    "generation-i": 1,
+    "generation-ii": 2,
+    "generation-iii": 3,
+    "generation-iv": 4,
+    "generation-v": 5,
+    "generation-vi": 6,
+    "generation-vii": 7,
+    "generation-viii": 8,
+    "generation-ix": 9
+  };
+  return order[genName] || 999;
 }
 
 function formatTime(seconds) {
@@ -216,8 +232,18 @@ function renderSpritesGrouped() {
     });
   });
 
+  const genLabelOrder = new Map();
+  if (mode === "generation") {
+    [...state.generationIndex.keys()].forEach((key) => {
+      genLabelOrder.set(formatGenerationLabel(key), generationOrder(key));
+    });
+  }
+
   [...groups.keys()]
-    .sort()
+    .sort((a, b) => {
+      if (mode !== "generation") return a.localeCompare(b);
+      return (genLabelOrder.get(a) || 999) - (genLabelOrder.get(b) || 999);
+    })
     .forEach((groupName) => {
       const entries = groups.get(groupName) || [];
       const total = entries.length;
@@ -397,7 +423,7 @@ function populateGenChips(entries) {
 
   entries
     .slice()
-    .sort((a, b) => a.label.localeCompare(b.label))
+    .sort((a, b) => generationOrder(a.name) - generationOrder(b.name))
     .forEach((entry) => {
       const chip = createChip(formatGenerationLabel(entry.name), entry.name, false);
       genFilter.appendChild(chip);
@@ -562,7 +588,7 @@ async function loadPokemon() {
         sprite,
         cryUrl: "",
         cryId: entry.cryId || "",
-        generation: prettifyName(generation),
+        generation: formatGenerationLabel(generation),
         types: types.map(prettifyName),
         normalized
       });
@@ -657,6 +683,13 @@ if (filtersToggle) {
   filtersToggle.addEventListener("click", () => {
     const collapsed = document.body.classList.toggle("sidebar-collapsed");
     filtersToggle.textContent = collapsed ? "Show Settings" : "Hide Settings";
+  });
+}
+
+if (settingsClose) {
+  settingsClose.addEventListener("click", () => {
+    document.body.classList.add("sidebar-collapsed");
+    if (filtersToggle) filtersToggle.textContent = "Show Settings";
   });
 }
 
