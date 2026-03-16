@@ -14,6 +14,43 @@
   <div class="bg-orb orb-2"></div>
   <div class="bg-grid"></div>
 
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2>Settings</h2>
+    </div>
+    <div class="sidebar-section">
+      <button id="compact-toggle" class="btn ghost btn-small" type="button">
+        Compact Mode
+      </button>
+      <button id="outline-toggle" class="btn ghost btn-small" type="button">
+        Hide Outlines
+      </button>
+    </div>
+    <div class="sidebar-section">
+      <h3>Filters</h3>
+      <div class="filters">
+        <div class="filter">
+          <label>Generations</label>
+          <div id="gen-filter" class="chip-grid"></div>
+        </div>
+        <div class="filter">
+          <label for="type-filter">Type</label>
+          <select id="type-filter">
+            <option value="all">All Types</option>
+          </select>
+        </div>
+        <div class="filter">
+          <label for="group-filter">Group By</label>
+          <select id="group-filter">
+            <option value="none">None</option>
+            <option value="generation" selected>Generation</option>
+            <option value="type">Type</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </aside>
+
   <main class="app">
     <header class="hero">
       <div class="hero-copy">
@@ -44,7 +81,13 @@
       </div>
     </header>
 
-    <section class="quiz">
+    <section class="quiz quiz-main">
+      <div class="sidebar-toggle-row">
+        <button id="filters-toggle" class="btn ghost btn-small" type="button">
+          Show Settings
+        </button>
+      </div>
+
       <div class="input-wrap">
         <label class="input-label" for="name-input">Your guesses</label>
         <input id="name-input" type="text" autocomplete="off" placeholder="Try: Pikachu, Charizard, Nidoran F" />
@@ -65,39 +108,8 @@
             <h2>Sprites</h2>
             <p class="muted">Sprites appear as you find each Pokemon.</p>
           </div>
-          <button id="outline-toggle" class="btn ghost btn-small" type="button">
-            Hide Outlines
-          </button>
         </div>
         <div id="sprite-grid" class="sprite-grid"></div>
-      </div>
-
-      <div class="filters-header">
-        <h2>Filters</h2>
-        <button id="filters-toggle" class="btn ghost btn-small" type="button">
-          Show Filters
-        </button>
-      </div>
-
-      <div class="filters">
-        <div class="filter">
-          <label>Generations</label>
-          <div id="gen-filter" class="chip-grid"></div>
-        </div>
-        <div class="filter">
-          <label for="type-filter">Type</label>
-          <select id="type-filter">
-            <option value="all">All Types</option>
-          </select>
-        </div>
-        <div class="filter">
-          <label for="group-filter">Group By</label>
-          <select id="group-filter">
-            <option value="none">None</option>
-            <option value="generation" selected>Generation</option>
-            <option value="type">Type</option>
-          </select>
-        </div>
       </div>
 
       <div class="lists">

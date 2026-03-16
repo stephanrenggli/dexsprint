@@ -6,6 +6,7 @@
   generationIndex: new Map(),
   typeIndex: new Map(),
   guessIndex: new Map(),
+  guessPrefixes: new Set(),
   namesByLang: new Map(),
   found: new Set(),
   audioCtx: null,
@@ -31,8 +32,8 @@ const progressValue = document.getElementById("progress-value");
 const resetBtn = document.getElementById("reset-btn");
 const outlineToggle = document.getElementById("outline-toggle");
 const filtersToggle = document.getElementById("filters-toggle");
+const compactToggle = document.getElementById("compact-toggle");
 
-const apiUrl = "https://pokeapi.co/api/v2/pokemon?limit=2000";
 const speciesUrl = "https://pokeapi.co/api/v2/pokemon-species?limit=2000";
 const generationUrl = "https://pokeapi.co/api/v2/generation?limit=40";
 const typeUrl = "https://pokeapi.co/api/v2/type?limit=40";
@@ -299,6 +300,16 @@ function handleInputEvent(e) {
   e.target.value = parts[parts.length - 1];
 }
 
+function handleLiveMatch(e) {
+  const value = e.target.value;
+  const normalized = normalizeGuess(value);
+  if (!normalized) return;
+  if (state.guessIndex.has(normalized) && !state.guessPrefixes.has(normalized)) {
+    handleGuess(value);
+    e.target.value = "";
+  }
+}
+
 function handleKeydown(e) {
   if (e.key !== "Enter") return;
   startTimer();
@@ -474,6 +485,7 @@ function applyFilters() {
 
 function buildGuessIndex() {
   state.guessIndex.clear();
+  state.guessPrefixes.clear();
   state.names.forEach((canonical) => {
     const labels = state.namesByLang.get(canonical);
     const enLabel =
@@ -483,33 +495,45 @@ function buildGuessIndex() {
     const deLabel = labels && labels.get("de") ? labels.get("de") : null;
 
     const enGuess = normalizeGuess(enLabel);
-    if (enGuess) state.guessIndex.set(enGuess, canonical);
+    if (enGuess) {
+      state.guessIndex.set(enGuess, canonical);
+      addPrefixes(enGuess);
+    }
 
     if (deLabel) {
       const deGuess = normalizeGuess(deLabel);
-      if (deGuess) state.guessIndex.set(deGuess, canonical);
+      if (deGuess) {
+        state.guessIndex.set(deGuess, canonical);
+        addPrefixes(deGuess);
+      }
     }
 
     const fallbackGuess = normalizeGuess(state.normalizedMap.get(canonical));
-    if (fallbackGuess) state.guessIndex.set(fallbackGuess, canonical);
+    if (fallbackGuess) {
+      state.guessIndex.set(fallbackGuess, canonical);
+      addPrefixes(fallbackGuess);
+    }
   });
+}
+
+function addPrefixes(value) {
+  if (value.length < 3) return;
+  for (let i = 2; i < value.length; i += 1) {
+    state.guessPrefixes.add(value.slice(0, i));
+  }
 }
 
 async function loadPokemon() {
   statusEl.textContent = "Loading Pokemon list...";
   if (retryBtn) retryBtn.hidden = true;
   try {
-    const [res, speciesRes, generationData, typeData] = await Promise.all([
-      fetchWithTimeout(apiUrl, 10000),
+    const [speciesRes, generationData, typeData] = await Promise.all([
       fetchWithTimeout(speciesUrl, 10000),
       loadGenerations(),
       loadTypes()
     ]);
-    if (!res.ok) throw new Error("Failed to load list");
     if (!speciesRes.ok) throw new Error("Failed to load species list");
-    const data = await res.json();
     const speciesData = await speciesRes.json();
-    const entries = data.results || [];
     const speciesEntries = speciesData.results || [];
     const names = [];
     state.normalizedMap.clear();
@@ -519,7 +543,7 @@ async function loadPokemon() {
     state.guessIndex.clear();
     state.namesByLang.clear();
 
-    entries.forEach((entry) => {
+    speciesEntries.forEach((entry) => {
       const normalized = normalizeName(entry.name);
       if (!normalized) return;
       names.push(normalized);
@@ -532,7 +556,7 @@ async function loadPokemon() {
           ? [...typeData.typeMap.get(normalized)].sort()
           : [];
       if (entry.url) {
-        const match = entry.url.match(/\/pokemon\/(\d+)\//);
+        const match = entry.url.match(/\/pokemon-species\/(\d+)\//);
         if (match) {
           sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${match[1]}.png`;
         }
@@ -607,6 +631,7 @@ async function loadPokemon() {
 
 inputEl.addEventListener("input", handleInputEvent);
 inputEl.addEventListener("keydown", handleKeydown);
+inputEl.addEventListener("input", handleLiveMatch);
 resetBtn.addEventListener("click", resetQuiz);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
 if (typeFilter) typeFilter.addEventListener("change", applyFilters);
@@ -620,12 +645,20 @@ if (outlineToggle) {
   });
 }
 
+if (compactToggle) {
+  compactToggle.textContent = "Compact Mode";
+  compactToggle.addEventListener("click", () => {
+    const isCompact = document.body.classList.toggle("compact-mode");
+    compactToggle.textContent = isCompact ? "Normal Mode" : "Compact Mode";
+  });
+}
+
 if (filtersToggle) {
-  document.body.classList.add("filters-collapsed");
-  filtersToggle.textContent = "Show Filters";
+  document.body.classList.add("sidebar-collapsed");
+  filtersToggle.textContent = "Show Settings";
   filtersToggle.addEventListener("click", () => {
-    const collapsed = document.body.classList.toggle("filters-collapsed");
-    filtersToggle.textContent = collapsed ? "Show Filters" : "Hide Filters";
+    const collapsed = document.body.classList.toggle("sidebar-collapsed");
+    filtersToggle.textContent = collapsed ? "Show Settings" : "Hide Settings";
   });
 }
 
