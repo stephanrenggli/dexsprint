@@ -1,0 +1,117 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PokeName Sprint</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-grid"></div>
+
+  <main class="app">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">pokemon name quiz</p>
+        <h1>PokeName Sprint</h1>
+        <p class="subhead">
+          Type every Pokemon name you can. The list pulls live from PokeAPI, so it stays up to date.
+        </p>
+      </div>
+      <div class="hero-card">
+        <div class="stat">
+          <span class="label">Total</span>
+          <span id="total-count" class="value">...</span>
+        </div>
+        <div class="stat">
+          <span class="label">Found</span>
+          <span id="found-count" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Remaining</span>
+          <span id="remaining-count" class="value">...</span>
+        </div>
+        <div class="stat">
+          <span class="label">Timer</span>
+          <span id="timer" class="value">00:00</span>
+        </div>
+        <button id="reset-btn" class="btn">Reset</button>
+      </div>
+    </header>
+
+    <section class="quiz">
+      <div class="input-wrap">
+        <label class="input-label" for="name-input">Your guesses</label>
+        <input id="name-input" type="text" autocomplete="off" placeholder="Try: Pikachu, Charizard, Nidoran F" />
+        <div class="status-row">
+          <p id="status" class="status">Loading Pokemon list...</p>
+          <button id="retry-btn" class="btn ghost btn-small" type="button" hidden>Retry</button>
+        </div>
+      </div>
+
+      <div class="filters-header">
+        <h2>Filters</h2>
+        <button id="filters-toggle" class="btn ghost btn-small" type="button">
+          Show Filters
+        </button>
+      </div>
+
+      <div class="filters">
+        <div class="filter">
+          <label>Generations</label>
+          <div id="gen-filter" class="chip-grid"></div>
+        </div>
+        <div class="filter">
+          <label for="type-filter">Type</label>
+          <select id="type-filter">
+            <option value="all">All Types</option>
+          </select>
+        </div>
+        <div class="filter">
+          <label for="group-filter">Group By</label>
+          <select id="group-filter">
+            <option value="none">None</option>
+            <option value="generation" selected>Generation</option>
+            <option value="type">Type</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="progress">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+
+      <div class="sprite-board">
+        <div class="sprite-board__header">
+          <div>
+            <h2>Sprites</h2>
+            <p class="muted">Sprites appear as you find each Pokemon.</p>
+          </div>
+          <button id="outline-toggle" class="btn ghost btn-small" type="button">
+            Hide Outlines
+          </button>
+        </div>
+        <div id="sprite-grid" class="sprite-grid"></div>
+      </div>
+
+      <div class="lists">
+        <section>
+          <h2>Found</h2>
+          <div id="found-list" class="pill-list"></div>
+        </section>
+        <section>
+          <h2>Missing</h2>
+          <div id="missing-list" class="pill-list muted"></div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
