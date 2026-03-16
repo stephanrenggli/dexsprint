@@ -239,7 +239,16 @@ function renderSpritesGrouped() {
     });
   }
 
-  [...groups.keys()]
+  const groupKeys = [...groups.keys()];
+  if (document.body.classList.contains("compact-mode")) {
+    const count = groupKeys.length;
+    const cols = Math.min(6, Math.max(1, count));
+    if (spriteGrid) spriteGrid.style.setProperty("--compact-cols", String(cols));
+  } else if (spriteGrid) {
+    spriteGrid.style.removeProperty("--compact-cols");
+  }
+
+  groupKeys
     .sort((a, b) => {
       if (mode !== "generation") return a.localeCompare(b);
       return (genLabelOrder.get(a) || 999) - (genLabelOrder.get(b) || 999);

@@ -501,7 +501,7 @@ body {
 
 .compact-mode .sprite-groups {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--compact-cols, 5), minmax(0, 1fr));
   grid-auto-rows: minmax(120px, auto);
   gap: 8px;
   align-items: start;
