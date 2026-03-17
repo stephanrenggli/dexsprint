@@ -669,8 +669,23 @@ function handleGuess(value) {
       showStatusHint("");
     } else {
       showStatusHint("Already found!");
+      highlightPokemon(canonical);
     }
   }
+}
+
+function highlightPokemon(canonical) {
+  if (!canonical || !spriteGrid) return;
+  const card = spriteGrid.querySelector(
+    `.sprite-card[data-pokemon="${canonical}"]`
+  );
+  if (!card) return;
+  card.classList.remove("sprite-card--highlight");
+  void card.offsetWidth;
+  card.classList.add("sprite-card--highlight");
+  setTimeout(() => {
+    card.classList.remove("sprite-card--highlight");
+  }, 600);
 }
 
 let statusHintTimeout = null;

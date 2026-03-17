@@ -715,6 +715,16 @@ body.dark-mode .sprite-card--hidden {
   transform: scale(1.15);
 }
 
+.sprite-card--highlight {
+  animation: sprite-shake 0.5s ease;
+  transform: scale(1.08);
+  z-index: 4;
+}
+
+.sprite-card--highlight img {
+  transform: scale(1.2);
+}
+
 /* Compact mode */
 .compact-mode .app {
   max-width: none;
@@ -934,6 +944,27 @@ body.dark-mode .sprite-card--hidden {
   }
   100% {
     transform: translate(0, 0);
+  }
+}
+
+@keyframes sprite-shake {
+  0% {
+    transform: translateX(0) scale(1);
+  }
+  20% {
+    transform: translateX(-3px) scale(1.05);
+  }
+  40% {
+    transform: translateX(3px) scale(1.08);
+  }
+  60% {
+    transform: translateX(-2px) scale(1.08);
+  }
+  80% {
+    transform: translateX(2px) scale(1.06);
+  }
+  100% {
+    transform: translateX(0) scale(1);
   }
 }
 
