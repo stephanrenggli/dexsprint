@@ -673,6 +673,53 @@ function getHiddenLabel(entry) {
   return "???";
 }
 
+function levenshteinWithin(a, b, max) {
+  const alen = a.length;
+  const blen = b.length;
+  if (Math.abs(alen - blen) > max) return max + 1;
+  const row = new Array(blen + 1).fill(0);
+  for (let j = 0; j <= blen; j += 1) row[j] = j;
+  for (let i = 1; i <= alen; i += 1) {
+    let prev = i - 1;
+    row[0] = i;
+    let minInRow = row[0];
+    for (let j = 1; j <= blen; j += 1) {
+      const temp = row[j];
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + cost);
+      prev = temp;
+      if (row[j] < minInRow) minInRow = row[j];
+    }
+    if (minInRow > max) return max + 1;
+  }
+  return row[blen];
+}
+
+function findTypoMatch(normalized) {
+  if (!normalized) return null;
+  if (state.guessPrefixes.has(normalized)) return null;
+  if (normalized.length < 4) return null;
+  const maxDist = normalized.length <= 6 ? 1 : 2;
+  let bestCanonical = null;
+  let bestDist = maxDist + 1;
+  let bestCount = 0;
+  for (const candidate of state.guessIndex.keys()) {
+    if (Math.abs(candidate.length - normalized.length) > maxDist) continue;
+    const dist = levenshteinWithin(normalized, candidate, maxDist);
+    if (dist > maxDist) continue;
+    const canonical = state.guessIndex.get(candidate);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestCanonical = canonical;
+      bestCount = 1;
+    } else if (dist === bestDist && canonical !== bestCanonical) {
+      bestCount += 1;
+    }
+  }
+  if (bestCanonical && bestCount === 1) return bestCanonical;
+  return null;
+}
+
 function handleGuess(value) {
   const normalized = normalizeGuess(value);
   if (!normalized) return;
@@ -689,6 +736,23 @@ function handleGuess(value) {
     } else {
       showStatusHint("Already found!");
       highlightPokemon(canonical);
+    }
+    return;
+  }
+  const typoMatch = findTypoMatch(normalized);
+  if (typoMatch && state.names.includes(typoMatch)) {
+    const isNew = !state.found.has(typoMatch);
+    state.found.add(typoMatch);
+    updateStats();
+    renderSprites();
+    if (isNew) {
+      playCry(typoMatch);
+      saveState();
+      const label = state.meta.get(typoMatch)?.label || "Pokemon";
+      showStatusHint(`Corrected to ${label}.`);
+    } else {
+      showStatusHint("Already found!");
+      highlightPokemon(typoMatch);
     }
   }
 }
