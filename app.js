@@ -57,9 +57,11 @@ const infoGenus = document.getElementById("info-genus");
 const infoSize = document.getElementById("info-size");
 const infoAbilities = document.getElementById("info-abilities");
 
-const speciesUrl = "https://pokeapi.co/api/v2/pokemon-species?limit=2000";
-const generationUrl = "https://pokeapi.co/api/v2/generation?limit=40";
-const typeUrl = "https://pokeapi.co/api/v2/type?limit=40";
+const pokedex = new Pokedex.Pokedex({
+  cache: true,
+  timeout: 10000,
+  cacheImages: true
+});
 const typeIconBase =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/small/";
 const DEFAULT_THEME = "normal";
@@ -620,13 +622,11 @@ function getTypeId(typeName) {
 async function getPokedexInfo(entry) {
   if (!entry || !entry.dexId) return null;
   if (state.infoCache.has(entry.dexId)) return state.infoCache.get(entry.dexId);
-  const [pokemonRes, speciesRes] = await Promise.all([
-    fetch(`https://pokeapi.co/api/v2/pokemon/${entry.dexId}`),
-    fetch(`https://pokeapi.co/api/v2/pokemon-species/${entry.dexId}`)
+  const [pokemon, species] = await pokedex.resource([
+    `/api/v2/pokemon/${entry.dexId}`,
+    `/api/v2/pokemon-species/${entry.dexId}`
   ]);
-  if (!pokemonRes.ok || !speciesRes.ok) return null;
-  const pokemon = await pokemonRes.json();
-  const species = await speciesRes.json();
+  if (!pokemon || !species) return null;
 
   const heightM = pokemon.height ? (pokemon.height / 10).toFixed(1) : null;
   const weightKg = pokemon.weight ? (pokemon.weight / 10).toFixed(1) : null;
@@ -732,65 +732,45 @@ function handleKeydown(e) {
   e.target.value = "";
 }
 
-async function fetchWithTimeout(url, timeoutMs) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, { signal: controller.signal, cache: "no-store" });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
 async function loadGenerations() {
-  const res = await fetchWithTimeout(generationUrl, 10000);
-  if (!res.ok) throw new Error("Failed to load generations");
-  const data = await res.json();
-  const gens = data.results || [];
+  const data = await pokedex.getGenerationsList({ limit: 40 });
+  const gens = data && data.results ? data.results : [];
   const generationMap = new Map();
-  const entries = await Promise.all(
-    gens.map(async (gen) => {
-      const genRes = await fetchWithTimeout(gen.url, 10000);
-      if (!genRes.ok) return null;
-      const genData = await genRes.json();
-      const species = genData.pokemon_species || [];
-      const names = species.map((s) => normalizeName(s.name)).filter(Boolean);
-      names.forEach((name) => generationMap.set(name, genData.name));
-      return { name: genData.name, label: prettifyName(genData.name), names };
-    })
-  );
+  const genDetails = await pokedex.resource(gens.map((gen) => gen.url));
+  const entries = (genDetails || []).map((genData) => {
+    if (!genData) return null;
+    const species = genData.pokemon_species || [];
+    const names = species.map((s) => normalizeName(s.name)).filter(Boolean);
+    names.forEach((name) => generationMap.set(name, genData.name));
+    return { name: genData.name, label: prettifyName(genData.name), names };
+  });
   return { entries: entries.filter(Boolean), generationMap };
 }
 
 async function loadTypes() {
-  const res = await fetchWithTimeout(typeUrl, 10000);
-  if (!res.ok) throw new Error("Failed to load types");
-  const data = await res.json();
-  const types = (data.results || []).filter(
+  const data = await pokedex.getTypesList({ limit: 40 });
+  const types = (data && data.results ? data.results : []).filter(
     (type) => type.name !== "unknown" && type.name !== "shadow"
   );
   const typeMap = new Map();
-  const entries = await Promise.all(
-    types.map(async (type) => {
-      const typeRes = await fetchWithTimeout(type.url, 10000);
-      if (!typeRes.ok) return null;
-      const typeData = await typeRes.json();
-      const pokemon = typeData.pokemon || [];
-      const names = pokemon
-        .map((p) => normalizeName(p.pokemon.name))
-        .filter(Boolean);
-      names.forEach((name) => {
-        if (!typeMap.has(name)) typeMap.set(name, new Set());
-        typeMap.get(name).add(typeData.name);
-      });
-      return {
-        name: typeData.name,
-        label: prettifyName(typeData.name),
-        names,
-        id: typeData.id
-      };
-    })
-  );
+  const typeDetails = await pokedex.resource(types.map((type) => type.url));
+  const entries = (typeDetails || []).map((typeData) => {
+    if (!typeData) return null;
+    const pokemon = typeData.pokemon || [];
+    const names = pokemon
+      .map((p) => normalizeName(p.pokemon.name))
+      .filter(Boolean);
+    names.forEach((name) => {
+      if (!typeMap.has(name)) typeMap.set(name, new Set());
+      typeMap.get(name).add(typeData.name);
+    });
+    return {
+      name: typeData.name,
+      label: prettifyName(typeData.name),
+      names,
+      id: typeData.id
+    };
+  });
   return { entries: entries.filter(Boolean), typeMap };
 }
 
@@ -1008,14 +988,12 @@ async function loadPokemon() {
   statusEl.textContent = "Loading Pokemon list...";
   if (retryBtn) retryBtn.hidden = true;
   try {
-    const [speciesRes, generationData, typeData] = await Promise.all([
-      fetchWithTimeout(speciesUrl, 10000),
+    const [speciesData, generationData, typeData] = await Promise.all([
+      pokedex.getPokemonSpeciesList({ limit: 2000 }),
       loadGenerations(),
       loadTypes()
     ]);
-    if (!speciesRes.ok) throw new Error("Failed to load species list");
-    const speciesData = await speciesRes.json();
-    const speciesEntries = speciesData.results || [];
+    const speciesEntries = speciesData && speciesData.results ? speciesData.results : [];
     const names = [];
     state.normalizedMap.clear();
     state.meta = new Map();
@@ -1061,15 +1039,12 @@ async function loadPokemon() {
       if (normalized) speciesByName.set(normalized, entry.url);
     });
 
-    const speciesDetails = await Promise.all(
-      names.map(async (canonical) => {
-        const url = speciesByName.get(canonical);
-        if (!url) return null;
-        const resDetail = await fetchWithTimeout(url, 10000);
-        if (!resDetail.ok) return null;
-        return resDetail.json();
-      })
-    );
+    const detailUrls = names
+      .map((canonical) => speciesByName.get(canonical))
+      .filter(Boolean);
+    const speciesDetails = detailUrls.length
+      ? await pokedex.resource(detailUrls)
+      : [];
 
     speciesDetails.forEach((detail) => {
       if (!detail || !detail.name) return;
@@ -1231,6 +1206,14 @@ if (inputEl) {
       return;
     }
     inputEl.focus();
+  });
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("./pokeapi-js-wrapper-sw.js", { scope: "./" })
+      .catch(() => {});
   });
 }
 
