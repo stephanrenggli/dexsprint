@@ -4,6 +4,8 @@
   --bg-2: #f7f1e5;
   --bg-3: #efe2cb;
   --ink: #1c1b19;
+  --outline-filter: grayscale(1) brightness(0.2);
+  --outline-opacity: 0.2;
   --accent: #ff4b4b;
   --accent-2: #2b6fef;
   --accent-3: #f6c445;
@@ -51,6 +53,8 @@ body.dark-mode {
   --border: #3a332c;
   --border-strong: #4a4036;
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  --outline-filter: grayscale(1) brightness(0) invert(1);
+  --outline-opacity: 0.7;
   --pokeball: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='26' fill='%233b342c'/><path d='M6 32h52' stroke='%2350463c' stroke-width='6'/><circle cx='32' cy='32' r='8' fill='%23241f19' stroke='%2350463c' stroke-width='4'/></svg>");
   background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
 }
@@ -635,8 +639,8 @@ body.dark-mode .sprite-card--hidden {
 }
 
 .sprite-card--hidden img {
-  filter: grayscale(1) brightness(0.2);
-  opacity: 0.2;
+  filter: var(--outline-filter);
+  opacity: var(--outline-opacity);
 }
 
 .outlines-off .sprite-card--hidden img {
@@ -774,8 +778,8 @@ body.dark-mode .sprite-card--hidden {
 }
 
 .compact-mode .sprite-card--hidden img {
-  opacity: 0.25;
-  filter: grayscale(1) brightness(0.3);
+  opacity: var(--outline-opacity);
+  filter: var(--outline-filter);
 }
 
 .compact-mode .sprite-card:not(.sprite-card--hidden):hover .sprite-card__name {
