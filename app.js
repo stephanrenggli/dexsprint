@@ -9,6 +9,7 @@
   guessPrefixes: new Set(),
   namesByLang: new Map(),
   found: new Set(),
+  recentlyFound: new Set(),
   cryAudio: null,
   isRestoring: false,
   lastSavedSec: -1,
@@ -498,30 +499,35 @@ function renderSprites() {
   spriteGrid.className = "sprite-grid";
   if (groupFilter && groupFilter.value !== "none") {
     renderSpritesGrouped();
-    return;
+  } else {
+    state.names.forEach((name) => {
+      const entry = state.meta.get(name);
+      if (!entry) return;
+      const card = document.createElement("div");
+      const isFound = state.found.has(name);
+      const classes = ["sprite-card"];
+      if (!isFound) {
+        classes.push("sprite-card--hidden");
+    }
+    card.className = classes.join(" ");
+      card.dataset.pokemon = entry.normalized;
+
+      const img = document.createElement("img");
+      img.src = getSpriteForEntry(entry);
+      img.alt = isFound ? entry.label : "Unknown Pokemon";
+      img.loading = "lazy";
+      img.decoding = "async";
+
+      const label = document.createElement("span");
+      label.className = "sprite-card__name";
+      label.textContent = isFound ? entry.label : getHiddenLabel(entry);
+
+      card.appendChild(img);
+      card.appendChild(label);
+      spriteGrid.appendChild(card);
+    });
   }
-  state.names.forEach((name) => {
-    const entry = state.meta.get(name);
-    if (!entry) return;
-    const card = document.createElement("div");
-    const isFound = state.found.has(name);
-    card.className = isFound ? "sprite-card" : "sprite-card sprite-card--hidden";
-    card.dataset.pokemon = entry.normalized;
-
-    const img = document.createElement("img");
-    img.src = getSpriteForEntry(entry);
-    img.alt = isFound ? entry.label : "Unknown Pokemon";
-    img.loading = "lazy";
-    img.decoding = "async";
-
-    const label = document.createElement("span");
-    label.className = "sprite-card__name";
-    label.textContent = isFound ? entry.label : getHiddenLabel(entry);
-
-    card.appendChild(img);
-    card.appendChild(label);
-    spriteGrid.appendChild(card);
-  });
+  state.recentlyFound.clear();
 }
 
 function renderSpritesGrouped() {
@@ -585,7 +591,11 @@ function renderSpritesGrouped() {
       entries.forEach((entry) => {
         const card = document.createElement("div");
         const isFound = state.found.has(entry.normalized);
-        card.className = isFound ? "sprite-card" : "sprite-card sprite-card--hidden";
+        const classes = ["sprite-card"];
+        if (!isFound) {
+          classes.push("sprite-card--hidden");
+        }
+        card.className = classes.join(" ");
         card.dataset.pokemon = entry.normalized;
 
         const img = document.createElement("img");
@@ -801,9 +811,11 @@ function handleGuess(value) {
   if (canonical && state.names.includes(canonical)) {
     const isNew = !state.found.has(canonical);
     state.found.add(canonical);
+    if (isNew) state.recentlyFound.add(canonical);
     updateStats();
     renderSprites();
     if (isNew) {
+      showMobileReveal(state.meta.get(canonical));
       playCry(canonical);
       saveState();
       showStatusHint("");
@@ -817,9 +829,11 @@ function handleGuess(value) {
   if (typoMatch && state.names.includes(typoMatch)) {
     const isNew = !state.found.has(typoMatch);
     state.found.add(typoMatch);
+    if (isNew) state.recentlyFound.add(typoMatch);
     updateStats();
     renderSprites();
     if (isNew) {
+      showMobileReveal(state.meta.get(typoMatch));
       playCry(typoMatch);
       saveState();
       const label = state.meta.get(typoMatch)?.label || "Pokemon";
@@ -843,6 +857,40 @@ function highlightPokemon(canonical) {
   setTimeout(() => {
     card.classList.remove("sprite-card--highlight");
   }, 600);
+}
+
+function showMobileReveal(entry) {
+  if (!entry) return;
+  if (!window.matchMedia || !window.matchMedia("(max-width: 720px)").matches) {
+    return;
+  }
+  const inputWrap = inputEl ? inputEl.closest(".input-wrap") : null;
+  if (!inputWrap) return;
+
+  let popup = document.getElementById("reveal-popup");
+  if (!popup) {
+    popup = document.createElement("div");
+    popup.id = "reveal-popup";
+    popup.className = "reveal-popup";
+    popup.innerHTML = `<img alt="" />`;
+    inputWrap.appendChild(popup);
+  }
+  const popupImg = popup.querySelector("img");
+  if (popupImg) {
+    popupImg.src = getSpriteForEntry(entry);
+    popupImg.alt = entry.label || "Revealed Pokemon";
+  }
+
+  popup.style.width = "100%";
+  popup.style.height = "100%";
+  popup.style.left = "0";
+  popup.style.top = "0";
+
+  popup.classList.add("is-active");
+  clearTimeout(popup._hideTimer);
+  popup._hideTimer = setTimeout(() => {
+    popup.classList.remove("is-active");
+  }, 1000);
 }
 
 let statusHintTimeout = null;

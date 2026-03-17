@@ -275,6 +275,7 @@ body.dark-mode {
   position: -webkit-sticky;
   top: 16px;
   z-index: 20;
+  overflow: hidden;
 }
 
 .input-wrap.is-floating {
@@ -727,6 +728,32 @@ body.dark-mode .sprite-card--hidden {
   transform: scale(1.2);
 }
 
+.reveal-popup {
+  position: absolute;
+  inset: 0;
+  z-index: 210;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 0;
+  border-radius: inherit;
+  box-shadow: none;
+  opacity: 0;
+  transform: none;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.reveal-popup.is-active {
+  opacity: 1;
+}
+
+.reveal-popup img {
+  width: 132px;
+  height: 132px;
+}
+
+
 /* Compact mode */
 .compact-mode .app {
   max-width: none;
@@ -746,6 +773,7 @@ body.dark-mode .sprite-card--hidden {
   padding: 6px 8px;
   border-radius: 8px;
   top: 8px;
+  overflow: hidden;
 }
 
 .compact-mode .compact-stats {
@@ -967,6 +995,7 @@ body.dark-mode .sprite-card--hidden {
     transform: translateX(0) scale(1);
   }
 }
+
 
 @media (max-width: 720px) {
   .hero {
