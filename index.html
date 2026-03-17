@@ -108,19 +108,42 @@
           <span class="label">Timer</span>
           <span id="timer" class="value">00:00</span>
         </div>
-        <button id="reset-btn" class="btn">Reset</button>
+        <div class="hero-actions">
+          <button id="reset-btn" class="btn ghost btn-small">Reset</button>
+          <button id="filters-toggle" class="btn ghost btn-small" type="button">
+            Show Settings
+          </button>
+        </div>
       </div>
     </header>
 
     <section class="quiz quiz-main">
-      <div class="sidebar-toggle-row">
-        <button id="filters-toggle" class="btn ghost btn-small" type="button">
-          Show Settings
-        </button>
-      </div>
-
       <div class="input-wrap">
         <label class="input-label" for="name-input">Your guesses</label>
+        <div class="compact-stats">
+          <div class="stat">
+            <span class="label">Total</span>
+            <span id="compact-total-count" class="value">...</span>
+          </div>
+          <div class="stat">
+            <span class="label">Found</span>
+            <span id="compact-found-count" class="value">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Remaining</span>
+            <span id="compact-remaining-count" class="value">...</span>
+          </div>
+          <div class="stat">
+            <span class="label">Timer</span>
+            <span id="compact-timer" class="value">00:00</span>
+          </div>
+          <div class="compact-actions">
+            <button id="reset-btn-compact" class="btn ghost btn-small" type="button">Reset</button>
+            <button id="filters-toggle-compact" class="btn ghost btn-small" type="button">
+              Show Settings
+            </button>
+          </div>
+        </div>
         <input id="name-input" type="text" autocomplete="off" placeholder="Try: Pikachu, Charizard, Nidoran F" />
         <div class="status-row">
           <p id="status" class="status">Loading Pokemon list...</p>

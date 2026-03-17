@@ -21,6 +21,10 @@ const totalCount = document.getElementById("total-count");
 const foundCount = document.getElementById("found-count");
 const remainingCount = document.getElementById("remaining-count");
 const timerEl = document.getElementById("timer");
+const compactTotalCount = document.getElementById("compact-total-count");
+const compactFoundCount = document.getElementById("compact-found-count");
+const compactRemainingCount = document.getElementById("compact-remaining-count");
+const compactTimerEl = document.getElementById("compact-timer");
 const statusEl = document.getElementById("status");
 const inputEl = document.getElementById("name-input");
 const retryBtn = document.getElementById("retry-btn");
@@ -31,6 +35,8 @@ const spriteGrid = document.getElementById("sprite-grid");
 const progressBar = document.getElementById("progress-bar");
 const progressValue = document.getElementById("progress-value");
 const resetBtn = document.getElementById("reset-btn");
+const resetBtnCompact = document.getElementById("reset-btn-compact");
+const filtersToggleCompact = document.getElementById("filters-toggle-compact");
 const outlineToggle = document.getElementById("outline-toggle");
 const filtersToggle = document.getElementById("filters-toggle");
 const compactToggle = document.getElementById("compact-toggle");
@@ -158,6 +164,11 @@ function formatTime(seconds) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+function setTimerText(value) {
+  if (timerEl) timerEl.textContent = value;
+  if (compactTimerEl) compactTimerEl.textContent = value;
+}
+
 async function playCry(canonical) {
   if (!canonical) return;
   const entry = state.meta.get(canonical);
@@ -186,7 +197,7 @@ function startTimer(preserveStart = false) {
   }
   state.timerId = setInterval(() => {
     const delta = Math.floor((Date.now() - state.startTime) / 1000);
-    timerEl.textContent = formatTime(delta);
+    setTimerText(formatTime(delta));
     if (delta !== state.lastSavedSec && delta % 5 === 0) {
       state.lastSavedSec = delta;
       saveState();
@@ -243,7 +254,7 @@ function restoreState() {
   }
 
   if (data.elapsed) {
-    timerEl.textContent = formatTime(data.elapsed);
+    setTimerText(formatTime(data.elapsed));
     if (data.running) {
       state.startTime = Date.now() - data.elapsed * 1000;
       startTimer(true);
@@ -286,8 +297,10 @@ function restoreSettings() {
   if (data.sidebarCollapsed) {
     document.body.classList.add("sidebar-collapsed");
     if (filtersToggle) filtersToggle.textContent = "Show Settings";
+    if (filtersToggleCompact) filtersToggleCompact.textContent = "Show Settings";
   } else if (filtersToggle) {
     filtersToggle.textContent = "Hide Settings";
+    if (filtersToggleCompact) filtersToggleCompact.textContent = "Hide Settings";
   }
   document.body.classList.toggle("dark-mode", Boolean(data.dark));
   if (darkToggle) darkToggle.checked = Boolean(data.dark);
@@ -377,6 +390,9 @@ function updateStats() {
   totalCount.textContent = total;
   foundCount.textContent = found;
   remainingCount.textContent = total - found;
+  if (compactTotalCount) compactTotalCount.textContent = total;
+  if (compactFoundCount) compactFoundCount.textContent = found;
+  if (compactRemainingCount) compactRemainingCount.textContent = total - found;
   const progress = total === 0 ? 0 : (found / total) * 100;
   progressBar.style.width = `${progress.toFixed(1)}%`;
   if (progressValue) progressValue.textContent = `${Math.round(progress)}%`;
@@ -504,11 +520,26 @@ function renderSpritesGrouped() {
 function resetQuiz() {
   stopTimer();
   state.found.clear();
-  timerEl.textContent = "00:00";
+  setTimerText("00:00");
   inputEl.value = "";
+  inputEl.focus();
   updateStats();
   renderSprites();
   clearState();
+}
+
+function confirmReset() {
+  const total = state.names.length;
+  const found = state.names.filter((name) => state.found.has(name)).length;
+  if (total && found) {
+    const ok = window.confirm(
+      `Reset the quiz? This will clear ${found} found Pokemon and the timer.`
+    );
+    if (!ok) return;
+  } else if (!window.confirm("Reset the quiz?")) {
+    return;
+  }
+  resetQuiz();
 }
 
 async function openInfoModal(entry) {
@@ -1074,7 +1105,8 @@ async function loadPokemon() {
 inputEl.addEventListener("input", handleInputEvent);
 inputEl.addEventListener("keydown", handleKeydown);
 inputEl.addEventListener("input", handleLiveMatch);
-resetBtn.addEventListener("click", resetQuiz);
+resetBtn.addEventListener("click", confirmReset);
+if (resetBtnCompact) resetBtnCompact.addEventListener("click", confirmReset);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
 if (groupFilter) groupFilter.addEventListener("change", renderSprites);
 if (outlineToggle) {
@@ -1097,19 +1129,28 @@ if (compactToggle) {
 
 if (filtersToggle) {
   document.body.classList.add("sidebar-collapsed");
-  filtersToggle.textContent = "Show Settings";
-  filtersToggle.addEventListener("click", () => {
+  const updateSettingsLabel = (collapsed) => {
+    const label = collapsed ? "Show Settings" : "Hide Settings";
+    if (filtersToggle) filtersToggle.textContent = label;
+    if (filtersToggleCompact) filtersToggleCompact.textContent = label;
+  };
+  updateSettingsLabel(true);
+  const toggleSettings = () => {
     const collapsed = document.body.classList.toggle("sidebar-collapsed");
-    filtersToggle.textContent = collapsed ? "Show Settings" : "Hide Settings";
+    updateSettingsLabel(collapsed);
     saveSettings();
-  });
+  };
+  filtersToggle.addEventListener("click", toggleSettings);
+  if (filtersToggleCompact) filtersToggleCompact.addEventListener("click", toggleSettings);
 }
 
 if (settingsClose) {
   settingsClose.addEventListener("click", () => {
     document.body.classList.add("sidebar-collapsed");
     if (filtersToggle) filtersToggle.textContent = "Show Settings";
+    if (filtersToggleCompact) filtersToggleCompact.textContent = "Show Settings";
     saveSettings();
+    if (inputEl) inputEl.focus();
   });
 }
 
@@ -1158,6 +1199,23 @@ if (infoClose) infoClose.addEventListener("click", closeInfoModal);
 if (infoModal) {
   infoModal.addEventListener("click", (event) => {
     if (event.target === infoModal) closeInfoModal();
+  });
+}
+
+if (inputEl) {
+  inputEl.focus();
+  document.addEventListener("click", (event) => {
+    if (!inputEl) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (
+      target.closest(
+        "input, textarea, select, button, a, label, .sidebar, .modal"
+      )
+    ) {
+      return;
+    }
+    inputEl.focus();
   });
 }
 

@@ -158,6 +158,19 @@ body.dark-mode {
   justify-content: flex-end;
 }
 
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.compact-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .sidebar-collapsed .sidebar {
   transform: translateX(-120%);
   opacity: 0;
@@ -270,6 +283,10 @@ body.dark-mode {
   color: var(--muted);
 }
 
+.compact-stats {
+  display: none;
+}
+
 #name-input {
   margin-top: 12px;
   width: 100%;
@@ -279,6 +296,11 @@ body.dark-mode {
   font-size: 1.05rem;
   background: var(--surface-3);
   color: var(--ink);
+}
+
+#name-input:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .status {
@@ -712,6 +734,36 @@ body.dark-mode .sprite-card--hidden {
   box-shadow: var(--shadow);
   padding: 6px 8px;
   border-radius: 8px;
+}
+
+.compact-mode .compact-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+
+.compact-mode .compact-stats .stat {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px 8px;
+  box-shadow: none;
+}
+
+.compact-mode .compact-stats .label {
+  font-size: 0.6rem;
+  letter-spacing: 1.4px;
+}
+
+.compact-mode .compact-stats .value {
+  font-size: 0.9rem;
+}
+
+.compact-mode #reset-btn-compact {
+  height: 100%;
+  align-self: stretch;
 }
 
 .compact-mode #name-input {
