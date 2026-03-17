@@ -41,6 +41,8 @@ const settingsClose = document.getElementById("settings-close");
 const speciesUrl = "https://pokeapi.co/api/v2/pokemon-species?limit=2000";
 const generationUrl = "https://pokeapi.co/api/v2/generation?limit=40";
 const typeUrl = "https://pokeapi.co/api/v2/type?limit=40";
+const typeIconBase =
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/small/";
 const spriteFallback =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
 const criesLatestBase =
@@ -399,28 +401,54 @@ async function loadTypes() {
         if (!typeMap.has(name)) typeMap.set(name, new Set());
         typeMap.get(name).add(typeData.name);
       });
-      return { name: typeData.name, label: prettifyName(typeData.name), names };
+      return {
+        name: typeData.name,
+        label: prettifyName(typeData.name),
+        names,
+        id: typeData.id
+      };
     })
   );
   return { entries: entries.filter(Boolean), typeMap };
 }
 
-function populateFilterOptions(selectEl, entries, allLabel) {
-  if (!selectEl) return;
-  selectEl.innerHTML = "";
-  const allOption = document.createElement("option");
-  allOption.value = "all";
-  allOption.textContent = allLabel;
-  selectEl.appendChild(allOption);
+function populateTypeChips(entries) {
+  if (!typeFilter) return;
+  typeFilter.innerHTML = "";
+
+  const allChip = createChipWithHandler("All", "all", true, onTypeChipChange);
+  typeFilter.appendChild(allChip);
+
   entries
     .slice()
-    .sort((a, b) => a.label.localeCompare(b.label))
+    .sort((a, b) => (a.id || 999) - (b.id || 999))
     .forEach((entry) => {
-      const option = document.createElement("option");
-      option.value = entry.name;
-      option.textContent = entry.label;
-      selectEl.appendChild(option);
+      const chip = document.createElement("label");
+      chip.className = "chip chip--type";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = entry.name;
+      const icon = document.createElement("img");
+      icon.alt = `${entry.label} type`;
+      icon.src = `${typeIconBase}${entry.id}.png`;
+      const text = document.createElement("span");
+      text.textContent = entry.label;
+      chip.appendChild(input);
+      chip.appendChild(icon);
+      chip.appendChild(text);
+      input.addEventListener("change", onTypeChipChange);
+      typeFilter.appendChild(chip);
     });
+  syncChipGroup(typeFilter);
+}
+
+function onTypeChipChange(e) {
+  handleChipGroupChange(typeFilter, e);
+  applyFilters();
+}
+
+function getSelectedTypes() {
+  return getSelectedFromChips(typeFilter);
 }
 
 function populateGenChips(entries) {
@@ -437,9 +465,14 @@ function populateGenChips(entries) {
       const chip = createChip(formatGenerationLabel(entry.name), entry.name, false);
       genFilter.appendChild(chip);
     });
+  syncChipGroup(genFilter);
 }
 
 function createChip(label, value, checked) {
+  return createChipWithHandler(label, value, checked, onGenChipChange);
+}
+
+function createChipWithHandler(label, value, checked, handler) {
   const chip = document.createElement("label");
   chip.className = "chip";
   const input = document.createElement("input");
@@ -450,46 +483,63 @@ function createChip(label, value, checked) {
   text.textContent = label;
   chip.appendChild(input);
   chip.appendChild(text);
-  input.addEventListener("change", onGenChipChange);
+  input.addEventListener("change", handler);
   return chip;
 }
 
 function onGenChipChange(e) {
-  const value = e.target.value;
-  if (!genFilter) return;
-  const checkboxes = [...genFilter.querySelectorAll("input[type='checkbox']")];
-  const allBox = checkboxes.find((box) => box.value === "all");
-  const otherBoxes = checkboxes.filter((box) => box.value !== "all");
-
-  if (value === "all" && e.target.checked) {
-    otherBoxes.forEach((box) => (box.checked = false));
-  } else if (value !== "all" && e.target.checked && allBox) {
-    allBox.checked = false;
-  }
-
-  if (value !== "all") {
-    const anyChecked = otherBoxes.some((box) => box.checked);
-    if (!anyChecked && allBox) {
-      allBox.checked = true;
-    }
-  }
-
+  handleChipGroupChange(genFilter, e);
   applyFilters();
 }
 
 function getSelectedGenerations() {
-  if (!genFilter) return [];
-  const checkboxes = [...genFilter.querySelectorAll("input[type='checkbox']")];
-  const allBox = checkboxes.find((box) => box.value === "all");
-  if (allBox && allBox.checked) return [];
-  return checkboxes
-    .filter((box) => box.value !== "all" && box.checked)
-    .map((box) => box.value);
+  return getSelectedFromChips(genFilter);
+}
+
+function getChipGroupBoxes(container) {
+  if (!container) return { allBox: null, others: [] };
+  const checkboxes = [...container.querySelectorAll("input[type='checkbox']")];
+  const allBox = checkboxes.find((box) => box.value === "all") || null;
+  const others = checkboxes.filter((box) => box.value !== "all");
+  return { allBox, others };
+}
+
+function handleChipGroupChange(container, e) {
+  const { allBox, others } = getChipGroupBoxes(container);
+  if (!allBox) return;
+  const value = e.target.value;
+  if (value === "all" && e.target.checked) {
+    allBox.checked = true;
+    others.forEach((box) => (box.checked = true));
+  } else if (value === "all" && !e.target.checked) {
+    others.forEach((box) => (box.checked = false));
+  } else if (value !== "all" && allBox.checked) {
+    allBox.checked = false;
+  }
+
+  if (value !== "all") {
+    const allChecked = others.every((box) => box.checked);
+    allBox.checked = allChecked;
+  }
+}
+
+function getSelectedFromChips(container) {
+  const { allBox, others } = getChipGroupBoxes(container);
+  if (!allBox) return [];
+  if (allBox.checked) return [];
+  return others.filter((box) => box.checked).map((box) => box.value);
+}
+
+function syncChipGroup(container) {
+  const { allBox, others } = getChipGroupBoxes(container);
+  if (allBox && allBox.checked) {
+    others.forEach((box) => (box.checked = true));
+  }
 }
 
 function applyFilters() {
   const selectedGens = getSelectedGenerations();
-  const typeValue = typeFilter ? typeFilter.value : "all";
+  const selectedTypes = getSelectedTypes();
   let filtered = state.allNames.slice();
 
   if (selectedGens.length) {
@@ -501,9 +551,13 @@ function applyFilters() {
     filtered = filtered.filter((name) => genUnion.has(name));
   }
 
-  if (typeValue !== "all") {
-    const typeSet = state.typeIndex.get(typeValue) || new Set();
-    filtered = filtered.filter((name) => typeSet.has(name));
+  if (selectedTypes.length) {
+    const typeUnion = new Set();
+    selectedTypes.forEach((type) => {
+      const typeSet = state.typeIndex.get(type) || new Set();
+      typeSet.forEach((name) => typeUnion.add(name));
+    });
+    filtered = filtered.filter((name) => typeUnion.has(name));
   }
 
   state.names = filtered;
@@ -511,6 +565,8 @@ function applyFilters() {
   renderFound();
   renderSprites();
   buildGuessIndex();
+  syncChipGroup(typeFilter);
+  syncChipGroup(genFilter);
 }
 
 function buildGuessIndex() {
@@ -648,7 +704,7 @@ async function loadPokemon() {
     });
 
     populateGenChips(generationData.entries);
-    populateFilterOptions(typeFilter, typeData.entries, "All Types");
+    populateTypeChips(typeData.entries);
     applyFilters();
     buildGuessIndex();
     statusEl.textContent = "Start typing to guess Pokemon names.";
@@ -667,7 +723,6 @@ inputEl.addEventListener("keydown", handleKeydown);
 inputEl.addEventListener("input", handleLiveMatch);
 resetBtn.addEventListener("click", resetQuiz);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
-if (typeFilter) typeFilter.addEventListener("change", applyFilters);
 if (groupFilter) groupFilter.addEventListener("change", renderSprites);
 if (outlineToggle) {
   document.body.classList.add("outlines-off");

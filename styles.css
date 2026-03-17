@@ -294,6 +294,10 @@ body {
   gap: 6px;
 }
 
+.chip-grid--types {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -310,6 +314,16 @@ body {
 
 .chip input {
   accent-color: var(--accent);
+}
+
+.chip--type {
+  justify-content: flex-start;
+}
+
+.chip--type img {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
 }
 
 .toggle {
