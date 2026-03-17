@@ -835,8 +835,9 @@ body.dark-mode .sprite-card--hidden {
 }
 
 .compact-mode .sprite-card img {
-  width: 48px;
-  height: 48px;
+  width: 60px;
+  height: 60px;
+  position: absolute;
 }
 
 .compact-mode .sprite-card__name {
@@ -886,9 +887,9 @@ body.dark-mode .sprite-card--hidden {
 }
 
 .compact-mode.outlines-off .sprite-card--hidden::before {
-  opacity: 1;
-  width: 48px;
-  height: 48px;
+  opacity: 0.5;
+  width: 32px;
+  height: 32px;
   inset: auto;
   top: 50%;
   left: 50%;
