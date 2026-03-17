@@ -9,7 +9,6 @@
   guessPrefixes: new Set(),
   namesByLang: new Map(),
   found: new Set(),
-  audioCtx: null,
   cryAudio: null,
   isRestoring: false,
   lastSavedSec: -1,
@@ -28,8 +27,6 @@ const retryBtn = document.getElementById("retry-btn");
 const genFilter = document.getElementById("gen-filter");
 const typeFilter = document.getElementById("type-filter");
 const groupFilter = document.getElementById("group-filter");
-const foundList = document.getElementById("found-list");
-const missingList = document.getElementById("missing-list");
 const spriteGrid = document.getElementById("sprite-grid");
 const progressBar = document.getElementById("progress-bar");
 const progressValue = document.getElementById("progress-value");
@@ -64,6 +61,7 @@ const criesLatestBase =
 const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 const STORAGE_KEY = "pokequiz-state";
+const DEFAULT_STATUS = "Start typing to guess Pokemon names.";
 
 function normalizeName(value) {
   if (!value) return "";
@@ -299,18 +297,6 @@ function updateStats() {
   if (progressValue) progressValue.textContent = `${Math.round(progress)}%`;
 }
 
-function renderFound() {
-  foundList.innerHTML = "";
-  state.names
-    .filter((name) => state.found.has(name))
-    .map((name) => state.normalizedMap.get(name))
-    .sort()
-    .forEach((label) => {
-      const pill = document.createElement("span");
-      pill.textContent = label;
-      foundList.appendChild(pill);
-    });
-}
 
 function renderSprites() {
   if (!spriteGrid) return;
@@ -436,7 +422,6 @@ function resetQuiz() {
   timerEl.textContent = "00:00";
   inputEl.value = "";
   updateStats();
-  renderFound();
   renderSprites();
   clearState();
 }
@@ -560,7 +545,6 @@ function handleGuess(value) {
     const isNew = !state.found.has(canonical);
     state.found.add(canonical);
     updateStats();
-    renderFound();
     renderSprites();
     if (isNew) {
       playCry(canonical);
@@ -578,14 +562,14 @@ function showStatusHint(message) {
   if (statusHintTimeout) clearTimeout(statusHintTimeout);
   if (!message) {
     statusEl.classList.remove("hint");
-    statusEl.textContent = "Start typing to guess Pokemon names.";
+    statusEl.textContent = DEFAULT_STATUS;
     return;
   }
   statusEl.classList.add("hint");
   statusEl.textContent = message;
   statusHintTimeout = setTimeout(() => {
     statusEl.classList.remove("hint");
-    statusEl.textContent = "Start typing to guess Pokemon names.";
+    statusEl.textContent = DEFAULT_STATUS;
   }, 1500);
 }
 
@@ -841,7 +825,6 @@ function applyFilters() {
 
   state.names = filtered;
   updateStats();
-  renderFound();
   renderSprites();
   buildGuessIndex();
   syncChipGroup(typeFilter);
@@ -990,7 +973,7 @@ async function loadPokemon() {
     restoreState();
     applyFilters();
     buildGuessIndex();
-    statusEl.textContent = "Start typing to guess Pokemon names.";
+    statusEl.textContent = DEFAULT_STATUS;
   } catch (err) {
     const message =
       err && err.name === "AbortError"
