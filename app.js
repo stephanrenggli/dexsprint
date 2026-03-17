@@ -524,6 +524,7 @@ async function openInfoModal(entry) {
   if (infoSize) infoSize.textContent = "";
   if (infoAbilities) infoAbilities.textContent = "";
   infoModal.classList.remove("hidden");
+  playCry(entry.normalized || normalizeName(entry.label || ""));
 
   try {
     const details = await getPokedexInfo(entry);
