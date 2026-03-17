@@ -14,7 +14,8 @@
   lastSavedSec: -1,
   infoCache: new Map(),
   timerId: null,
-  startTime: null
+  startTime: null,
+  activeEntry: null
 };
 
 const totalCount = document.getElementById("total-count");
@@ -44,6 +45,7 @@ const criesToggle = document.getElementById("cries-toggle");
 const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
 const settingsClose = document.getElementById("settings-close");
 const showDexToggle = document.getElementById("show-dex-toggle");
+const shinyToggle = document.getElementById("shiny-toggle");
 const settingsReset = document.getElementById("settings-reset");
 const darkToggle = document.getElementById("dark-toggle");
 const themeChooser = document.getElementById("theme-chooser");
@@ -87,6 +89,10 @@ const THEMES = [
 ];
 const spriteFallback =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
+const spriteBase =
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/";
+const spriteShinyBase =
+  "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/";
 const criesLatestBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/";
 const criesLegacyBase =
@@ -164,6 +170,14 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function getSpriteForEntry(entry) {
+  if (!entry) return spriteFallback;
+  if (shinyToggle && shinyToggle.checked && entry.dexId) {
+    return `${spriteShinyBase}${entry.dexId}.png`;
+  }
+  return entry.sprite || spriteFallback;
 }
 
 function setTimerText(value) {
@@ -274,6 +288,7 @@ function saveSettings() {
     cries: criesToggle ? criesToggle.checked : false,
     legacyCries: legacyCriesToggle ? legacyCriesToggle.checked : false,
     showDex: showDexToggle ? showDexToggle.checked : false,
+    shiny: shinyToggle ? shinyToggle.checked : false,
     sidebarCollapsed: document.body.classList.contains("sidebar-collapsed"),
     dark: document.body.classList.contains("dark-mode"),
     theme: document.body.dataset.theme || DEFAULT_THEME
@@ -310,6 +325,7 @@ function restoreSettings() {
   if (criesToggle) criesToggle.checked = Boolean(data.cries);
   if (legacyCriesToggle) legacyCriesToggle.checked = Boolean(data.legacyCries);
   if (showDexToggle) showDexToggle.checked = Boolean(data.showDex);
+  if (shinyToggle) shinyToggle.checked = Boolean(data.shiny);
 }
 
 function resetSettings() {
@@ -323,6 +339,7 @@ function resetSettings() {
   if (criesToggle) criesToggle.checked = false;
   if (legacyCriesToggle) legacyCriesToggle.checked = false;
   if (showDexToggle) showDexToggle.checked = false;
+  if (shinyToggle) shinyToggle.checked = false;
   if (outlineToggle) outlineToggle.checked = false;
   if (darkToggle) darkToggle.checked = false;
   setTheme(DEFAULT_THEME, false);
@@ -418,7 +435,7 @@ function renderSprites() {
     card.dataset.pokemon = entry.normalized;
 
     const img = document.createElement("img");
-    img.src = entry.sprite || spriteFallback;
+    img.src = getSpriteForEntry(entry);
     img.alt = isFound ? entry.label : "Unknown Pokemon";
     img.loading = "lazy";
     img.decoding = "async";
@@ -498,7 +515,7 @@ function renderSpritesGrouped() {
         card.dataset.pokemon = entry.normalized;
 
         const img = document.createElement("img");
-        img.src = entry.sprite || spriteFallback;
+        img.src = getSpriteForEntry(entry);
         img.alt = isFound ? entry.label : "Unknown Pokemon";
         img.loading = "lazy";
         img.decoding = "async";
@@ -548,7 +565,7 @@ async function openInfoModal(entry) {
   if (!entry || !infoModal) return;
   if (infoTitle) infoTitle.textContent = entry.label;
   if (infoSprite) {
-    infoSprite.src = entry.sprite || spriteFallback;
+    infoSprite.src = getSpriteForEntry(entry);
     infoSprite.alt = entry.label;
   }
   if (infoMeta) infoMeta.textContent = entry.generation || "";
@@ -556,6 +573,7 @@ async function openInfoModal(entry) {
   if (infoGenus) infoGenus.textContent = "Loading details...";
   if (infoSize) infoSize.textContent = "";
   if (infoAbilities) infoAbilities.textContent = "";
+  state.activeEntry = entry;
   infoModal.classList.remove("hidden");
   playCry(entry.normalized || normalizeName(entry.label || ""));
 
@@ -574,6 +592,7 @@ async function openInfoModal(entry) {
 function closeInfoModal() {
   if (!infoModal) return;
   infoModal.classList.add("hidden");
+  state.activeEntry = null;
 }
 
 function renderTypeSprites(entry) {
@@ -1016,10 +1035,10 @@ async function loadPokemon() {
           : [];
       if (entry.url) {
         const match = entry.url.match(/\/pokemon-species\/(\d+)\//);
-        if (match) {
-          sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${match[1]}.png`;
+      if (match) {
+          sprite = `${spriteBase}${match[1]}.png`;
           entry.cryId = match[1];
-        }
+      }
       }
       state.meta.set(normalized, {
         label,
@@ -1159,6 +1178,17 @@ if (criesToggle) {
 if (showDexToggle) {
   showDexToggle.addEventListener("change", () => {
     renderSprites();
+    saveSettings();
+  });
+}
+
+if (shinyToggle) {
+  shinyToggle.checked = false;
+  shinyToggle.addEventListener("change", () => {
+    renderSprites();
+    if (infoModal && !infoModal.classList.contains("hidden") && state.activeEntry) {
+      if (infoSprite) infoSprite.src = getSpriteForEntry(state.activeEntry);
+    }
     saveSettings();
   });
 }
