@@ -172,6 +172,26 @@ function formatTime(seconds) {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 }
 
+function focusInput(preventScroll = true) {
+  if (!inputEl) return;
+  const scrollY = window.scrollY;
+  try {
+    if (preventScroll) {
+      inputEl.focus({ preventScroll: true });
+    } else {
+      inputEl.focus();
+    }
+  } catch (err) {
+    inputEl.focus();
+  }
+  requestAnimationFrame(() => {
+    if (window.scrollY !== scrollY) window.scrollTo(0, scrollY);
+  });
+  setTimeout(() => {
+    if (window.scrollY !== scrollY) window.scrollTo(0, scrollY);
+  }, 0);
+}
+
 function getSpriteForEntry(entry) {
   if (!entry) return spriteFallback;
   if (shinyToggle && shinyToggle.checked && entry.dexId) {
@@ -197,13 +217,64 @@ async function playCry(canonical) {
     }
     state.cryAudio.pause();
     const useLegacy = legacyCriesToggle && legacyCriesToggle.checked;
-    const base = useLegacy ? criesLegacyBase : criesLatestBase;
-    state.cryAudio.src = `${base}${entry.cryId}.ogg`;
+    const legacyUrl = `${criesLegacyBase}${entry.cryId}.ogg`;
+    const modernUrl = `${criesLatestBase}${entry.cryId}.ogg`;
     state.cryAudio.volume = 0.1;
+    if (useLegacy) {
+      await playCryWithFallback(legacyUrl, modernUrl);
+      return;
+    }
+    state.cryAudio.src = modernUrl;
     await state.cryAudio.play();
   } catch (err) {
     // no-op: audio is optional
   }
+}
+
+async function playCryWithFallback(legacyUrl, modernUrl) {
+  if (!state.cryAudio) return;
+  return new Promise((resolve, reject) => {
+    const audio = state.cryAudio;
+    let settled = false;
+
+    const cleanup = () => {
+      audio.removeEventListener("error", onLegacyError);
+      audio.removeEventListener("playing", onPlaying);
+    };
+
+    const onPlaying = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+
+    const onLegacyError = () => {
+      audio.removeEventListener("error", onLegacyError);
+      audio.src = modernUrl;
+      audio
+        .play()
+        .then(() => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          resolve();
+        })
+        .catch((err) => {
+          if (settled) return;
+          settled = true;
+          cleanup();
+          reject(err);
+        });
+    };
+
+    audio.addEventListener("playing", onPlaying, { once: true });
+    audio.addEventListener("error", onLegacyError, { once: true });
+    audio.src = legacyUrl;
+    audio.play().catch(() => {
+      // If play fails due to autoplay restrictions, don't force fallback.
+    });
+  });
 }
 
 function startTimer(preserveStart = false) {
@@ -260,7 +331,10 @@ function restoreState() {
   }
   state.isRestoring = true;
 
-  if (groupFilter && data.group) groupFilter.value = data.group;
+  if (groupFilter && data.group) {
+    const allowed = new Set(["none", "generation", "type"]);
+    groupFilter.value = allowed.has(data.group) ? data.group : "generation";
+  }
 
   setChipGroupSelections(genFilter, data.gens || []);
   setChipGroupSelections(typeFilter, data.types || []);
@@ -541,7 +615,7 @@ function resetQuiz() {
   state.found.clear();
   setTimerText("00:00");
   inputEl.value = "";
-  inputEl.focus();
+  focusInput();
   updateStats();
   renderSprites();
   clearState();
@@ -1223,7 +1297,7 @@ if (settingsClose) {
     if (filtersToggle) filtersToggle.textContent = "Show Settings";
     if (filtersToggleCompact) filtersToggleCompact.textContent = "Show Settings";
     saveSettings();
-    if (inputEl) inputEl.focus();
+    focusInput();
   });
 }
 
@@ -1287,20 +1361,32 @@ if (infoModal) {
 }
 
 if (inputEl) {
-  inputEl.focus();
+  focusInput();
   document.addEventListener("click", (event) => {
     if (!inputEl) return;
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     if (
       target.closest(
-        "input, textarea, select, button, a, label, .sidebar, .modal"
+        "input, textarea, select, button, a, label, .sidebar, .modal, .sprite-board, .sprite-card"
       )
     ) {
       return;
     }
-    inputEl.focus();
+    focusInput();
   });
+}
+
+if (inputEl) {
+  const inputWrap = inputEl.closest(".input-wrap");
+  if (inputWrap) {
+    const onScroll = () => {
+      const shouldFloat = window.scrollY > 140;
+      inputWrap.classList.toggle("is-floating", shouldFloat);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+  }
 }
 
 if ("serviceWorker" in navigator) {

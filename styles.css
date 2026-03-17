@@ -153,11 +153,6 @@ body.dark-mode {
   color: var(--muted);
 }
 
-.sidebar-toggle-row {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .hero-actions {
   display: flex;
   gap: 10px;
@@ -247,7 +242,7 @@ body.dark-mode {
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 20px rgba(255, 75, 75, 0.2);
+  box-shadow: 0 12px 20px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .btn.ghost {
@@ -274,7 +269,19 @@ body.dark-mode {
   padding: 20px 24px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
+  position: sticky;
+  position: -webkit-sticky;
+  top: 16px;
+  z-index: 20;
 }
+
+.input-wrap.is-floating {
+  position: sticky;
+  top: 16px;
+  z-index: 20;
+  box-shadow: 0 18px 36px rgba(28, 27, 25, 0.18);
+}
+
 
 .input-label {
   font-size: 0.85rem;
@@ -453,11 +460,15 @@ body.dark-mode {
 
 /* Progress */
 .progress {
-  height: 12px;
+  height: 18px;
   background: var(--surface-4);
   border-radius: 999px;
   overflow: hidden;
   position: relative;
+}
+
+.progress--inline {
+  margin-top: 12px;
 }
 
 .progress-bar {
@@ -553,18 +564,6 @@ body.dark-mode {
   object-fit: contain;
 }
 
-
-/* Lists */
-.lists {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 24px;
-}
-
-.lists h2 {
-  margin: 0 0 12px;
-  font-size: 1.1rem;
-}
 
 /* Sprites */
 .sprite-board {
@@ -734,8 +733,7 @@ body.dark-mode .sprite-card--hidden {
 
 .compact-mode .hero,
 .compact-mode .hero-card,
-.compact-mode .progress,
-.compact-mode .lists {
+.compact-mode .progress {
   display: none;
 }
 
@@ -745,6 +743,7 @@ body.dark-mode .sprite-card--hidden {
   box-shadow: var(--shadow);
   padding: 6px 8px;
   border-radius: 8px;
+  top: 8px;
 }
 
 .compact-mode .compact-stats {
