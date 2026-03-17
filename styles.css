@@ -86,16 +86,16 @@ body {
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-.sidebar-header h2 {
-  margin: 0;
-  font-size: 1rem;
-}
-
 .sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.sidebar-header h2 {
+  margin: 0;
+  font-size: 1rem;
 }
 
 .sidebar-section {
@@ -178,6 +178,7 @@ body {
   font-weight: 700;
 }
 
+/* Buttons */
 .btn {
   background: var(--accent);
   color: #fff;
@@ -205,6 +206,7 @@ body {
   font-size: 0.8rem;
 }
 
+/* Quiz */
 .quiz {
   margin-top: 28px;
   display: grid;
@@ -254,6 +256,7 @@ body {
   margin: 0;
 }
 
+/* Filters */
 .filters {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -332,6 +335,7 @@ body {
   font-weight: 500;
 }
 
+/* Progress */
 .progress {
   height: 12px;
   background: #f2e2c9;
@@ -358,6 +362,7 @@ body {
   pointer-events: none;
 }
 
+/* Lists */
 .lists {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -369,6 +374,7 @@ body {
   font-size: 1.1rem;
 }
 
+/* Sprites */
 .sprite-board {
   background: #fffdf7;
   border-radius: 18px;
@@ -435,16 +441,28 @@ body {
   padding: 8px 6px 10px;
   text-align: center;
   display: grid;
-  place-items: center;
+  grid-template-rows: 48px auto;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  align-items: center;
   gap: 6px;
   min-height: 88px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  z-index: 1;
+  transform-origin: center;
 }
 
 .sprite-card img {
   width: 48px;
   height: 48px;
-  margin: 0 auto;
+  margin: 0;
   display: block;
+  grid-row: 1;
+  grid-column: 1;
+  justify-self: center;
+  transition: transform 0.15s ease;
+  transform-origin: center;
 }
 
 .sprite-card__name {
@@ -456,6 +474,10 @@ body {
   white-space: nowrap;
   display: block;
   position: relative;
+  justify-self: center;
+  text-align: center;
+  grid-row: 2;
+  grid-column: 1;
 }
 
 .sprite-card--hidden {
@@ -478,6 +500,22 @@ body {
   background-repeat: no-repeat;
   background-position: center 36%;
   background-size: 40px 40px;
+}
+
+.sprite-card:not(.sprite-card--hidden):hover {
+  transform: scale(1.08);
+  box-shadow: 0 14px 24px rgba(28, 27, 25, 0.18);
+  z-index: 3;
+}
+
+.sprite-card:not(.sprite-card--hidden):hover .sprite-card__name {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.sprite-card:not(.sprite-card--hidden):hover img {
+  transform: scale(1.15);
 }
 
 /* Compact mode */
@@ -615,13 +653,6 @@ body {
 
 .compact-mode.outlines-off .sprite-card--hidden::before {
   opacity: 1;
-}
-
-.compact-mode.outlines-off .sprite-card--hidden img {
-  opacity: 0;
-}
-
-.compact-mode.outlines-off .sprite-card--hidden::before {
   width: 48px;
   height: 48px;
   inset: auto;
@@ -630,6 +661,25 @@ body {
   transform: translate(-50%, -50%);
 }
 
+.compact-mode.outlines-off .sprite-card--hidden img {
+  opacity: 0;
+}
+
+.compact-mode .sprite-card:not(.sprite-card--hidden) {
+  box-shadow: none;
+  transform: none;
+}
+
+.compact-mode .sprite-card:not(.sprite-card--hidden):hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.compact-mode .sprite-card:not(.sprite-card--hidden):hover img {
+  transform: scale(1.2);
+}
+
+/* Lists */
 .pill-list {
   display: flex;
   flex-wrap: wrap;
