@@ -11,6 +11,8 @@
   found: new Set(),
   audioCtx: null,
   cryAudio: null,
+  isRestoring: false,
+  lastSavedSec: -1,
   timerId: null,
   startTime: null
 };
@@ -49,6 +51,7 @@ const criesLatestBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/";
 const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
+const STORAGE_KEY = "pokequiz-state";
 
 function normalizeName(value) {
   if (!value) return "";
@@ -143,13 +146,20 @@ async function playCry(canonical) {
   }
 }
 
-function startTimer() {
+function startTimer(preserveStart = false) {
   if (state.timerId) return;
-  state.startTime = Date.now();
+  if (!preserveStart || !state.startTime) {
+    state.startTime = Date.now();
+  }
   state.timerId = setInterval(() => {
     const delta = Math.floor((Date.now() - state.startTime) / 1000);
     timerEl.textContent = formatTime(delta);
+    if (delta !== state.lastSavedSec && delta % 5 === 0) {
+      state.lastSavedSec = delta;
+      saveState();
+    }
   }, 1000);
+  saveState();
 }
 
 function stopTimer() {
@@ -157,6 +167,81 @@ function stopTimer() {
     clearInterval(state.timerId);
     state.timerId = null;
   }
+}
+
+function saveState() {
+  if (state.isRestoring) return;
+  const elapsed = state.startTime
+    ? Math.floor((Date.now() - state.startTime) / 1000)
+    : 0;
+  const payload = {
+    found: [...state.found],
+    elapsed,
+    running: Boolean(state.timerId),
+    group: groupFilter ? groupFilter.value : "none",
+    gens: getSelectedGenerations(),
+    types: getSelectedTypes(),
+    compact: document.body.classList.contains("compact-mode"),
+    outlinesOff: document.body.classList.contains("outlines-off"),
+    cries: criesToggle ? criesToggle.checked : true,
+    legacyCries: legacyCriesToggle ? legacyCriesToggle.checked : false,
+    sidebarCollapsed: document.body.classList.contains("sidebar-collapsed")
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function clearState() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+function restoreState() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return false;
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (err) {
+    return false;
+  }
+  state.isRestoring = true;
+
+  if (data.compact) {
+    document.body.classList.add("compact-mode");
+    if (compactToggle) compactToggle.textContent = "Normal Mode";
+  }
+  if (data.outlinesOff) {
+    document.body.classList.add("outlines-off");
+    if (outlineToggle) outlineToggle.textContent = "Show Outlines";
+  }
+  if (data.sidebarCollapsed) {
+    document.body.classList.add("sidebar-collapsed");
+    if (filtersToggle) filtersToggle.textContent = "Show Settings";
+  } else if (filtersToggle) {
+    filtersToggle.textContent = "Hide Settings";
+  }
+
+  if (criesToggle) criesToggle.checked = data.cries !== false;
+  if (legacyCriesToggle) legacyCriesToggle.checked = Boolean(data.legacyCries);
+
+  if (groupFilter && data.group) groupFilter.value = data.group;
+
+  setChipGroupSelections(genFilter, data.gens || []);
+  setChipGroupSelections(typeFilter, data.types || []);
+
+  if (Array.isArray(data.found)) {
+    state.found = new Set(data.found);
+  }
+
+  if (data.elapsed) {
+    timerEl.textContent = formatTime(data.elapsed);
+    if (data.running) {
+      state.startTime = Date.now() - data.elapsed * 1000;
+      startTimer(true);
+    }
+  }
+
+  state.isRestoring = false;
+  return true;
 }
 
 function updateStats() {
@@ -307,6 +392,7 @@ function resetQuiz() {
   updateStats();
   renderFound();
   renderSprites();
+  clearState();
 }
 
 function handleGuess(value) {
@@ -319,7 +405,10 @@ function handleGuess(value) {
     updateStats();
     renderFound();
     renderSprites();
-    if (isNew) playCry(canonical);
+    if (isNew) {
+      playCry(canonical);
+      saveState();
+    }
   }
 }
 
@@ -537,6 +626,19 @@ function syncChipGroup(container) {
   }
 }
 
+function setChipGroupSelections(container, selectedValues) {
+  const { allBox, others } = getChipGroupBoxes(container);
+  if (!allBox) return;
+  if (!selectedValues || selectedValues.length === 0) {
+    allBox.checked = true;
+    others.forEach((box) => (box.checked = true));
+    return;
+  }
+  allBox.checked = false;
+  const selectedSet = new Set(selectedValues);
+  others.forEach((box) => (box.checked = selectedSet.has(box.value)));
+}
+
 function applyFilters() {
   const selectedGens = getSelectedGenerations();
   const selectedTypes = getSelectedTypes();
@@ -567,6 +669,7 @@ function applyFilters() {
   buildGuessIndex();
   syncChipGroup(typeFilter);
   syncChipGroup(genFilter);
+  saveState();
 }
 
 function buildGuessIndex() {
@@ -705,6 +808,7 @@ async function loadPokemon() {
 
     populateGenChips(generationData.entries);
     populateTypeChips(typeData.entries);
+    restoreState();
     applyFilters();
     buildGuessIndex();
     statusEl.textContent = "Start typing to guess Pokemon names.";
@@ -730,6 +834,7 @@ if (outlineToggle) {
   outlineToggle.addEventListener("click", () => {
     const isOff = document.body.classList.toggle("outlines-off");
     outlineToggle.textContent = isOff ? "Show Outlines" : "Hide Outlines";
+    saveState();
   });
 }
 
@@ -738,6 +843,7 @@ if (compactToggle) {
   compactToggle.addEventListener("click", () => {
     const isCompact = document.body.classList.toggle("compact-mode");
     compactToggle.textContent = isCompact ? "Normal Mode" : "Compact Mode";
+    saveState();
   });
 }
 
@@ -747,6 +853,7 @@ if (filtersToggle) {
   filtersToggle.addEventListener("click", () => {
     const collapsed = document.body.classList.toggle("sidebar-collapsed");
     filtersToggle.textContent = collapsed ? "Show Settings" : "Hide Settings";
+    saveState();
   });
 }
 
@@ -754,13 +861,19 @@ if (settingsClose) {
   settingsClose.addEventListener("click", () => {
     document.body.classList.add("sidebar-collapsed");
     if (filtersToggle) filtersToggle.textContent = "Show Settings";
+    saveState();
   });
 }
 
 if (legacyCriesToggle) {
   legacyCriesToggle.addEventListener("change", () => {
     if (state.cryAudio) state.cryAudio.pause();
+    saveState();
   });
+}
+
+if (criesToggle) {
+  criesToggle.addEventListener("change", saveState);
 }
 
 loadPokemon();
