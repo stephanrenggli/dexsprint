@@ -118,6 +118,14 @@ body.dark-mode {
   overflow-y: auto;
   z-index: 50;
   transition: transform 0.2s ease, opacity 0.2s ease;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .sidebar-header {
@@ -312,7 +320,10 @@ body.dark-mode {
   box-shadow: var(--shadow);
   display: grid;
   gap: 8px;
-  min-height: 160px;
+}
+
+.filter--select {
+  min-height: 0;
 }
 
 .filter label {
@@ -338,7 +349,7 @@ body.dark-mode {
 }
 
 .chip-grid--types {
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .chip {
@@ -363,7 +374,19 @@ body.dark-mode {
   justify-content: flex-start;
 }
 
+.chip--type input {
+  order: 1;
+}
+
+.chip--type span {
+  order: 2;
+  text-align: right;
+  flex: 1;
+}
+
 .chip--type img {
+  order: 3;
+  margin-left: auto;
   width: 16px;
   height: 16px;
 }
