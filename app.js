@@ -40,6 +40,7 @@ const criesToggle = document.getElementById("cries-toggle");
 const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
 const settingsClose = document.getElementById("settings-close");
 const showDexToggle = document.getElementById("show-dex-toggle");
+const settingsReset = document.getElementById("settings-reset");
 
 const speciesUrl = "https://pokeapi.co/api/v2/pokemon-species?limit=2000";
 const generationUrl = "https://pokeapi.co/api/v2/generation?limit=40";
@@ -181,13 +182,7 @@ function saveState() {
     running: Boolean(state.timerId),
     group: groupFilter ? groupFilter.value : "none",
     gens: getSelectedGenerations(),
-    types: getSelectedTypes(),
-    compact: document.body.classList.contains("compact-mode"),
-    outlinesOff: document.body.classList.contains("outlines-off"),
-    cries: criesToggle ? criesToggle.checked : true,
-    legacyCries: legacyCriesToggle ? legacyCriesToggle.checked : false,
-    showDex: showDexToggle ? showDexToggle.checked : false,
-    sidebarCollapsed: document.body.classList.contains("sidebar-collapsed")
+    types: getSelectedTypes()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -206,23 +201,6 @@ function restoreState() {
     return false;
   }
   state.isRestoring = true;
-
-  if (data.compact) {
-    document.body.classList.add("compact-mode");
-    if (compactToggle) compactToggle.textContent = "Normal Mode";
-  }
-  if (outlineToggle) outlineToggle.checked = !data.outlinesOff;
-  document.body.classList.toggle("outlines-off", Boolean(data.outlinesOff));
-  if (data.sidebarCollapsed) {
-    document.body.classList.add("sidebar-collapsed");
-    if (filtersToggle) filtersToggle.textContent = "Show Settings";
-  } else if (filtersToggle) {
-    filtersToggle.textContent = "Hide Settings";
-  }
-
-  if (criesToggle) criesToggle.checked = data.cries !== false;
-  if (legacyCriesToggle) legacyCriesToggle.checked = Boolean(data.legacyCries);
-  if (showDexToggle) showDexToggle.checked = Boolean(data.showDex);
 
   if (groupFilter && data.group) groupFilter.value = data.group;
 
@@ -243,6 +221,61 @@ function restoreState() {
 
   state.isRestoring = false;
   return true;
+}
+
+function saveSettings() {
+  const payload = {
+    compact: document.body.classList.contains("compact-mode"),
+    outlinesOff: document.body.classList.contains("outlines-off"),
+    cries: criesToggle ? criesToggle.checked : false,
+    legacyCries: legacyCriesToggle ? legacyCriesToggle.checked : false,
+    showDex: showDexToggle ? showDexToggle.checked : false,
+    sidebarCollapsed: document.body.classList.contains("sidebar-collapsed")
+  };
+  localStorage.setItem(`${STORAGE_KEY}:settings`, JSON.stringify(payload));
+}
+
+function restoreSettings() {
+  const raw = localStorage.getItem(`${STORAGE_KEY}:settings`);
+  if (!raw) return;
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (err) {
+    return;
+  }
+  if (data.compact) {
+    document.body.classList.add("compact-mode");
+    if (compactToggle) compactToggle.textContent = "Normal Mode";
+  }
+  if (outlineToggle) outlineToggle.checked = !data.outlinesOff;
+  document.body.classList.toggle("outlines-off", Boolean(data.outlinesOff));
+  if (data.sidebarCollapsed) {
+    document.body.classList.add("sidebar-collapsed");
+    if (filtersToggle) filtersToggle.textContent = "Show Settings";
+  } else if (filtersToggle) {
+    filtersToggle.textContent = "Hide Settings";
+  }
+  if (criesToggle) criesToggle.checked = Boolean(data.cries);
+  if (legacyCriesToggle) legacyCriesToggle.checked = Boolean(data.legacyCries);
+  if (showDexToggle) showDexToggle.checked = Boolean(data.showDex);
+}
+
+function resetSettings() {
+  localStorage.removeItem(`${STORAGE_KEY}:settings`);
+  document.body.classList.remove("compact-mode");
+  document.body.classList.add("outlines-off");
+  document.body.classList.add("sidebar-collapsed");
+  if (compactToggle) compactToggle.textContent = "Compact Mode";
+  if (filtersToggle) filtersToggle.textContent = "Show Settings";
+  if (criesToggle) criesToggle.checked = false;
+  if (legacyCriesToggle) legacyCriesToggle.checked = false;
+  if (showDexToggle) showDexToggle.checked = false;
+  if (outlineToggle) outlineToggle.checked = false;
+  if (groupFilter) groupFilter.value = "generation";
+  setChipGroupSelections(genFilter, []);
+  setChipGroupSelections(typeFilter, []);
+  applyFilters();
 }
 
 function updateStats() {
@@ -817,6 +850,7 @@ async function loadPokemon() {
 
     populateGenChips(generationData.entries);
     populateTypeChips(typeData.entries);
+    restoreSettings();
     restoreState();
     applyFilters();
     buildGuessIndex();
@@ -842,7 +876,7 @@ if (outlineToggle) {
   document.body.classList.add("outlines-off");
   outlineToggle.addEventListener("change", () => {
     document.body.classList.toggle("outlines-off", !outlineToggle.checked);
-    saveState();
+    saveSettings();
   });
 }
 
@@ -851,7 +885,7 @@ if (compactToggle) {
   compactToggle.addEventListener("click", () => {
     const isCompact = document.body.classList.toggle("compact-mode");
     compactToggle.textContent = isCompact ? "Normal Mode" : "Compact Mode";
-    saveState();
+    saveSettings();
   });
 }
 
@@ -861,7 +895,7 @@ if (filtersToggle) {
   filtersToggle.addEventListener("click", () => {
     const collapsed = document.body.classList.toggle("sidebar-collapsed");
     filtersToggle.textContent = collapsed ? "Show Settings" : "Hide Settings";
-    saveState();
+    saveSettings();
   });
 }
 
@@ -869,27 +903,31 @@ if (settingsClose) {
   settingsClose.addEventListener("click", () => {
     document.body.classList.add("sidebar-collapsed");
     if (filtersToggle) filtersToggle.textContent = "Show Settings";
-    saveState();
+    saveSettings();
   });
 }
 
 if (legacyCriesToggle) {
   legacyCriesToggle.addEventListener("change", () => {
     if (state.cryAudio) state.cryAudio.pause();
-    saveState();
+    saveSettings();
   });
 }
 
 if (criesToggle) {
   criesToggle.checked = false;
-  criesToggle.addEventListener("change", saveState);
+  criesToggle.addEventListener("change", saveSettings);
 }
 
 if (showDexToggle) {
   showDexToggle.addEventListener("change", () => {
     renderSprites();
-    saveState();
+    saveSettings();
   });
+}
+
+if (settingsReset) {
+  settingsReset.addEventListener("click", resetSettings);
 }
 
 loadPokemon();
