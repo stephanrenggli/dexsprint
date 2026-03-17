@@ -449,8 +449,28 @@ function handleGuess(value) {
     if (isNew) {
       playCry(canonical);
       saveState();
+      showStatusHint("");
+    } else {
+      showStatusHint("Already found!");
     }
   }
+}
+
+let statusHintTimeout = null;
+function showStatusHint(message) {
+  if (!statusEl) return;
+  if (statusHintTimeout) clearTimeout(statusHintTimeout);
+  if (!message) {
+    statusEl.classList.remove("hint");
+    statusEl.textContent = "Start typing to guess Pokemon names.";
+    return;
+  }
+  statusEl.classList.add("hint");
+  statusEl.textContent = message;
+  statusHintTimeout = setTimeout(() => {
+    statusEl.classList.remove("hint");
+    statusEl.textContent = "Start typing to guess Pokemon names.";
+  }, 1500);
 }
 
 function handleInputEvent(e) {

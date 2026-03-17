@@ -243,6 +243,11 @@ body {
   color: var(--muted);
 }
 
+.status.hint {
+  color: #9c5c2c;
+  font-weight: 600;
+}
+
 .status-row {
   display: flex;
   align-items: center;
