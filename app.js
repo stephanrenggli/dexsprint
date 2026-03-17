@@ -211,10 +211,8 @@ function restoreState() {
     document.body.classList.add("compact-mode");
     if (compactToggle) compactToggle.textContent = "Normal Mode";
   }
-  if (data.outlinesOff) {
-    document.body.classList.add("outlines-off");
-    if (outlineToggle) outlineToggle.textContent = "Show Outlines";
-  }
+  if (outlineToggle) outlineToggle.checked = !data.outlinesOff;
+  document.body.classList.toggle("outlines-off", Boolean(data.outlinesOff));
   if (data.sidebarCollapsed) {
     document.body.classList.add("sidebar-collapsed");
     if (filtersToggle) filtersToggle.textContent = "Show Settings";
@@ -840,11 +838,10 @@ resetBtn.addEventListener("click", resetQuiz);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
 if (groupFilter) groupFilter.addEventListener("change", renderSprites);
 if (outlineToggle) {
+  outlineToggle.checked = false;
   document.body.classList.add("outlines-off");
-  outlineToggle.textContent = "Show Outlines";
-  outlineToggle.addEventListener("click", () => {
-    const isOff = document.body.classList.toggle("outlines-off");
-    outlineToggle.textContent = isOff ? "Show Outlines" : "Hide Outlines";
+  outlineToggle.addEventListener("change", () => {
+    document.body.classList.toggle("outlines-off", !outlineToggle.checked);
     saveState();
   });
 }
@@ -884,6 +881,7 @@ if (legacyCriesToggle) {
 }
 
 if (criesToggle) {
+  criesToggle.checked = false;
   criesToggle.addEventListener("change", saveState);
 }
 
