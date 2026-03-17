@@ -13,6 +13,7 @@
   cryAudio: null,
   isRestoring: false,
   lastSavedSec: -1,
+  infoCache: new Map(),
   timerId: null,
   startTime: null
 };
@@ -41,6 +42,15 @@ const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
 const settingsClose = document.getElementById("settings-close");
 const showDexToggle = document.getElementById("show-dex-toggle");
 const settingsReset = document.getElementById("settings-reset");
+const infoModal = document.getElementById("info-modal");
+const infoClose = document.getElementById("info-close");
+const infoSprite = document.getElementById("info-sprite");
+const infoTitle = document.getElementById("info-title");
+const infoMeta = document.getElementById("info-meta");
+const infoTypes = document.getElementById("info-types");
+const infoGenus = document.getElementById("info-genus");
+const infoSize = document.getElementById("info-size");
+const infoAbilities = document.getElementById("info-abilities");
 
 const speciesUrl = "https://pokeapi.co/api/v2/pokemon-species?limit=2000";
 const generationUrl = "https://pokeapi.co/api/v2/generation?limit=40";
@@ -316,6 +326,7 @@ function renderSprites() {
     const card = document.createElement("div");
     const isFound = state.found.has(name);
     card.className = isFound ? "sprite-card" : "sprite-card sprite-card--hidden";
+    card.dataset.pokemon = entry.normalized;
 
     const img = document.createElement("img");
     img.src = entry.sprite || spriteFallback;
@@ -395,6 +406,7 @@ function renderSpritesGrouped() {
         const card = document.createElement("div");
         const isFound = state.found.has(entry.normalized);
         card.className = isFound ? "sprite-card" : "sprite-card sprite-card--hidden";
+        card.dataset.pokemon = entry.normalized;
 
         const img = document.createElement("img");
         img.src = entry.sprite || spriteFallback;
@@ -427,6 +439,110 @@ function resetQuiz() {
   renderFound();
   renderSprites();
   clearState();
+}
+
+async function openInfoModal(entry) {
+  if (!entry || !infoModal) return;
+  if (infoTitle) infoTitle.textContent = entry.label;
+  if (infoSprite) {
+    infoSprite.src = entry.sprite || spriteFallback;
+    infoSprite.alt = entry.label;
+  }
+  if (infoMeta) infoMeta.textContent = entry.generation || "";
+  if (infoTypes) infoTypes.textContent = "";
+  if (infoGenus) infoGenus.textContent = "Loading details...";
+  if (infoSize) infoSize.textContent = "";
+  if (infoAbilities) infoAbilities.textContent = "";
+  infoModal.classList.remove("hidden");
+
+  try {
+    const details = await getPokedexInfo(entry);
+    if (!details) return;
+    if (infoGenus) infoGenus.textContent = details.genus || "";
+    if (infoSize) infoSize.textContent = details.size || "";
+    if (infoAbilities) infoAbilities.textContent = details.abilities || "";
+    renderTypeSprites(entry);
+  } catch (err) {
+    if (infoGenus) infoGenus.textContent = "Could not load details.";
+  }
+}
+
+function closeInfoModal() {
+  if (!infoModal) return;
+  infoModal.classList.add("hidden");
+}
+
+function renderTypeSprites(entry) {
+  if (!infoTypes) return;
+  infoTypes.innerHTML = "";
+  const types = entry.types || [];
+  types.forEach((typeName) => {
+    const typeId = getTypeId(typeName);
+    const chip = document.createElement("span");
+    chip.className = "info-type-chip";
+    const icon = document.createElement("img");
+    icon.alt = `${typeName} type`;
+    icon.src = `${typeIconBase}${typeId}.png`;
+    const text = document.createElement("span");
+    text.textContent = typeName;
+    chip.appendChild(icon);
+    chip.appendChild(text);
+    infoTypes.appendChild(chip);
+  });
+}
+
+function getTypeId(typeName) {
+  const map = {
+    Normal: 1,
+    Fighting: 2,
+    Flying: 3,
+    Poison: 4,
+    Ground: 5,
+    Rock: 6,
+    Bug: 7,
+    Ghost: 8,
+    Steel: 9,
+    Fire: 10,
+    Water: 11,
+    Grass: 12,
+    Electric: 13,
+    Psychic: 14,
+    Ice: 15,
+    Dragon: 16,
+    Dark: 17,
+    Fairy: 18
+  };
+  return map[typeName] || 1;
+}
+
+async function getPokedexInfo(entry) {
+  if (!entry || !entry.dexId) return null;
+  if (state.infoCache.has(entry.dexId)) return state.infoCache.get(entry.dexId);
+  const [pokemonRes, speciesRes] = await Promise.all([
+    fetch(`https://pokeapi.co/api/v2/pokemon/${entry.dexId}`),
+    fetch(`https://pokeapi.co/api/v2/pokemon-species/${entry.dexId}`)
+  ]);
+  if (!pokemonRes.ok || !speciesRes.ok) return null;
+  const pokemon = await pokemonRes.json();
+  const species = await speciesRes.json();
+
+  const heightM = pokemon.height ? (pokemon.height / 10).toFixed(1) : null;
+  const weightKg = pokemon.weight ? (pokemon.weight / 10).toFixed(1) : null;
+  const abilities = (pokemon.abilities || [])
+    .map((a) => prettifyName(a.ability.name))
+    .join(", ");
+  const genusEntry = (species.genera || []).find(
+    (g) => g.language && g.language.name === "en"
+  );
+
+  const details = {
+    genus: genusEntry ? genusEntry.genus : "",
+    size:
+      heightM && weightKg ? `Height: ${heightM} m · Weight: ${weightKg} kg` : "",
+    abilities: abilities ? `Abilities: ${abilities}` : ""
+  };
+  state.infoCache.set(entry.dexId, details);
+  return details;
 }
 
 function getHiddenLabel(entry) {
@@ -948,6 +1064,24 @@ if (showDexToggle) {
 
 if (settingsReset) {
   settingsReset.addEventListener("click", resetSettings);
+}
+
+if (spriteGrid) {
+  spriteGrid.addEventListener("click", (event) => {
+    const card = event.target.closest(".sprite-card");
+    if (!card || card.classList.contains("sprite-card--hidden")) return;
+    const key = card.dataset.pokemon;
+    if (!key) return;
+    const entry = state.meta.get(key);
+    if (entry) openInfoModal(entry);
+  });
+}
+
+if (infoClose) infoClose.addEventListener("click", closeInfoModal);
+if (infoModal) {
+  infoModal.addEventListener("click", (event) => {
+    if (event.target === infoModal) closeInfoModal();
+  });
 }
 
 loadPokemon();

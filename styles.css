@@ -367,6 +367,82 @@ body {
   pointer-events: none;
 }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 12, 8, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-card {
+  background: #fffdf7;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #ead9c2;
+  box-shadow: var(--shadow);
+  width: min(420px, 90vw);
+  display: grid;
+  gap: 12px;
+}
+
+.modal-content {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 14px;
+  align-items: center;
+}
+
+.modal-content img {
+  width: 72px;
+  height: 72px;
+}
+
+#info-title {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+}
+
+#info-meta,
+#info-genus,
+#info-size,
+#info-abilities {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.info-types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.info-type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  font-size: 0.8rem;
+  color: var(--ink);
+}
+
+.info-type-chip img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+
 /* Lists */
 .lists {
   display: grid;
