@@ -39,6 +39,7 @@ const compactToggle = document.getElementById("compact-toggle");
 const criesToggle = document.getElementById("cries-toggle");
 const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
 const settingsClose = document.getElementById("settings-close");
+const showDexToggle = document.getElementById("show-dex-toggle");
 
 const speciesUrl = "https://pokeapi.co/api/v2/pokemon-species?limit=2000";
 const generationUrl = "https://pokeapi.co/api/v2/generation?limit=40";
@@ -185,6 +186,7 @@ function saveState() {
     outlinesOff: document.body.classList.contains("outlines-off"),
     cries: criesToggle ? criesToggle.checked : true,
     legacyCries: legacyCriesToggle ? legacyCriesToggle.checked : false,
+    showDex: showDexToggle ? showDexToggle.checked : false,
     sidebarCollapsed: document.body.classList.contains("sidebar-collapsed")
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -222,6 +224,7 @@ function restoreState() {
 
   if (criesToggle) criesToggle.checked = data.cries !== false;
   if (legacyCriesToggle) legacyCriesToggle.checked = Boolean(data.legacyCries);
+  if (showDexToggle) showDexToggle.checked = Boolean(data.showDex);
 
   if (groupFilter && data.group) groupFilter.value = data.group;
 
@@ -291,7 +294,7 @@ function renderSprites() {
 
     const label = document.createElement("span");
     label.className = "sprite-card__name";
-    label.textContent = isFound ? entry.label : "???";
+    label.textContent = isFound ? entry.label : getHiddenLabel(entry);
 
     card.appendChild(img);
     card.appendChild(label);
@@ -370,7 +373,7 @@ function renderSpritesGrouped() {
 
         const label = document.createElement("span");
         label.className = "sprite-card__name";
-        label.textContent = isFound ? entry.label : "???";
+        label.textContent = isFound ? entry.label : getHiddenLabel(entry);
 
         card.appendChild(img);
         card.appendChild(label);
@@ -393,6 +396,13 @@ function resetQuiz() {
   renderFound();
   renderSprites();
   clearState();
+}
+
+function getHiddenLabel(entry) {
+  if (showDexToggle && showDexToggle.checked && entry.dexId) {
+    return `#${String(entry.dexId).padStart(3, "0")}`;
+  }
+  return "???";
 }
 
 function handleGuess(value) {
@@ -756,6 +766,7 @@ async function loadPokemon() {
         sprite,
         cryUrl: "",
         cryId: entry.cryId || "",
+        dexId: entry.cryId || "",
         generation: formatGenerationLabel(generation),
         types: types.map(prettifyName),
         normalized
@@ -874,6 +885,13 @@ if (legacyCriesToggle) {
 
 if (criesToggle) {
   criesToggle.addEventListener("change", saveState);
+}
+
+if (showDexToggle) {
+  showDexToggle.addEventListener("change", () => {
+    renderSprites();
+    saveState();
+  });
 }
 
 loadPokemon();
