@@ -323,7 +323,6 @@ body {
 .chip--type img {
   width: 16px;
   height: 16px;
-  image-rendering: pixelated;
 }
 
 .toggle {
@@ -436,6 +435,7 @@ body {
   padding: 8px 6px 10px;
   text-align: center;
   display: grid;
+  place-items: center;
   gap: 6px;
   min-height: 88px;
 }
@@ -444,12 +444,18 @@ body {
   width: 48px;
   height: 48px;
   margin: 0 auto;
-  image-rendering: pixelated;
+  display: block;
 }
 
 .sprite-card__name {
   font-size: 0.75rem;
   font-weight: 600;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  position: relative;
 }
 
 .sprite-card--hidden {
@@ -569,6 +575,9 @@ body {
   border-radius: 6px;
   font-size: 0.7rem;
   white-space: nowrap;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.12s ease, transform 0.12s ease;
