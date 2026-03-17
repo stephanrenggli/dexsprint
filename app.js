@@ -39,6 +39,8 @@ const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
 const settingsClose = document.getElementById("settings-close");
 const showDexToggle = document.getElementById("show-dex-toggle");
 const settingsReset = document.getElementById("settings-reset");
+const darkToggle = document.getElementById("dark-toggle");
+const themeChooser = document.getElementById("theme-chooser");
 const infoModal = document.getElementById("info-modal");
 const infoClose = document.getElementById("info-close");
 const infoSprite = document.getElementById("info-sprite");
@@ -54,6 +56,27 @@ const generationUrl = "https://pokeapi.co/api/v2/generation?limit=40";
 const typeUrl = "https://pokeapi.co/api/v2/type?limit=40";
 const typeIconBase =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/small/";
+const DEFAULT_THEME = "normal";
+const THEMES = [
+  { id: "normal", name: "Normal", color: "#A8A878", accent2: "#8A8A58" },
+  { id: "fire", name: "Fire", color: "#F08030", accent2: "#E0621A" },
+  { id: "water", name: "Water", color: "#6890F0", accent2: "#4E7CE8" },
+  { id: "electric", name: "Electric", color: "#F8D030", accent2: "#E6B800" },
+  { id: "grass", name: "Grass", color: "#78C850", accent2: "#5FA63A" },
+  { id: "ice", name: "Ice", color: "#98D8D8", accent2: "#7FC6C6" },
+  { id: "fighting", name: "Fighting", color: "#C03028", accent2: "#A61F1A" },
+  { id: "poison", name: "Poison", color: "#A040A0", accent2: "#7F2E7F" },
+  { id: "ground", name: "Ground", color: "#E0C068", accent2: "#C9A84A" },
+  { id: "flying", name: "Flying", color: "#A890F0", accent2: "#8E72E6" },
+  { id: "psychic", name: "Psychic", color: "#F85888", accent2: "#E04070" },
+  { id: "bug", name: "Bug", color: "#A8B820", accent2: "#8C9A12" },
+  { id: "rock", name: "Rock", color: "#B8A038", accent2: "#9E8524" },
+  { id: "ghost", name: "Ghost", color: "#705898", accent2: "#5A457E" },
+  { id: "dragon", name: "Dragon", color: "#7038F8", accent2: "#5A22E6" },
+  { id: "dark", name: "Dark", color: "#705848", accent2: "#5A463A" },
+  { id: "steel", name: "Steel", color: "#B8B8D0", accent2: "#9FA0B7" },
+  { id: "fairy", name: "Fairy", color: "#EE99AC", accent2: "#DB8097" }
+];
 const spriteFallback =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
 const criesLatestBase =
@@ -238,7 +261,9 @@ function saveSettings() {
     cries: criesToggle ? criesToggle.checked : false,
     legacyCries: legacyCriesToggle ? legacyCriesToggle.checked : false,
     showDex: showDexToggle ? showDexToggle.checked : false,
-    sidebarCollapsed: document.body.classList.contains("sidebar-collapsed")
+    sidebarCollapsed: document.body.classList.contains("sidebar-collapsed"),
+    dark: document.body.classList.contains("dark-mode"),
+    theme: document.body.dataset.theme || DEFAULT_THEME
   };
   localStorage.setItem(`${STORAGE_KEY}:settings`, JSON.stringify(payload));
 }
@@ -264,6 +289,9 @@ function restoreSettings() {
   } else if (filtersToggle) {
     filtersToggle.textContent = "Hide Settings";
   }
+  document.body.classList.toggle("dark-mode", Boolean(data.dark));
+  if (darkToggle) darkToggle.checked = Boolean(data.dark);
+  setTheme(data.theme || DEFAULT_THEME, false);
   if (criesToggle) criesToggle.checked = Boolean(data.cries);
   if (legacyCriesToggle) legacyCriesToggle.checked = Boolean(data.legacyCries);
   if (showDexToggle) showDexToggle.checked = Boolean(data.showDex);
@@ -272,6 +300,7 @@ function restoreSettings() {
 function resetSettings() {
   localStorage.removeItem(`${STORAGE_KEY}:settings`);
   document.body.classList.remove("compact-mode");
+  document.body.classList.remove("dark-mode");
   document.body.classList.add("outlines-off");
   document.body.classList.add("sidebar-collapsed");
   if (compactToggle) compactToggle.textContent = "Compact Mode";
@@ -280,10 +309,66 @@ function resetSettings() {
   if (legacyCriesToggle) legacyCriesToggle.checked = false;
   if (showDexToggle) showDexToggle.checked = false;
   if (outlineToggle) outlineToggle.checked = false;
+  if (darkToggle) darkToggle.checked = false;
+  setTheme(DEFAULT_THEME, false);
   if (groupFilter) groupFilter.value = "generation";
   setChipGroupSelections(genFilter, []);
   setChipGroupSelections(typeFilter, []);
   applyFilters();
+}
+
+function setTheme(themeId, persist = true) {
+  const theme = THEMES.find((t) => t.id === themeId) || THEMES[0];
+  document.body.dataset.theme = theme.id;
+  document.documentElement.style.setProperty("--accent", theme.color);
+  document.documentElement.style.setProperty("--accent-2", theme.accent2);
+  const bg1 = tint(theme.color, 0.92);
+  const bg2 = tint(theme.color, 0.85);
+  const bg3 = tint(theme.color, 0.72);
+  document.documentElement.style.setProperty("--bg-1", bg1);
+  document.documentElement.style.setProperty("--bg-2", bg2);
+  document.documentElement.style.setProperty("--bg-3", bg3);
+  if (themeChooser) {
+    const chips = [...themeChooser.querySelectorAll(".theme-chip")];
+    chips.forEach((chip) => {
+      chip.classList.toggle("is-selected", chip.dataset.theme === theme.id);
+    });
+  }
+  if (persist) saveSettings();
+}
+
+function initThemes() {
+  if (!themeChooser) return;
+  themeChooser.innerHTML = "";
+  THEMES.forEach((theme) => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "theme-chip";
+    chip.dataset.theme = theme.id;
+    const swatch = document.createElement("span");
+    swatch.className = "theme-swatch";
+    swatch.style.background = theme.color;
+    const text = document.createElement("span");
+    text.textContent = theme.name;
+    chip.appendChild(swatch);
+    chip.appendChild(text);
+    chip.addEventListener("click", () => setTheme(theme.id));
+    themeChooser.appendChild(chip);
+  });
+  setTheme(DEFAULT_THEME, false);
+}
+
+function tint(hex, amount) {
+  const clean = hex.replace("#", "");
+  const num = parseInt(clean, 16);
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  const mix = (channel) => Math.round(channel + (255 - channel) * (1 - amount));
+  const r2 = mix(r);
+  const g2 = mix(g);
+  const b2 = mix(b);
+  return `rgb(${r2}, ${g2}, ${b2})`;
 }
 
 function updateStats() {
@@ -969,6 +1054,7 @@ async function loadPokemon() {
 
     populateGenChips(generationData.entries);
     populateTypeChips(typeData.entries);
+    initThemes();
     restoreSettings();
     restoreState();
     applyFilters();
@@ -1047,6 +1133,13 @@ if (showDexToggle) {
 
 if (settingsReset) {
   settingsReset.addEventListener("click", resetSettings);
+}
+
+if (darkToggle) {
+  darkToggle.addEventListener("change", () => {
+    document.body.classList.toggle("dark-mode", darkToggle.checked);
+    saveSettings();
+  });
 }
 
 if (spriteGrid) {

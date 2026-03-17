@@ -1,5 +1,8 @@
 ﻿:root {
   --bg: #f7f1e5;
+  --bg-1: #fff6e5;
+  --bg-2: #f7f1e5;
+  --bg-3: #efe2cb;
   --ink: #1c1b19;
   --accent: #ff4b4b;
   --accent-2: #2b6fef;
@@ -10,6 +13,12 @@
   --pill-border: #f1d8b1;
   --shadow: 0 20px 50px rgba(28, 27, 25, 0.12);
   --pokeball: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='26' fill='%23e3d3bc'/><path d='M6 32h52' stroke='%23c3b29a' stroke-width='6'/><circle cx='32' cy='32' r='8' fill='%23f7f1e5' stroke='%23c3b29a' stroke-width='4'/></svg>");
+  --surface: #fffdf7;
+  --surface-2: #fff2db;
+  --surface-3: #fff8ed;
+  --surface-4: #f4e8d5;
+  --border: #ead9c2;
+  --border-strong: #f1d8b1;
 }
 
 * {
@@ -20,9 +29,30 @@ body {
   margin: 0;
   font-family: "Space Grotesk", system-ui, sans-serif;
   color: var(--ink);
-  background: radial-gradient(circle at top, #fff6e5 0%, #f7f1e5 55%, #efe2cb 100%);
+  background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
   min-height: 100vh;
   overflow-x: hidden;
+}
+
+body.dark-mode {
+  --bg: #151310;
+  --bg-1: #1e1a16;
+  --bg-2: #14110e;
+  --bg-3: #0d0b09;
+  --ink: #f2ede6;
+  --card: #1f1c18;
+  --muted: #b7a99a;
+  --pill: #2a2520;
+  --pill-border: #3a332c;
+  --surface: #1f1c18;
+  --surface-2: #2a2520;
+  --surface-3: #251f1a;
+  --surface-4: #2f2822;
+  --border: #3a332c;
+  --border-strong: #4a4036;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  --pokeball: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='26' fill='%233b342c'/><path d='M6 32h52' stroke='%2350463c' stroke-width='6'/><circle cx='32' cy='32' r='8' fill='%23241f19' stroke='%2350463c' stroke-width='4'/></svg>");
+  background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
 }
 
 .bg-orb {
@@ -69,10 +99,10 @@ body {
 
 /* Sidebar */
 .sidebar {
-  background: #fffdf7;
+  background: var(--surface);
   border-radius: 18px;
   padding: 12px;
-  border: 1px solid #ead9c2;
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
   display: grid;
   gap: 12px;
@@ -153,7 +183,7 @@ body {
 
 .hero-card {
   background: var(--card);
-  border: 1px solid #ead9c2;
+  border: 1px solid var(--border);
   border-radius: 24px;
   padding: 24px;
   display: grid;
@@ -214,10 +244,10 @@ body {
 }
 
 .input-wrap {
-  background: #fffdf7;
+  background: var(--surface);
   border-radius: 18px;
   padding: 20px 24px;
-  border: 1px solid #ead9c2;
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
 }
 
@@ -231,11 +261,12 @@ body {
 #name-input {
   margin-top: 12px;
   width: 100%;
-  border: 2px solid #e5d1b3;
+  border: 2px solid var(--border-strong);
   border-radius: 14px;
   padding: 14px 16px;
   font-size: 1.05rem;
-  background: #fff8ed;
+  background: var(--surface-3);
+  color: var(--ink);
 }
 
 .status {
@@ -270,10 +301,10 @@ body {
 }
 
 .filter {
-  background: #fffdf7;
+  background: var(--surface);
   border-radius: 16px;
   padding: 10px 12px;
-  border: 1px solid #ead9c2;
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
   display: grid;
   gap: 8px;
@@ -289,10 +320,10 @@ body {
 
 .filter select {
   border-radius: 12px;
-  border: 1px solid #e5d1b3;
+  border: 1px solid var(--border-strong);
   padding: 8px 10px;
   font-size: 0.85rem;
-  background: #fff8ed;
+  background: var(--surface-3);
   width: 100%;
 }
 
@@ -313,8 +344,8 @@ body {
   gap: 6px;
   padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid #e5d1b3;
-  background: #fff8ed;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-3);
   font-size: 0.78rem;
   cursor: pointer;
   user-select: none;
@@ -340,10 +371,41 @@ body {
   font-weight: 500;
 }
 
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
+}
+
+.theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-3);
+  font-size: 0.78rem;
+  cursor: pointer;
+  user-select: none;
+  color: var(--ink);
+}
+
+.theme-chip.is-selected {
+  box-shadow: 0 0 0 2px var(--accent) inset;
+}
+
+.theme-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
 /* Progress */
 .progress {
   height: 12px;
-  background: #f2e2c9;
+  background: var(--surface-4);
   border-radius: 999px;
   overflow: hidden;
   position: relative;
@@ -381,10 +443,10 @@ body {
 }
 
 .modal-card {
-  background: #fffdf7;
+  background: var(--surface);
   border-radius: 16px;
   padding: 16px;
-  border: 1px solid #ead9c2;
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
   width: min(420px, 90vw);
   display: grid;
@@ -457,10 +519,10 @@ body {
 
 /* Sprites */
 .sprite-board {
-  background: #fffdf7;
+  background: var(--surface);
   border-radius: 18px;
   padding: 20px 24px;
-  border: 1px solid #ead9c2;
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
   display: grid;
   gap: 16px;
@@ -497,10 +559,10 @@ body {
 }
 
 .group-card {
-  background: #fffdf7;
+  background: var(--surface);
   border-radius: 18px;
   padding: 14px;
-  border: 1px solid #ead9c2;
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
   display: grid;
   gap: 12px;
@@ -516,8 +578,8 @@ body {
 }
 
 .sprite-card {
-  background: #fff2db;
-  border: 1px solid #f1d8b1;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
   border-radius: 18px;
   padding: 8px 6px 10px;
   text-align: center;
@@ -559,12 +621,17 @@ body {
   text-align: center;
   grid-row: 2;
   grid-column: 1;
+  color: var(--ink);
 }
 
 .sprite-card--hidden {
-  background: #f4e8d5;
+  background: var(--surface-4);
   border-style: dashed;
   color: rgba(28, 27, 25, 0.4);
+}
+
+body.dark-mode .sprite-card--hidden {
+  color: var(--ink);
 }
 
 .sprite-card--hidden img {
@@ -613,15 +680,15 @@ body {
 }
 
 .compact-mode .input-wrap {
-  background: #fffdf7;
-  border: 1px solid #ead9c2;
+  background: var(--surface);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
   padding: 6px 8px;
   border-radius: 8px;
 }
 
 .compact-mode #name-input {
-  background: #f7f7f7;
+  background: var(--surface-3);
   border-radius: 8px;
   font-size: 0.85rem;
   padding: 6px 8px;
@@ -647,8 +714,8 @@ body {
 }
 
 .compact-mode .group-card {
-  background: #fffdf7;
-  border: 1px solid #ead9c2;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 6px 6px 8px;
   box-shadow: var(--shadow);
