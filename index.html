@@ -241,14 +241,25 @@
         <div class="modal-card">
           <button id="info-close" class="modal-close" type="button" aria-label="Close details">x</button>
           <div class="modal-content">
-            <img id="info-sprite" alt="" />
-            <div>
-              <h3 id="info-title"></h3>
-              <p id="info-meta"></p>
-              <div id="info-types" class="info-types"></div>
-              <p id="info-genus"></p>
-              <p id="info-size"></p>
-              <p id="info-abilities"></p>
+            <div class="info-hero">
+              <div class="info-sprite-wrap">
+                <img id="info-sprite" alt="" />
+              </div>
+              <div class="info-main">
+                <h3 id="info-title"></h3>
+                <div id="info-meta" class="info-meta-row"></div>
+                <div id="info-types" class="info-types"></div>
+                <p id="info-genus" class="info-genus"></p>
+              </div>
+            </div>
+            <div id="info-stats" class="info-stats"></div>
+            <div class="info-section">
+              <h4>Abilities</h4>
+              <div id="info-abilities" class="info-abilities-list"></div>
+            </div>
+            <div class="info-section">
+              <h4>Related Data</h4>
+              <div id="info-facts" class="info-facts"></div>
             </div>
           </div>
         </div>

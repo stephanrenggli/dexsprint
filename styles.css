@@ -671,20 +671,40 @@ body.dark-mode {
 .modal-card {
   position: relative;
   background: var(--surface);
-  border-radius: 16px;
-  padding: 16px;
+  border-radius: 20px;
+  padding: 18px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  width: min(420px, 90vw);
+  width: min(540px, 92vw);
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .modal-content {
   display: grid;
-  grid-template-columns: 80px 1fr;
-  gap: 14px;
+  gap: 18px;
+}
+
+.info-hero {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 16px;
   align-items: center;
+}
+
+.info-sprite-wrap {
+  width: 112px;
+  height: 112px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-3));
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+}
+
+.info-main {
+  display: grid;
+  gap: 10px;
 }
 
 .modal-close {
@@ -720,28 +740,39 @@ body.dark-mode {
 }
 
 .modal-content img {
-  width: 72px;
-  height: 72px;
+  width: 88px;
+  height: 88px;
 }
 
 #info-title {
-  margin: 0 0 6px;
-  font-size: 1.1rem;
+  margin: 0;
+  font-size: 1.45rem;
 }
 
-#info-meta,
-#info-genus,
-#info-size,
-#info-abilities {
-  margin: 0;
+.info-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.info-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .info-types {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -753,14 +784,106 @@ body.dark-mode {
   border-radius: 0;
   background: transparent;
   border: none;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 600;
   color: var(--ink);
 }
 
 .info-type-chip img {
-  width: 16px;
-  height: 16px;
+  width: 26px;
+  height: 18px;
   object-fit: contain;
+}
+
+.info-genus {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.info-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.info-stat-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+}
+
+.info-stat-card__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.info-stat-card__value {
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.info-section {
+  display: grid;
+  gap: 10px;
+}
+
+.info-section h4 {
+  margin: 0;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  color: var(--muted);
+}
+
+.info-abilities-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.info-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.info-facts {
+  display: grid;
+  gap: 8px;
+}
+
+.info-fact {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+}
+
+.info-fact__label {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.info-fact__value {
+  color: var(--ink);
+  font-size: 0.9rem;
+  text-align: right;
 }
 
 
@@ -1442,6 +1565,39 @@ body.dark-mode .sprite-card--hidden {
 
   .compact-mode .sprite-groups {
     grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  }
+
+  .modal-card {
+    width: min(94vw, 540px);
+    padding: 16px;
+  }
+
+  .info-hero {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .info-main {
+    width: 100%;
+  }
+
+  .info-meta-row,
+  .info-types {
+    justify-content: center;
+  }
+
+  .info-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .info-fact {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .info-fact__value {
+    text-align: left;
   }
 }
 

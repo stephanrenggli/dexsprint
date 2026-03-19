@@ -63,8 +63,9 @@ const infoTitle = document.getElementById("info-title");
 const infoMeta = document.getElementById("info-meta");
 const infoTypes = document.getElementById("info-types");
 const infoGenus = document.getElementById("info-genus");
-const infoSize = document.getElementById("info-size");
 const infoAbilities = document.getElementById("info-abilities");
+const infoStats = document.getElementById("info-stats");
+const infoFacts = document.getElementById("info-facts");
 
 const pokedex = new Pokedex.Pokedex({
   cache: true,
@@ -688,11 +689,12 @@ async function openInfoModal(entry) {
     infoSprite.src = getSpriteForEntry(entry);
     infoSprite.alt = entry.label;
   }
-  if (infoMeta) infoMeta.textContent = entry.generation || "";
+  renderInfoMeta(entry);
   if (infoTypes) infoTypes.textContent = "";
   if (infoGenus) infoGenus.textContent = "Loading details...";
-  if (infoSize) infoSize.textContent = "";
-  if (infoAbilities) infoAbilities.textContent = "";
+  if (infoStats) infoStats.innerHTML = "";
+  if (infoAbilities) infoAbilities.innerHTML = "";
+  if (infoFacts) infoFacts.innerHTML = "";
   state.activeEntry = entry;
   infoModal.classList.remove("hidden");
   playCry(entry.normalized || normalizeName(entry.label || ""));
@@ -701,8 +703,9 @@ async function openInfoModal(entry) {
     const details = await getPokedexInfo(entry);
     if (!details) return;
     if (infoGenus) infoGenus.textContent = details.genus || "";
-    if (infoSize) infoSize.textContent = details.size || "";
-    if (infoAbilities) infoAbilities.textContent = details.abilities || "";
+    renderInfoStats(details);
+    renderInfoAbilities(details);
+    renderInfoFacts(details);
     renderTypeSprites(entry);
   } catch (err) {
     if (infoGenus) infoGenus.textContent = "Could not load details.";
@@ -731,6 +734,96 @@ function renderTypeSprites(entry) {
     chip.appendChild(icon);
     chip.appendChild(text);
     infoTypes.appendChild(chip);
+  });
+}
+
+function renderInfoMeta(entry) {
+  if (!infoMeta) return;
+  infoMeta.innerHTML = "";
+  const items = [];
+  if (entry.dexId) {
+    items.push(`#${String(entry.dexId).padStart(4, "0")}`);
+  }
+  if (entry.generation) {
+    items.push(entry.generation);
+  }
+  items.forEach((value) => {
+    const chip = document.createElement("span");
+    chip.className = "info-meta-chip";
+    chip.textContent = value;
+    infoMeta.appendChild(chip);
+  });
+}
+
+function renderInfoStats(details) {
+  if (!infoStats) return;
+  infoStats.innerHTML = "";
+  const stats = [
+    { label: "Height", value: details.height || "-" },
+    { label: "Weight", value: details.weight || "-" },
+    { label: "Base Exp", value: details.baseExperience || "-" },
+    { label: "Abilities", value: String((details.abilities || []).length) }
+  ];
+  stats.forEach((stat) => {
+    const card = document.createElement("div");
+    card.className = "info-stat-card";
+    const label = document.createElement("span");
+    label.className = "info-stat-card__label";
+    label.textContent = stat.label;
+    const value = document.createElement("strong");
+    value.className = "info-stat-card__value";
+    value.textContent = stat.value;
+    card.appendChild(label);
+    card.appendChild(value);
+    infoStats.appendChild(card);
+  });
+}
+
+function renderInfoAbilities(details) {
+  if (!infoAbilities) return;
+  infoAbilities.innerHTML = "";
+  const abilities = details.abilities || [];
+  if (!abilities.length) {
+    infoAbilities.textContent = "No ability data available.";
+    return;
+  }
+  abilities.forEach((ability) => {
+    const chip = document.createElement("span");
+    chip.className = "info-pill";
+    chip.textContent = ability;
+    infoAbilities.appendChild(chip);
+  });
+}
+
+function renderInfoFacts(details) {
+  if (!infoFacts) return;
+  infoFacts.innerHTML = "";
+  const facts = [
+    { label: "Color", value: details.color },
+    { label: "Habitat", value: details.habitat },
+    { label: "Shape", value: details.shape },
+    { label: "Growth Rate", value: details.growthRate },
+    { label: "Capture Rate", value: details.captureRate },
+    { label: "Base Happiness", value: details.baseHappiness }
+  ].filter((fact) => fact.value);
+
+  if (!facts.length) {
+    infoFacts.textContent = "No additional data available.";
+    return;
+  }
+
+  facts.forEach((fact) => {
+    const row = document.createElement("div");
+    row.className = "info-fact";
+    const label = document.createElement("span");
+    label.className = "info-fact__label";
+    label.textContent = fact.label;
+    const value = document.createElement("strong");
+    value.className = "info-fact__value";
+    value.textContent = fact.value;
+    row.appendChild(label);
+    row.appendChild(value);
+    infoFacts.appendChild(row);
   });
 }
 
@@ -767,20 +860,33 @@ async function getPokedexInfo(entry) {
   ]);
   if (!pokemon || !species) return null;
 
-  const heightM = pokemon.height ? (pokemon.height / 10).toFixed(1) : null;
-  const weightKg = pokemon.weight ? (pokemon.weight / 10).toFixed(1) : null;
+  const heightM = pokemon.height ? `${(pokemon.height / 10).toFixed(1)} m` : "";
+  const weightKg = pokemon.weight ? `${(pokemon.weight / 10).toFixed(1)} kg` : "";
   const abilities = (pokemon.abilities || [])
-    .map((a) => prettifyName(a.ability.name))
-    .join(", ");
+    .slice()
+    .sort((a, b) => Number(a.slot || 0) - Number(b.slot || 0))
+    .map((a) => {
+      const name = prettifyName(a.ability.name);
+      return a.is_hidden ? `${name} (Hidden)` : name;
+    });
   const genusEntry = (species.genera || []).find(
     (g) => g.language && g.language.name === "en"
   );
 
   const details = {
     genus: genusEntry ? genusEntry.genus : "",
-    size:
-      heightM && weightKg ? `Height: ${heightM} m · Weight: ${weightKg} kg` : "",
-    abilities: abilities ? `Abilities: ${abilities}` : ""
+    height: heightM,
+    weight: weightKg,
+    abilities,
+    baseExperience: pokemon.base_experience ? String(pokemon.base_experience) : "",
+    color: species.color ? prettifyName(species.color.name) : "",
+    habitat: species.habitat ? prettifyName(species.habitat.name) : "",
+    shape: species.shape ? prettifyName(species.shape.name) : "",
+    growthRate: species.growth_rate ? prettifyName(species.growth_rate.name) : "",
+    captureRate:
+      typeof species.capture_rate === "number" ? String(species.capture_rate) : "",
+    baseHappiness:
+      typeof species.base_happiness === "number" ? String(species.base_happiness) : ""
   };
   state.infoCache.set(entry.dexId, details);
   return details;

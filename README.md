@@ -17,7 +17,7 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 - Optional outlines, shiny sprites, Pokedex ID display, dark mode, and type-based themes
 - Pokemon cries with optional legacy cries
 - Persistent game state and settings via `localStorage`
-- Pokemon detail modal with sprite, types, genus, size, and abilities
+- Rich Pokemon detail modal with sprite, types, genus, stat cards, abilities, and related species data
 - Mobile-friendly single-page UI
 
 ## Tech

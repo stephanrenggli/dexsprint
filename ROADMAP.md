@@ -15,6 +15,7 @@ It is intentionally separate from the README so the README stays focused on the 
 - Improved offline-first behavior with cached dataset fallback and stronger service worker caching
 - Added configurable typo tolerance modes such as strict, normal, and forgiving
 - Added optional suggestions instead of always auto-accepting close matches
+- Improved the detail modal with richer presentation for type, size, abilities, and related data
 
 ## Nice to Have
 
@@ -27,7 +28,6 @@ It is intentionally separate from the README so the README stays focused on the 
 
 - Refine the guess-input feedback model further, especially for compact and mobile layouts
 - Add more subtle milestone celebrations for progress checkpoints beyond generation/type/full completion
-- Improve the detail modal with richer presentation for type, size, abilities, and related data
 - Add better loading and offline states such as clearer cache-aware messaging or skeleton states
 
 ### Data / Features
