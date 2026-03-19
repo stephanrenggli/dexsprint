@@ -521,6 +521,10 @@ body.dark-mode {
   gap: 6px;
 }
 
+.chip-grid--generations {
+  grid-template-columns: 1fr;
+}
+
 .chip-grid--types {
   grid-template-columns: 1fr;
 }
@@ -1568,6 +1572,20 @@ body.dark-mode .sprite-card--hidden {
 
   .compact-mode .sprite-groups {
     grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  }
+
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .filter {
+    min-height: 0;
+  }
+
+  .filter--select {
+    grid-column: 1 / -1;
+    align-content: start;
   }
 
   .modal-card {

@@ -127,14 +127,6 @@
     <div class="sidebar-section">
       <h3>Filters</h3>
       <div class="filters">
-        <div class="filter">
-          <label>Generations</label>
-          <div id="gen-filter" class="chip-grid"></div>
-        </div>
-        <div class="filter">
-          <label for="type-filter">Type</label>
-          <div id="type-filter" class="chip-grid chip-grid--types"></div>
-        </div>
         <div class="filter filter--select">
           <label for="group-filter">Group By</label>
           <select id="group-filter">
@@ -142,6 +134,14 @@
             <option value="generation" selected>Generation</option>
             <option value="type">Type</option>
           </select>
+        </div>
+        <div class="filter">
+          <label>Generations</label>
+          <div id="gen-filter" class="chip-grid chip-grid--generations"></div>
+        </div>
+        <div class="filter">
+          <label for="type-filter">Type</label>
+          <div id="type-filter" class="chip-grid chip-grid--types"></div>
         </div>
       </div>
     </div>
