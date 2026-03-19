@@ -10,6 +10,64 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <script>
+    (function () {
+      const SETTINGS_KEY = "pokequiz-state:settings";
+      const DEFAULT_THEME = "normal";
+      const THEMES = {
+        normal: { color: "#A8A878", accent2: "#8A8A58" },
+        fire: { color: "#F08030", accent2: "#E0621A" },
+        water: { color: "#6890F0", accent2: "#4E7CE8" },
+        electric: { color: "#F8D030", accent2: "#E6B800" },
+        grass: { color: "#78C850", accent2: "#5FA63A" },
+        ice: { color: "#98D8D8", accent2: "#7FC6C6" },
+        fighting: { color: "#C03028", accent2: "#A61F1A" },
+        poison: { color: "#A040A0", accent2: "#7F2E7F" },
+        ground: { color: "#E0C068", accent2: "#C9A84A" },
+        flying: { color: "#A890F0", accent2: "#8E72E6" },
+        psychic: { color: "#F85888", accent2: "#E04070" },
+        bug: { color: "#A8B820", accent2: "#8C9A12" },
+        rock: { color: "#B8A038", accent2: "#9E8524" },
+        ghost: { color: "#705898", accent2: "#5A457E" },
+        dragon: { color: "#7038F8", accent2: "#5A22E6" },
+        dark: { color: "#705848", accent2: "#5A463A" },
+        steel: { color: "#B8B8D0", accent2: "#9FA0B7" },
+        fairy: { color: "#EE99AC", accent2: "#DB8097" }
+      };
+
+      function tint(hex, amount) {
+        const clean = hex.replace("#", "");
+        const num = parseInt(clean, 16);
+        const r = (num >> 16) & 255;
+        const g = (num >> 8) & 255;
+        const b = num & 255;
+        const mix = (channel) => Math.round(channel + (255 - channel) * (1 - amount));
+        return "rgb(" + mix(r) + ", " + mix(g) + ", " + mix(b) + ")";
+      }
+
+      try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        const body = document.body;
+        const root = document.documentElement;
+        const theme = THEMES[data.theme] || THEMES[DEFAULT_THEME];
+
+        if (data.compact) body.classList.add("compact-mode");
+        if (data.outlinesOff) body.classList.add("outlines-off");
+        if (data.sidebarCollapsed) body.classList.add("sidebar-collapsed");
+        if (data.dark) body.classList.add("dark-mode");
+
+        body.dataset.theme = data.theme || DEFAULT_THEME;
+        root.style.setProperty("--accent", theme.color);
+        root.style.setProperty("--accent-2", theme.accent2);
+        root.style.setProperty("--bg-1", tint(theme.color, 0.92));
+        root.style.setProperty("--bg-2", tint(theme.color, 0.85));
+        root.style.setProperty("--bg-3", tint(theme.color, 0.72));
+      } catch (err) {
+      }
+    })();
+  </script>
   <div class="bg-orb orb-1"></div>
   <div class="bg-orb orb-2"></div>
   <div class="bg-grid"></div>

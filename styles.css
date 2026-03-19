@@ -35,6 +35,20 @@ body {
   background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
   min-height: 100vh;
   overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 button,
