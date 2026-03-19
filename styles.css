@@ -485,6 +485,7 @@ body.dark-mode {
   padding: 8px 10px;
   font-size: 0.85rem;
   background: var(--surface-3);
+  color: var(--ink);
   width: 100%;
 }
 
