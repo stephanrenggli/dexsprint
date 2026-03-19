@@ -37,6 +37,13 @@ body {
   overflow-x: hidden;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 body.dark-mode {
   --bg: #151310;
   --bg-1: #1e1a16;
@@ -145,6 +152,11 @@ body.dark-mode {
 .sidebar-section {
   display: grid;
   gap: 8px;
+}
+
+.sidebar,
+.sidebar * {
+  font-family: inherit;
 }
 
 .sidebar-section h3 {
@@ -448,6 +460,8 @@ body.dark-mode {
   cursor: pointer;
   user-select: none;
   color: var(--ink);
+  font-family: inherit;
+  line-height: 1.2;
 }
 
 .theme-chip.is-selected {
