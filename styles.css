@@ -1116,6 +1116,7 @@ body.dark-mode .sprite-card--hidden {
 
 .compact-mode .reveal-pill {
   right: 6px;
+  top: 50%;
   gap: 4px;
   padding: 0 4px 0 2px;
   border-radius: 999px;
@@ -1179,6 +1180,8 @@ body.dark-mode .sprite-card--hidden {
 
 .compact-mode .status--inline {
   left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
   max-width: calc(100% - var(--reveal-pill-width) - 22px);
   font-size: 0.72rem;
 }
