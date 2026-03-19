@@ -17,9 +17,7 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <h2>Settings</h2>
-      <button id="settings-close" class="btn ghost btn-small" type="button" aria-label="Close settings">
-        Close
-      </button>
+      <button id="settings-close" class="modal-close" type="button" aria-label="Close settings">x</button>
     </div>
     <div class="sidebar-section">
       <button id="compact-toggle" class="btn ghost btn-small" type="button">
@@ -92,7 +90,7 @@
         <p class="eyebrow">pokemon name quiz</p>
         <h1>PokeName Sprint</h1>
         <p class="subhead">
-          Type every Pokemon name you can. The list pulls live from PokeAPI, so it stays up to date.
+          How many Pokemon can you name?
         </p>
       </div>
       <div class="hero-card">
@@ -148,11 +146,18 @@
             </button>
           </div>
         </div>
-        <input id="name-input" type="text" autocomplete="off" placeholder="Try: Pikachu, Charizard, Nidoran F" />
-        <div class="status-row">
-          <p id="status" class="status">Loading Pokemon list...</p>
-          <button id="retry-btn" class="btn ghost btn-small" type="button" hidden>Retry</button>
+        <div class="input-shell">
+          <p id="status" class="visually-hidden" aria-live="polite">Loading Pokemon list...</p>
+          <input id="name-input" type="text" autocomplete="off" placeholder="Charizard" />
+          <div id="reveal-pill" class="reveal-pill" aria-live="polite" hidden>
+            <img id="reveal-pill-img" alt="" />
+            <span class="reveal-pill__copy">
+              <span class="reveal-pill__meta">Found</span>
+              <span id="reveal-pill-label" class="reveal-pill__label"></span>
+            </span>
+          </div>
         </div>
+        <button id="retry-btn" class="btn ghost btn-small input-retry" type="button" hidden>Retry</button>
         <div class="progress progress--inline">
           <div id="progress-bar" class="progress-bar"></div>
           <span id="progress-value" class="progress-value">0%</span>
@@ -171,7 +176,7 @@
 
       <div id="info-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="info-title">
         <div class="modal-card">
-          <button id="info-close" class="btn ghost btn-small" type="button" aria-label="Close details">Close</button>
+          <button id="info-close" class="modal-close" type="button" aria-label="Close details">x</button>
           <div class="modal-content">
             <img id="info-sprite" alt="" />
             <div>

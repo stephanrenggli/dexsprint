@@ -13,6 +13,7 @@
   cryAudio: null,
   isRestoring: false,
   lastSavedSec: -1,
+  hasCelebratedCompletion: false,
   infoCache: new Map(),
   timerId: null,
   startTime: null,
@@ -28,6 +29,9 @@ const compactFoundCount = document.getElementById("compact-found-count");
 const compactRemainingCount = document.getElementById("compact-remaining-count");
 const compactTimerEl = document.getElementById("compact-timer");
 const statusEl = document.getElementById("status");
+const revealPill = document.getElementById("reveal-pill");
+const revealPillImg = document.getElementById("reveal-pill-img");
+const revealPillLabel = document.getElementById("reveal-pill-label");
 const inputEl = document.getElementById("name-input");
 const retryBtn = document.getElementById("retry-btn");
 const genFilter = document.getElementById("gen-filter");
@@ -68,6 +72,7 @@ const pokedex = new Pokedex.Pokedex({
 const typeIconBase =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/small/";
 const DEFAULT_THEME = "normal";
+const DEFAULT_INPUT_PLACEHOLDER = "Charizard";
 const THEMES = [
   { id: "normal", name: "Normal", color: "#A8A878", accent2: "#8A8A58" },
   { id: "fire", name: "Fire", color: "#F08030", accent2: "#E0621A" },
@@ -490,6 +495,34 @@ function updateStats() {
   const progress = total === 0 ? 0 : (found / total) * 100;
   progressBar.style.width = `${progress.toFixed(1)}%`;
   if (progressValue) progressValue.textContent = `${Math.round(progress)}%`;
+  const isComplete = total > 0 && found === total;
+  if (isComplete && !state.hasCelebratedCompletion) {
+    triggerCompletionCelebration();
+    state.hasCelebratedCompletion = true;
+  } else if (!isComplete) {
+    state.hasCelebratedCompletion = false;
+    clearCompletionCelebration();
+  }
+}
+
+function triggerCompletionCelebration() {
+  const inputWrap = inputEl ? inputEl.closest(".input-wrap") : null;
+  if (inputWrap) {
+    inputWrap.classList.remove("completion-burst");
+    void inputWrap.offsetWidth;
+    inputWrap.classList.add("completion-burst");
+  }
+  if (progressBar) {
+    progressBar.classList.remove("progress-bar--complete");
+    void progressBar.offsetWidth;
+    progressBar.classList.add("progress-bar--complete");
+  }
+}
+
+function clearCompletionCelebration() {
+  const inputWrap = inputEl ? inputEl.closest(".input-wrap") : null;
+  if (inputWrap) inputWrap.classList.remove("completion-burst");
+  if (progressBar) progressBar.classList.remove("progress-bar--complete");
 }
 
 function createSpriteCard(entry, isFound) {
@@ -811,7 +844,7 @@ function handleGuess(value) {
     updateStats();
     renderSprites();
     if (isNew) {
-      showMobileReveal(state.meta.get(canonical));
+      showRevealPreview(state.meta.get(canonical));
       playCry(canonical);
       saveState();
       showStatusHint("");
@@ -829,7 +862,7 @@ function handleGuess(value) {
     updateStats();
     renderSprites();
     if (isNew) {
-      showMobileReveal(state.meta.get(typoMatch));
+      showRevealPreview(state.meta.get(typoMatch));
       playCry(typoMatch);
       saveState();
       const label = state.meta.get(typoMatch)?.label || "Pokemon";
@@ -855,54 +888,42 @@ function highlightPokemon(canonical) {
   }, 600);
 }
 
-function showMobileReveal(entry) {
-  if (!entry) return;
-  if (!window.matchMedia || !window.matchMedia("(max-width: 720px)").matches) {
-    return;
+function showRevealPreview(entry) {
+  if (!entry || !revealPill) return;
+  if (revealPillImg) {
+    revealPillImg.src = getSpriteForEntry(entry);
+    revealPillImg.alt = entry.label || "Revealed Pokemon";
   }
-  const inputWrap = inputEl ? inputEl.closest(".input-wrap") : null;
-  if (!inputWrap) return;
+  if (revealPillLabel) revealPillLabel.textContent = entry.label || "Pokemon";
 
-  let popup = document.getElementById("reveal-popup");
-  if (!popup) {
-    popup = document.createElement("div");
-    popup.id = "reveal-popup";
-    popup.className = "reveal-popup";
-    popup.innerHTML = `<img alt="" />`;
-    inputWrap.appendChild(popup);
-  }
-  const popupImg = popup.querySelector("img");
-  if (popupImg) {
-    popupImg.src = getSpriteForEntry(entry);
-    popupImg.alt = entry.label || "Revealed Pokemon";
-  }
+  revealPill.hidden = false;
+  revealPill.classList.remove("is-active");
+  void revealPill.offsetWidth;
+  revealPill.classList.add("is-active");
+  clearTimeout(revealPill._hideTimer);
+  revealPill._hideTimer = setTimeout(() => {
+    revealPill.classList.remove("is-active");
+    revealPill.hidden = true;
+  }, 1150);
+}
 
-  popup.style.width = "100%";
-  popup.style.height = "100%";
-  popup.style.left = "0";
-  popup.style.top = "0";
-
-  popup.classList.add("is-active");
-  clearTimeout(popup._hideTimer);
-  popup._hideTimer = setTimeout(() => {
-    popup.classList.remove("is-active");
-  }, 1000);
+function setInputStatus(message, { hint = false } = {}) {
+  if (statusEl) statusEl.textContent = message || "";
+  if (!inputEl) return;
+  inputEl.placeholder = message || DEFAULT_INPUT_PLACEHOLDER;
+  inputEl.classList.toggle("input-status-hint", Boolean(message) && hint);
 }
 
 let statusHintTimeout = null;
 function showStatusHint(message) {
-  if (!statusEl) return;
   if (statusHintTimeout) clearTimeout(statusHintTimeout);
   if (!message) {
-    statusEl.classList.remove("hint");
-    statusEl.textContent = DEFAULT_STATUS;
+    setInputStatus(DEFAULT_STATUS);
     return;
   }
-  statusEl.classList.add("hint");
-  statusEl.textContent = message;
+  setInputStatus(message, { hint: true });
   statusHintTimeout = setTimeout(() => {
-    statusEl.classList.remove("hint");
-    statusEl.textContent = DEFAULT_STATUS;
+    setInputStatus(DEFAULT_STATUS);
   }, 1500);
 }
 
@@ -1186,7 +1207,7 @@ function addPrefixes(value) {
 }
 
 async function loadPokemon() {
-  statusEl.textContent = "Loading Pokemon list...";
+  setInputStatus("Loading Pokemon list...");
   if (retryBtn) retryBtn.hidden = true;
   try {
     const [speciesData, generationData, typeData] = await Promise.all([
@@ -1282,13 +1303,13 @@ async function loadPokemon() {
     restoreState();
     applyFilters();
     buildGuessIndex();
-    statusEl.textContent = DEFAULT_STATUS;
+    setInputStatus(DEFAULT_STATUS);
   } catch (err) {
     const message =
       err && err.name === "AbortError"
         ? "PokeAPI is taking too long. Click retry."
         : "Could not load PokeAPI. Check your connection.";
-    statusEl.textContent = message;
+    setInputStatus(message);
     if (retryBtn) retryBtn.hidden = false;
   }
 }
