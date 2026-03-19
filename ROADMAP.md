@@ -14,12 +14,12 @@ It is intentionally separate from the README so the README stays focused on the 
 - Added milestone celebrations for completed generations and completed types
 - Improved offline-first behavior with cached dataset fallback and stronger service worker caching
 - Added configurable typo tolerance modes such as strict, normal, and forgiving
+- Added optional suggestions instead of always auto-accepting close matches
 
 ## Nice to Have
 
 ### Gameplay
 
-- Add optional suggestions instead of always auto-accepting close matches
 - Add more milestone and session stats such as best time, guesses per minute, and per-generation completion times
 - Add hint options like first letter, generation, type, or silhouette hints
 

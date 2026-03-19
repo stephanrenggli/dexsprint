@@ -10,6 +10,7 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 
 - Guess Pokemon names in English, German, and Spanish at the same time
 - Configurable typo tolerance with strict, normal, and forgiving modes
+- Optional suggestion mode for close matches instead of auto-accepting them
 - Reveal sprites as you find each Pokemon
 - Normal mode and compact mode
 - Grouping and filtering by generation/region and type

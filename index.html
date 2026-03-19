@@ -73,6 +73,21 @@
       </button>
     </div>
     <div class="sidebar-section">
+      <h3>Gameplay</h3>
+      <div class="filter filter--select">
+        <label for="typo-mode">Typo Tolerance</label>
+        <select id="typo-mode">
+          <option value="strict">Strict</option>
+          <option value="normal" selected>Normal</option>
+          <option value="forgiving">Forgiving</option>
+        </select>
+      </div>
+      <label class="toggle">
+        <input id="autocorrect-toggle" type="checkbox" checked />
+        <span>Auto-Accept Close Matches</span>
+      </label>
+    </div>
+    <div class="sidebar-section">
       <h3>Audio</h3>
       <label class="toggle">
         <input id="cries-toggle" type="checkbox" />
@@ -108,17 +123,6 @@
     <div class="sidebar-section">
       <h3>Theme</h3>
       <div id="theme-chooser" class="theme-grid"></div>
-    </div>
-    <div class="sidebar-section">
-      <h3>Gameplay</h3>
-      <div class="filter filter--select">
-        <label for="typo-mode">Typo Tolerance</label>
-        <select id="typo-mode">
-          <option value="strict">Strict</option>
-          <option value="normal" selected>Normal</option>
-          <option value="forgiving">Forgiving</option>
-        </select>
-      </div>
     </div>
     <div class="sidebar-section">
       <h3>Filters</h3>

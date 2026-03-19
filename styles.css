@@ -187,6 +187,14 @@ body.dark-mode {
   color: var(--muted);
 }
 
+.toggle--disabled {
+  opacity: 0.5;
+}
+
+.toggle--disabled span {
+  cursor: not-allowed;
+}
+
 .hero-actions {
   display: flex;
   gap: 10px;

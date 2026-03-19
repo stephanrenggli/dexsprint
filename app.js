@@ -55,6 +55,7 @@ const settingsReset = document.getElementById("settings-reset");
 const darkToggle = document.getElementById("dark-toggle");
 const themeChooser = document.getElementById("theme-chooser");
 const typoModeSelect = document.getElementById("typo-mode");
+const autocorrectToggle = document.getElementById("autocorrect-toggle");
 const infoModal = document.getElementById("info-modal");
 const infoClose = document.getElementById("info-close");
 const infoSprite = document.getElementById("info-sprite");
@@ -357,6 +358,7 @@ function saveSettings() {
     showDex: showDexToggle ? showDexToggle.checked : false,
     shiny: shinyToggle ? shinyToggle.checked : false,
     typoMode: typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
+    autocorrect: autocorrectToggle ? autocorrectToggle.checked : true,
     sidebarCollapsed: document.body.classList.contains("sidebar-collapsed"),
     dark: document.body.classList.contains("dark-mode"),
     theme: document.body.dataset.theme || DEFAULT_THEME
@@ -404,6 +406,8 @@ function restoreSettings() {
   if (showDexToggle) showDexToggle.checked = Boolean(data.showDex);
   if (shinyToggle) shinyToggle.checked = Boolean(data.shiny);
   if (typoModeSelect) typoModeSelect.value = data.typoMode || DEFAULT_TYPO_MODE;
+  if (autocorrectToggle) autocorrectToggle.checked = data.autocorrect !== false;
+  syncTypoSettings();
 }
 
 function resetSettings() {
@@ -420,9 +424,11 @@ function resetSettings() {
   if (showDexToggle) showDexToggle.checked = false;
   if (shinyToggle) shinyToggle.checked = false;
   if (typoModeSelect) typoModeSelect.value = DEFAULT_TYPO_MODE;
+  if (autocorrectToggle) autocorrectToggle.checked = true;
   if (outlineToggle) outlineToggle.checked = false;
   if (darkToggle) darkToggle.checked = false;
   setTheme(DEFAULT_THEME, false);
+  syncTypoSettings();
   if (groupFilter) groupFilter.value = "generation";
   setChipGroupSelections(genFilter, []);
   setChipGroupSelections(typeFilter, []);
@@ -846,6 +852,15 @@ function getMaxTypoDistance(normalized) {
   return normalized.length <= 6 ? 1 : 2;
 }
 
+function syncTypoSettings() {
+  if (!typoModeSelect || !autocorrectToggle) return;
+  const isStrict = typoModeSelect.value === "strict";
+  autocorrectToggle.disabled = isStrict;
+  autocorrectToggle
+    .closest(".toggle")
+    ?.classList.toggle("toggle--disabled", isStrict);
+}
+
 function handleGuess(value) {
   const normalized = normalizeGuess(value);
   if (!normalized) return;
@@ -869,6 +884,11 @@ function handleGuess(value) {
   }
   const typoMatch = findTypoMatch(normalized);
   if (typoMatch && state.names.includes(typoMatch)) {
+    if (autocorrectToggle && !autocorrectToggle.checked) {
+      const label = state.meta.get(typoMatch)?.label || "Pokemon";
+      showStatusHint(`Did you mean ${label}?`);
+      return;
+    }
     const isNew = !state.found.has(typoMatch);
     state.found.add(typoMatch);
     if (isNew) state.recentlyFound.add(typoMatch);
@@ -1425,7 +1445,14 @@ if (settingsReset) {
 }
 
 if (typoModeSelect) {
-  typoModeSelect.addEventListener("change", saveSettings);
+  typoModeSelect.addEventListener("change", () => {
+    syncTypoSettings();
+    saveSettings();
+  });
+}
+
+if (autocorrectToggle) {
+  autocorrectToggle.addEventListener("change", saveSettings);
 }
 
 if (darkToggle) {
@@ -1491,4 +1518,5 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+syncTypoSettings();
 loadPokemon();
