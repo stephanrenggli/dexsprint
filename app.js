@@ -492,6 +492,42 @@ function updateStats() {
   if (progressValue) progressValue.textContent = `${Math.round(progress)}%`;
 }
 
+function createSpriteCard(entry, isFound) {
+  const card = document.createElement("div");
+  const classes = ["sprite-card"];
+  const isRevealedNow = isFound && state.recentlyFound.has(entry.normalized);
+  if (!isFound) {
+    classes.push("sprite-card--hidden");
+  }
+  if (isRevealedNow) {
+    classes.push("sprite-card--revealed");
+    if (!document.body.classList.contains("outlines-off")) {
+      classes.push("sprite-card--outline-reveal");
+    }
+  }
+  card.className = classes.join(" ");
+  card.dataset.pokemon = entry.normalized;
+
+  const img = document.createElement("img");
+  img.src = getSpriteForEntry(entry);
+  img.alt = isFound ? entry.label : "Unknown Pokemon";
+  img.loading = "lazy";
+  img.decoding = "async";
+
+  const label = document.createElement("span");
+  label.className = "sprite-card__name";
+  label.textContent = isFound ? entry.label : getHiddenLabel(entry);
+
+  if (isRevealedNow) {
+    const spriteUrl = getSpriteForEntry(entry).replace(/"/g, '\\"');
+    card.style.setProperty("--reveal-sprite", `url("${spriteUrl}")`);
+  }
+
+  card.appendChild(img);
+  card.appendChild(label);
+  return card;
+}
+
 
 function renderSprites() {
   if (!spriteGrid) return;
@@ -503,28 +539,8 @@ function renderSprites() {
     state.names.forEach((name) => {
       const entry = state.meta.get(name);
       if (!entry) return;
-      const card = document.createElement("div");
       const isFound = state.found.has(name);
-      const classes = ["sprite-card"];
-      if (!isFound) {
-        classes.push("sprite-card--hidden");
-    }
-    card.className = classes.join(" ");
-      card.dataset.pokemon = entry.normalized;
-
-      const img = document.createElement("img");
-      img.src = getSpriteForEntry(entry);
-      img.alt = isFound ? entry.label : "Unknown Pokemon";
-      img.loading = "lazy";
-      img.decoding = "async";
-
-      const label = document.createElement("span");
-      label.className = "sprite-card__name";
-      label.textContent = isFound ? entry.label : getHiddenLabel(entry);
-
-      card.appendChild(img);
-      card.appendChild(label);
-      spriteGrid.appendChild(card);
+      spriteGrid.appendChild(createSpriteCard(entry, isFound));
     });
   }
   state.recentlyFound.clear();
@@ -589,28 +605,8 @@ function renderSpritesGrouped() {
       const grid = document.createElement("div");
       grid.className = "sprite-grid";
       entries.forEach((entry) => {
-        const card = document.createElement("div");
         const isFound = state.found.has(entry.normalized);
-        const classes = ["sprite-card"];
-        if (!isFound) {
-          classes.push("sprite-card--hidden");
-        }
-        card.className = classes.join(" ");
-        card.dataset.pokemon = entry.normalized;
-
-        const img = document.createElement("img");
-        img.src = getSpriteForEntry(entry);
-        img.alt = isFound ? entry.label : "Unknown Pokemon";
-        img.loading = "lazy";
-        img.decoding = "async";
-
-        const label = document.createElement("span");
-        label.className = "sprite-card__name";
-        label.textContent = isFound ? entry.label : getHiddenLabel(entry);
-
-        card.appendChild(img);
-        card.appendChild(label);
-        grid.appendChild(card);
+        grid.appendChild(createSpriteCard(entry, isFound));
       });
 
       section.appendChild(title);

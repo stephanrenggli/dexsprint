@@ -659,6 +659,7 @@ body.dark-mode {
   position: relative;
   z-index: 1;
   transform-origin: center;
+  overflow: hidden;
 }
 
 .sprite-card img {
@@ -712,7 +713,7 @@ body.dark-mode .sprite-card--hidden {
 .outlines-off .sprite-card--hidden {
   background-image: var(--pokeball);
   background-repeat: no-repeat;
-  background-position: center 36%;
+  background-position: center 30%;
   background-size: 40px 40px;
 }
 
@@ -730,6 +731,46 @@ body.dark-mode .sprite-card--hidden {
 
 .sprite-card:not(.sprite-card--hidden):hover img {
   transform: scale(1.15);
+}
+
+.sprite-card--revealed {
+  animation: sprite-reveal-pop 520ms cubic-bezier(0.18, 0.9, 0.28, 1.2);
+}
+
+.sprite-card--revealed img {
+  animation: sprite-reveal-image 520ms cubic-bezier(0.18, 0.9, 0.28, 1.2);
+}
+
+.sprite-card--revealed::after {
+  content: "";
+  position: absolute;
+  inset: -20% 35% -20% -45%;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    color-mix(in srgb, var(--accent-3) 20%, transparent) 35%,
+    rgba(255, 255, 255, 0.7) 50%,
+    color-mix(in srgb, var(--accent) 18%, transparent) 65%,
+    transparent 100%
+  );
+  transform: translateX(-130%) skewX(-18deg);
+  opacity: 0;
+  pointer-events: none;
+  animation: sprite-reveal-shimmer 620ms ease-out 80ms;
+}
+
+.sprite-card--outline-reveal::before {
+  content: "";
+  position: absolute;
+  inset: 8px 6px 10px;
+  background-image: var(--reveal-sprite);
+  background-repeat: no-repeat;
+  background-position: center 11px;
+  background-size: 48px 48px;
+  filter: var(--outline-filter);
+  opacity: 0.65;
+  pointer-events: none;
+  animation: sprite-outline-morph 420ms ease-out forwards;
 }
 
 .sprite-card--highlight {
@@ -876,12 +917,35 @@ body.dark-mode .sprite-card--hidden {
   display: grid;
   place-items: center;
   position: relative;
+  overflow: visible;
+}
+
+.compact-mode .sprite-card--revealed {
+  animation-duration: 460ms;
+}
+
+.compact-mode .sprite-card--revealed img {
+  animation:
+    sprite-reveal-image 460ms cubic-bezier(0.18, 0.9, 0.28, 1.2),
+    compact-sprite-shine 520ms ease-out 80ms;
+}
+
+.compact-mode .sprite-card--revealed::after {
+  display: none;
+}
+
+.compact-mode .sprite-card--outline-reveal::before {
+  inset: 0;
+  background-position: center;
+  background-size: 60px 60px;
 }
 
 .compact-mode .sprite-card img {
   width: 60px;
   height: 60px;
-  position: absolute;
+  position: relative;
+  justify-self: center;
+  align-self: center;
 }
 
 .compact-mode .sprite-card__name {
@@ -931,9 +995,9 @@ body.dark-mode .sprite-card--hidden {
 }
 
 .compact-mode.outlines-off .sprite-card--hidden::before {
-  opacity: 0.5;
-  width: 32px;
-  height: 32px;
+  opacity: 0.7;
+  width: 48px;
+  height: 48px;
   inset: auto;
   top: 50%;
   left: 50%;
@@ -1007,6 +1071,77 @@ body.dark-mode .sprite-card--hidden {
   }
   100% {
     transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes sprite-reveal-pop {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.84);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes sprite-reveal-image {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+    filter: saturate(0.5) brightness(1.12);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.18);
+    filter: saturate(1.12) brightness(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: none;
+  }
+}
+
+@keyframes sprite-reveal-shimmer {
+  0% {
+    opacity: 0;
+    transform: translateX(-130%) skewX(-18deg);
+  }
+  25% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(185%) skewX(-18deg);
+  }
+}
+
+@keyframes sprite-outline-morph {
+  0% {
+    opacity: 0.75;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes compact-sprite-shine {
+  0% {
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
+  }
+  35% {
+    filter: brightness(1.28)
+      drop-shadow(0 0 10px color-mix(in srgb, var(--accent-3) 42%, transparent));
+  }
+  100% {
+    filter: brightness(1) drop-shadow(0 0 0 transparent);
   }
 }
 
