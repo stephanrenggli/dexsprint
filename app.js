@@ -1171,25 +1171,18 @@ function buildGuessIndex() {
   state.guessPrefixes.clear();
   state.names.forEach((canonical) => {
     const labels = state.namesByLang.get(canonical);
-    const enLabel =
-      labels && labels.get("en")
-        ? labels.get("en")
-        : state.normalizedMap.get(canonical);
-    const deLabel = labels && labels.get("de") ? labels.get("de") : null;
+    const localizedLabels = [
+      labels && labels.get("en") ? labels.get("en") : state.normalizedMap.get(canonical),
+      labels && labels.get("de") ? labels.get("de") : null,
+      labels && labels.get("es") ? labels.get("es") : null
+    ];
 
-    const enGuess = normalizeGuess(enLabel);
-    if (enGuess) {
-      state.guessIndex.set(enGuess, canonical);
-      addPrefixes(enGuess);
-    }
-
-    if (deLabel) {
-      const deGuess = normalizeGuess(deLabel);
-      if (deGuess) {
-        state.guessIndex.set(deGuess, canonical);
-        addPrefixes(deGuess);
-      }
-    }
+    localizedLabels.forEach((label) => {
+      const guess = normalizeGuess(label);
+      if (!guess) return;
+      state.guessIndex.set(guess, canonical);
+      addPrefixes(guess);
+    });
 
     const fallbackGuess = normalizeGuess(state.normalizedMap.get(canonical));
     if (fallbackGuess) {
@@ -1280,6 +1273,9 @@ async function loadPokemon() {
         }
         if (nameEntry.language.name === "de") {
           namesByLang.set("de", nameEntry.name);
+        }
+        if (nameEntry.language.name === "es") {
+          namesByLang.set("es", nameEntry.name);
         }
       });
       state.namesByLang.set(canonical, namesByLang);
