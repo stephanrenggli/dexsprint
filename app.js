@@ -99,7 +99,7 @@ const criesLatestBase =
 const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 const STORAGE_KEY = "pokequiz-state";
-const DEFAULT_STATUS = "Start typing to guess Pokemon names.";
+const DEFAULT_STATUS = "";
 
 function normalizeName(value) {
   if (!value) return "";

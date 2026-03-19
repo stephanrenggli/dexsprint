@@ -330,6 +330,10 @@ body.dark-mode {
   color: var(--muted);
 }
 
+.status:empty {
+  display: none;
+}
+
 .status.hint {
   color: #9c5c2c;
   font-weight: 600;
