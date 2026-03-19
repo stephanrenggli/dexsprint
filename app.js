@@ -71,28 +71,13 @@ const pokedex = new Pokedex.Pokedex({
 });
 const typeIconBase =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/small/";
-const DEFAULT_THEME = "normal";
+const themeConfigEl = document.getElementById("theme-config");
+const themeConfig = themeConfigEl
+  ? JSON.parse(themeConfigEl.textContent)
+  : { defaultTheme: "normal", themes: [] };
+const DEFAULT_THEME = themeConfig.defaultTheme || "normal";
 const DEFAULT_INPUT_PLACEHOLDER = "Charizard";
-const THEMES = [
-  { id: "normal", name: "Normal", color: "#A8A878", accent2: "#8A8A58" },
-  { id: "fire", name: "Fire", color: "#F08030", accent2: "#E0621A" },
-  { id: "water", name: "Water", color: "#6890F0", accent2: "#4E7CE8" },
-  { id: "electric", name: "Electric", color: "#F8D030", accent2: "#E6B800" },
-  { id: "grass", name: "Grass", color: "#78C850", accent2: "#5FA63A" },
-  { id: "ice", name: "Ice", color: "#98D8D8", accent2: "#7FC6C6" },
-  { id: "fighting", name: "Fighting", color: "#C03028", accent2: "#A61F1A" },
-  { id: "poison", name: "Poison", color: "#A040A0", accent2: "#7F2E7F" },
-  { id: "ground", name: "Ground", color: "#E0C068", accent2: "#C9A84A" },
-  { id: "flying", name: "Flying", color: "#A890F0", accent2: "#8E72E6" },
-  { id: "psychic", name: "Psychic", color: "#F85888", accent2: "#E04070" },
-  { id: "bug", name: "Bug", color: "#A8B820", accent2: "#8C9A12" },
-  { id: "rock", name: "Rock", color: "#B8A038", accent2: "#9E8524" },
-  { id: "ghost", name: "Ghost", color: "#705898", accent2: "#5A457E" },
-  { id: "dragon", name: "Dragon", color: "#7038F8", accent2: "#5A22E6" },
-  { id: "dark", name: "Dark", color: "#705848", accent2: "#5A463A" },
-  { id: "steel", name: "Steel", color: "#B8B8D0", accent2: "#9FA0B7" },
-  { id: "fairy", name: "Fairy", color: "#EE99AC", accent2: "#DB8097" }
-];
+const THEMES = themeConfig.themes || [];
 const spriteFallback =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png";
 const spriteBase =
@@ -376,6 +361,15 @@ function saveSettings() {
   localStorage.setItem(`${STORAGE_KEY}:settings`, JSON.stringify(payload));
 }
 
+function updateThemeColorMeta(color) {
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  const resolvedColor =
+    color ||
+    getComputedStyle(document.body).getPropertyValue("--bg-2").trim() ||
+    "#f7f1e5";
+  if (themeColorMeta) themeColorMeta.setAttribute("content", resolvedColor);
+}
+
 function restoreSettings() {
   const raw = localStorage.getItem(`${STORAGE_KEY}:settings`);
   if (!raw) return;
@@ -416,6 +410,7 @@ function resetSettings() {
   document.body.classList.add("sidebar-collapsed");
   if (compactToggle) compactToggle.textContent = "Compact Mode";
   if (filtersToggle) filtersToggle.textContent = "Show Settings";
+  if (filtersToggleCompact) filtersToggleCompact.textContent = "Show Settings";
   if (criesToggle) criesToggle.checked = false;
   if (legacyCriesToggle) legacyCriesToggle.checked = false;
   if (showDexToggle) showDexToggle.checked = false;
@@ -440,6 +435,7 @@ function setTheme(themeId, persist = true) {
   document.documentElement.style.setProperty("--bg-1", bg1);
   document.documentElement.style.setProperty("--bg-2", bg2);
   document.documentElement.style.setProperty("--bg-3", bg3);
+  updateThemeColorMeta();
   if (themeChooser) {
     const chips = [...themeChooser.querySelectorAll(".theme-chip")];
     chips.forEach((chip) => {
@@ -908,10 +904,20 @@ function showRevealPreview(entry) {
 }
 
 function setInputStatus(message, { hint = false } = {}) {
-  if (statusEl) statusEl.textContent = message || "";
-  if (!inputEl) return;
-  inputEl.placeholder = message || DEFAULT_INPUT_PLACEHOLDER;
-  inputEl.classList.toggle("input-status-hint", Boolean(message) && hint);
+  if (!statusEl) return;
+  statusEl.textContent = message || "";
+  statusEl.classList.toggle("hint", Boolean(message) && hint);
+  statusEl.hidden = !message || Boolean(inputEl && inputEl.value.trim());
+  if (inputEl) {
+    inputEl.placeholder = message ? "" : DEFAULT_INPUT_PLACEHOLDER;
+    inputEl.classList.toggle("input-status-active", Boolean(message) && statusEl.hidden === false);
+  }
+}
+
+function syncInlineStatusVisibility() {
+  if (!statusEl || !inputEl) return;
+  statusEl.hidden = !statusEl.textContent.trim() || Boolean(inputEl.value.trim());
+  inputEl.classList.toggle("input-status-active", statusEl.hidden === false);
 }
 
 let statusHintTimeout = null;
@@ -930,19 +936,23 @@ function showStatusHint(message) {
 function handleInputEvent(e) {
   startTimer();
   const value = e.target.value;
+  syncInlineStatusVisibility();
   if (!value.includes(",")) return;
   const parts = value.split(",");
   parts.slice(0, -1).forEach(handleGuess);
   e.target.value = parts[parts.length - 1];
+  syncInlineStatusVisibility();
 }
 
 function handleLiveMatch(e) {
   const value = e.target.value;
   const normalized = normalizeGuess(value);
+  syncInlineStatusVisibility();
   if (!normalized) return;
   if (state.guessIndex.has(normalized) && !state.guessPrefixes.has(normalized)) {
     handleGuess(value);
     e.target.value = "";
+    syncInlineStatusVisibility();
   }
 }
 
@@ -1400,6 +1410,7 @@ if (settingsReset) {
 if (darkToggle) {
   darkToggle.addEventListener("change", () => {
     document.body.classList.toggle("dark-mode", darkToggle.checked);
+    updateThemeColorMeta();
     saveSettings();
   });
 }

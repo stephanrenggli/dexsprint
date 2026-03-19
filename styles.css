@@ -351,40 +351,29 @@ body.dark-mode {
 }
 
 .input-shell {
+  --reveal-pill-width: 180px;
   position: relative;
   margin-top: 12px;
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 #name-input {
   width: 100%;
   border: 2px solid var(--border-strong);
   border-radius: 14px;
-  padding: 14px 180px 14px 16px;
+  padding: 14px calc(var(--reveal-pill-width) + 16px) 14px 16px;
   font-size: 1.05rem;
   background: var(--surface-3);
   color: var(--ink);
+  caret-color: var(--accent);
+}
+
+#name-input.input-status-active {
+  caret-color: transparent;
 }
 
 #name-input:focus {
   outline: none;
   box-shadow: none;
-}
-
-#name-input.input-status-hint::placeholder {
-  color: #9c5c2c;
-  opacity: 1;
 }
 
 .reveal-pill {
@@ -395,7 +384,7 @@ body.dark-mode {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  max-width: min(42%, 180px);
+  max-width: var(--reveal-pill-width);
   padding: 2px 8px 2px 4px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
@@ -448,6 +437,35 @@ body.dark-mode {
 
 .input-retry {
   margin-top: 8px;
+  flex: 0 0 auto;
+}
+
+.status {
+  margin: 0;
+  color: var(--muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status--inline {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  max-width: calc(100% - var(--reveal-pill-width) - 40px);
+  transform: translateY(-50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.status--inline[hidden] {
+  display: none;
+}
+
+.status.hint {
+  color: #9c5c2c;
+  font-weight: 600;
 }
 
 /* Filters */
@@ -961,9 +979,12 @@ body.dark-mode .sprite-card--hidden {
   overflow: hidden;
 }
 
+.compact-mode .input-shell {
+  --reveal-pill-width: 82px;
+}
+
 .compact-mode .reveal-pill {
   right: 6px;
-  max-width: min(34%, 82px);
   gap: 4px;
   padding: 0 4px 0 2px;
   border-radius: 999px;
@@ -1022,7 +1043,13 @@ body.dark-mode .sprite-card--hidden {
   background: var(--surface-3);
   border-radius: 8px;
   font-size: 0.85rem;
-  padding: 6px 92px 6px 8px;
+  padding: 6px calc(var(--reveal-pill-width) + 10px) 6px 8px;
+}
+
+.compact-mode .status--inline {
+  left: 8px;
+  max-width: calc(100% - var(--reveal-pill-width) - 22px);
+  font-size: 0.72rem;
 }
 
 .compact-mode .sprite-board {
