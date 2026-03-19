@@ -1314,6 +1314,7 @@ if (compactToggle) {
   compactToggle.addEventListener("click", () => {
     const isCompact = document.body.classList.toggle("compact-mode");
     compactToggle.textContent = isCompact ? "Normal Mode" : "Compact Mode";
+    renderSprites();
     saveSettings();
   });
 }
