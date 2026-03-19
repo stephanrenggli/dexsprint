@@ -4,9 +4,12 @@ A browser-based Pokemon name quiz inspired by [pkmnquiz.com](https://pkmnquiz.co
 
 You type Pokemon names and reveal their sprites as you find them. The app supports multiple layouts, persistent progress, multilingual guessing, themed UI modes, and detail popups backed by PokeAPI data.
 
+See [ROADMAP.md](ROADMAP.md) for future improvements.
+
 ## Features
 
 - Guess Pokemon names in English, German, and Spanish at the same time
+- Configurable typo tolerance with strict, normal, and forgiving modes
 - Reveal sprites as you find each Pokemon
 - Normal mode and compact mode
 - Grouping and filtering by generation/region and type

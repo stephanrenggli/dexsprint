@@ -54,6 +54,7 @@ const shinyToggle = document.getElementById("shiny-toggle");
 const settingsReset = document.getElementById("settings-reset");
 const darkToggle = document.getElementById("dark-toggle");
 const themeChooser = document.getElementById("theme-chooser");
+const typoModeSelect = document.getElementById("typo-mode");
 const infoModal = document.getElementById("info-modal");
 const infoClose = document.getElementById("info-close");
 const infoSprite = document.getElementById("info-sprite");
@@ -90,6 +91,7 @@ const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 const STORAGE_KEY = "pokequiz-state";
 const DEFAULT_STATUS = "";
+const DEFAULT_TYPO_MODE = "normal";
 
 function normalizeName(value) {
   if (!value) return "";
@@ -354,6 +356,7 @@ function saveSettings() {
     legacyCries: legacyCriesToggle ? legacyCriesToggle.checked : false,
     showDex: showDexToggle ? showDexToggle.checked : false,
     shiny: shinyToggle ? shinyToggle.checked : false,
+    typoMode: typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
     sidebarCollapsed: document.body.classList.contains("sidebar-collapsed"),
     dark: document.body.classList.contains("dark-mode"),
     theme: document.body.dataset.theme || DEFAULT_THEME
@@ -400,6 +403,7 @@ function restoreSettings() {
   if (legacyCriesToggle) legacyCriesToggle.checked = Boolean(data.legacyCries);
   if (showDexToggle) showDexToggle.checked = Boolean(data.showDex);
   if (shinyToggle) shinyToggle.checked = Boolean(data.shiny);
+  if (typoModeSelect) typoModeSelect.value = data.typoMode || DEFAULT_TYPO_MODE;
 }
 
 function resetSettings() {
@@ -415,6 +419,7 @@ function resetSettings() {
   if (legacyCriesToggle) legacyCriesToggle.checked = false;
   if (showDexToggle) showDexToggle.checked = false;
   if (shinyToggle) shinyToggle.checked = false;
+  if (typoModeSelect) typoModeSelect.value = DEFAULT_TYPO_MODE;
   if (outlineToggle) outlineToggle.checked = false;
   if (darkToggle) darkToggle.checked = false;
   setTheme(DEFAULT_THEME, false);
@@ -808,7 +813,8 @@ function findTypoMatch(normalized) {
   if (!normalized) return null;
   if (state.guessPrefixes.has(normalized)) return null;
   if (normalized.length < 4) return null;
-  const maxDist = normalized.length <= 6 ? 1 : 2;
+  const maxDist = getMaxTypoDistance(normalized);
+  if (maxDist <= 0) return null;
   let bestCanonical = null;
   let bestDist = maxDist + 1;
   let bestCount = 0;
@@ -827,6 +833,17 @@ function findTypoMatch(normalized) {
   }
   if (bestCanonical && bestCount === 1) return bestCanonical;
   return null;
+}
+
+function getMaxTypoDistance(normalized) {
+  const mode = typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE;
+  if (mode === "strict") return 0;
+  if (mode === "forgiving") {
+    if (normalized.length <= 4) return 1;
+    if (normalized.length <= 8) return 2;
+    return 3;
+  }
+  return normalized.length <= 6 ? 1 : 2;
 }
 
 function handleGuess(value) {
@@ -1405,6 +1422,10 @@ if (shinyToggle) {
 
 if (settingsReset) {
   settingsReset.addEventListener("click", resetSettings);
+}
+
+if (typoModeSelect) {
+  typoModeSelect.addEventListener("change", saveSettings);
 }
 
 if (darkToggle) {
