@@ -190,8 +190,7 @@
     </header>
 
     <section class="quiz quiz-main">
-      <div class="input-wrap">
-        <label class="input-label" for="name-input">Your guesses</label>
+      <div class="compact-summary">
         <div class="compact-stats">
           <div class="stat">
             <span class="label">Total</span>
@@ -216,6 +215,9 @@
             </button>
           </div>
         </div>
+      </div>
+      <div class="input-wrap">
+        <label class="input-label" for="name-input">Name a Pokemon</label>
         <div class="input-shell">
           <p id="status" class="status status--inline" aria-live="polite" hidden>Loading Pokemon list...</p>
           <input id="name-input" type="text" autocomplete="off" placeholder="Charizard" />
