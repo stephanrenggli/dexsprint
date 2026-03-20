@@ -433,6 +433,8 @@ function updateThemeColorMeta(color) {
     color ||
     getComputedStyle(document.body).getPropertyValue("--bg-2").trim() ||
     "#f7f1e5";
+  document.documentElement.style.backgroundColor = resolvedColor;
+  document.body.style.backgroundColor = resolvedColor;
   if (themeColorMeta) themeColorMeta.setAttribute("content", resolvedColor);
 }
 

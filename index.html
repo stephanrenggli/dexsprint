@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>DexSprint</title>
   <meta name="theme-color" content="#f7f1e5" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
@@ -50,9 +50,12 @@
         root.style.setProperty("--bg-1", tint(theme.color, 0.92));
         root.style.setProperty("--bg-2", tint(theme.color, 0.85));
         root.style.setProperty("--bg-3", tint(theme.color, 0.72));
+        const browserBg = data.dark ? "#14110e" : tint(theme.color, 0.85);
+        root.style.backgroundColor = browserBg;
+        body.style.backgroundColor = browserBg;
         const themeColorMeta = document.querySelector('meta[name="theme-color"]');
         if (themeColorMeta) {
-          themeColorMeta.setAttribute("content", data.dark ? "#14110e" : tint(theme.color, 0.85));
+          themeColorMeta.setAttribute("content", browserBg);
         }
       } catch (err) {
       }
