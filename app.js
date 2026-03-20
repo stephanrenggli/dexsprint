@@ -14,10 +14,12 @@
   isRestoring: false,
   lastSavedSec: -1,
   hasCelebratedCompletion: false,
+  badgesPrimed: false,
   infoCache: new Map(),
   timerId: null,
   startTime: null,
-  activeEntry: null
+  activeEntry: null,
+  seenBadges: new Set()
 };
 
 const totalCount = document.getElementById("total-count");
@@ -56,6 +58,11 @@ const darkToggle = document.getElementById("dark-toggle");
 const themeChooser = document.getElementById("theme-chooser");
 const typoModeSelect = document.getElementById("typo-mode");
 const autocorrectToggle = document.getElementById("autocorrect-toggle");
+const badgeHeading = document.getElementById("badge-heading");
+const badgeList = document.getElementById("badge-list");
+const achievementToast = document.getElementById("achievement-toast");
+const achievementToastIcon = document.getElementById("achievement-toast-icon");
+const achievementToastTitle = document.getElementById("achievement-toast-title");
 const infoModal = document.getElementById("info-modal");
 const infoClose = document.getElementById("info-close");
 const infoSprite = document.getElementById("info-sprite");
@@ -94,6 +101,59 @@ const criesLegacyBase =
 const STORAGE_KEY = "pokequiz-state";
 const DEFAULT_STATUS = "";
 const DEFAULT_TYPO_MODE = "normal";
+const BADGES = [
+  {
+    id: "first-catch",
+    icon: "P1",
+    title: "First Catch",
+    description: "Find your first Pokemon.",
+    unlocked: ({ foundCount }) => foundCount >= 1
+  },
+  {
+    id: "rookie-trainer",
+    icon: "10",
+    title: "Rookie Trainer",
+    description: "Find 10 Pokemon.",
+    unlocked: ({ foundCount }) => foundCount >= 10
+  },
+  {
+    id: "collector",
+    icon: "100",
+    title: "Collector",
+    description: "Find 100 Pokemon.",
+    unlocked: ({ foundCount }) => foundCount >= 100
+  },
+  {
+    id: "halfway-there",
+    icon: "50%",
+    title: "Halfway There",
+    description: "Reach 50% overall completion.",
+    unlocked: ({ totalCount, foundCount }) =>
+      totalCount > 0 && foundCount / totalCount >= 0.5
+  },
+  {
+    id: "region-master",
+    icon: "GEN",
+    title: "Region Master",
+    description: "Complete any generation.",
+    unlocked: ({ completedGenerations }) => completedGenerations.length > 0
+  },
+  {
+    id: "type-specialist",
+    icon: "TYPE",
+    title: "Type Specialist",
+    description: "Complete any type.",
+    unlocked: ({ completedTypes }) => completedTypes.length > 0
+  },
+  {
+    id: "national-dex",
+    icon: "DEX",
+    title: "National Dex",
+    description: "Find every Pokemon in the quiz.",
+    unlocked: ({ totalCount, foundCount }) =>
+      totalCount > 0 && foundCount === totalCount
+  }
+];
 
 function normalizeName(value) {
   if (!value) return "";
@@ -511,6 +571,106 @@ function updateStats() {
     state.hasCelebratedCompletion = false;
     clearCompletionCelebration();
   }
+  try {
+    renderBadges();
+  } catch (err) {
+    console.error("Badge rendering failed", err);
+  }
+}
+
+function getBadgeContext() {
+  return {
+    totalCount: state.allNames.length,
+    foundCount: state.found.size,
+    completedGenerations: getCompletedGroupEntries(state.generationIndex),
+    completedTypes: getCompletedGroupEntries(state.typeIndex)
+  };
+}
+
+function getCompletedGroupEntries(indexMap) {
+  const complete = [];
+  indexMap.forEach((nameSet, key) => {
+    if (!nameSet || nameSet.size === 0) return;
+    let done = true;
+    nameSet.forEach((name) => {
+      if (!state.found.has(name)) done = false;
+    });
+    if (done) complete.push(key);
+  });
+  return complete;
+}
+
+function renderBadges() {
+  if (!badgeList) return;
+  const context = getBadgeContext();
+  badgeList.innerHTML = "";
+  let unlockedCount = 0;
+  const unlockedIds = [];
+
+  BADGES.forEach((badge) => {
+    const unlocked = badge.unlocked(context);
+    if (unlocked) {
+      unlockedCount += 1;
+      unlockedIds.push(badge.id);
+    }
+    const item = document.createElement("div");
+    item.className = `badge ${unlocked ? "badge--unlocked" : "badge--locked"}`;
+
+    const icon = document.createElement("span");
+    icon.className = "badge__icon";
+    icon.textContent = badge.icon;
+
+    const copy = document.createElement("div");
+    copy.className = "badge__copy";
+
+    const title = document.createElement("strong");
+    title.className = "badge__title";
+    title.textContent = badge.title;
+
+    const description = document.createElement("span");
+    description.className = "badge__description";
+    description.textContent = badge.description;
+
+    copy.appendChild(title);
+    copy.appendChild(description);
+    item.appendChild(icon);
+    item.appendChild(copy);
+    badgeList.appendChild(item);
+  });
+
+  if (badgeHeading) {
+    badgeHeading.textContent = `Achievements (${unlockedCount}/${BADGES.length})`;
+  }
+
+  if (!state.badgesPrimed) {
+    state.seenBadges = new Set(unlockedIds);
+    state.badgesPrimed = true;
+    return;
+  }
+
+  if (state.isRestoring) return;
+
+  unlockedIds.forEach((id) => {
+    if (state.seenBadges.has(id)) return;
+    state.seenBadges.add(id);
+    const badge = BADGES.find((entry) => entry.id === id);
+    if (badge) showAchievementToast(badge);
+  });
+}
+
+function showAchievementToast(badge) {
+  if (!badge || !achievementToast) return;
+  if (achievementToastIcon) achievementToastIcon.textContent = badge.icon;
+  if (achievementToastTitle) achievementToastTitle.textContent = badge.title;
+  achievementToast.hidden = false;
+  achievementToast.classList.remove("is-active");
+  void achievementToast.offsetWidth;
+  achievementToast.classList.add("is-active");
+  clearTimeout(achievementToast._hideTimer);
+  achievementToast._hideTimer = setTimeout(() => {
+    achievementToast.classList.remove("is-active");
+    achievementToast.hidden = true;
+  }, 2400);
 }
 
 function triggerCompletionCelebration() {
@@ -660,6 +820,8 @@ function renderSpritesGrouped() {
 function resetQuiz() {
   stopTimer();
   state.found.clear();
+  state.seenBadges.clear();
+  state.badgesPrimed = true;
   setTimerText("00:00");
   inputEl.value = "";
   focusInput();
@@ -1454,6 +1616,7 @@ async function loadPokemon() {
     buildGuessIndex();
     setInputStatus(DEFAULT_STATUS);
   } catch (err) {
+    console.error("loadPokemon failed", err);
     const message =
       err && err.name === "AbortError"
         ? "PokeAPI is taking too long. Click retry."

@@ -15,6 +15,7 @@ It is intentionally separate from the README so the README stays focused on the 
 - Improved offline-first behavior with cached dataset fallback and stronger service worker caching
 - Added configurable typo tolerance modes such as strict, normal, and forgiving
 - Added optional suggestions instead of always auto-accepting close matches
+- Added achievement badges with unlock notifications
 - Improved the detail modal with richer presentation for type, size, abilities, and related data
 
 ## Nice to Have

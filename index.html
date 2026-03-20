@@ -145,6 +145,10 @@
         </div>
       </div>
     </div>
+    <div class="sidebar-section">
+      <h3 id="badge-heading">Achievements</h3>
+      <div id="badge-list" class="badge-list"></div>
+    </div>
   </aside>
 
   <main class="app">
@@ -273,6 +277,14 @@
     <p>Pokémon and Pokémon character names are trademarks of Nintendo, Creatures Inc., and GAME FREAK Inc. This is a fan-made derivative project.</p>
     <p>Fully vibe-coded using Codex.</p>
   </footer>
+
+  <div id="achievement-toast" class="achievement-toast" aria-live="polite" hidden>
+    <span id="achievement-toast-icon" class="achievement-toast__icon"></span>
+    <span class="achievement-toast__copy">
+      <span class="achievement-toast__meta">Achievement Unlocked</span>
+      <strong id="achievement-toast-title" class="achievement-toast__title"></strong>
+    </span>
+  </div>
 
   <script src="https://unpkg.com/pokeapi-js-wrapper/dist/index.js"></script>
   <script src="app.js"></script>
