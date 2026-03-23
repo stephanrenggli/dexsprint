@@ -1,7 +1,6 @@
 ﻿const state = {
   names: [],
   allNames: [],
-  normalizedMap: new Map(),
   meta: new Map(),
   generationIndex: new Map(),
   typeIndex: new Map(),
@@ -18,6 +17,7 @@
   infoCache: new Map(),
   timerId: null,
   startTime: null,
+  savedElapsed: 0,
   activeEntry: null,
   seenBadges: new Set()
 };
@@ -73,6 +73,10 @@ const infoGenus = document.getElementById("info-genus");
 const infoAbilities = document.getElementById("info-abilities");
 const infoStats = document.getElementById("info-stats");
 const infoFacts = document.getElementById("info-facts");
+const progressCodeEl = document.getElementById("progress-code");
+const progressExportBtn = document.getElementById("progress-export");
+const progressImportBtn = document.getElementById("progress-import");
+const progressFeedbackEl = document.getElementById("progress-feedback");
 
 const pokedex = new Pokedex.Pokedex({
   cache: true,
@@ -101,6 +105,7 @@ const criesLegacyBase =
 const STORAGE_KEY = "pokequiz-state";
 const DEFAULT_STATUS = "";
 const DEFAULT_TYPO_MODE = "normal";
+const PROGRESS_CODE_PREFIX = "dq3.";
 const BADGES = [
   {
     id: "first-catch",
@@ -178,6 +183,291 @@ function prettifyName(value) {
     .replace("Hp", "HP");
 }
 
+function base64UrlEncode(bytes) {
+  let binary = "";
+  bytes.forEach((value) => {
+    binary += String.fromCharCode(value);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function base64UrlDecode(value) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+  const binary = atob(padded);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+
+function writeVarInt(value, bytes) {
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error("Invalid progress value");
+  }
+
+  let remaining = value;
+  do {
+    let byte = remaining & 0x7f;
+    remaining = Math.floor(remaining / 128);
+    if (remaining > 0) byte |= 0x80;
+    bytes.push(byte);
+  } while (remaining > 0);
+}
+
+function readVarInt(bytes, offsetRef) {
+  let result = 0;
+  let shift = 0;
+
+  while (offsetRef.index < bytes.length) {
+    const byte = bytes[offsetRef.index];
+    offsetRef.index += 1;
+    result += (byte & 0x7f) * 2 ** shift;
+    if ((byte & 0x80) === 0) {
+      return result;
+    }
+    shift += 7;
+    if (shift > 35) break;
+  }
+
+  throw new Error("Invalid progress encoding");
+}
+
+function computeChecksum(bytes) {
+  let hash = 2166136261;
+  bytes.forEach((value) => {
+    hash ^= value;
+    hash = Math.imul(hash, 16777619) >>> 0;
+  });
+  return hash >>> 0;
+}
+
+function checksumBytes(value) {
+  return [
+    (value >>> 24) & 0xff,
+    (value >>> 16) & 0xff,
+    (value >>> 8) & 0xff,
+    value & 0xff
+  ];
+}
+
+function bytesToChecksum(bytes) {
+  if (bytes.length !== 4) {
+    throw new Error("Invalid checksum");
+  }
+  return (
+    ((bytes[0] << 24) >>> 0) |
+    ((bytes[1] << 16) >>> 0) |
+    ((bytes[2] << 8) >>> 0) |
+    (bytes[3] >>> 0)
+  ) >>> 0;
+}
+
+function encodeProgressPayload({ ids, elapsed }) {
+  const payload = [];
+  writeVarInt(elapsed, payload);
+  writeVarInt(ids.length, payload);
+
+  let previousId = 0;
+  ids.forEach((id) => {
+    writeVarInt(id - previousId, payload);
+    previousId = id;
+  });
+
+  const payloadBytes = Uint8Array.from(payload);
+  const checksum = checksumBytes(computeChecksum(payloadBytes));
+  return base64UrlEncode(Uint8Array.from([...checksum, ...payloadBytes]));
+}
+
+function decodeProgressPayload(serialized) {
+  const bytes = base64UrlDecode(serialized);
+  if (bytes.length < 4) {
+    throw new Error("Invalid progress payload");
+  }
+
+  const expectedChecksum = bytesToChecksum([...bytes.slice(0, 4)]);
+  const payload = bytes.slice(4);
+  const actualChecksum = computeChecksum(payload);
+  if (actualChecksum !== expectedChecksum) {
+    throw new Error("Progress code checksum mismatch");
+  }
+
+  const offsetRef = { index: 0 };
+  const elapsed = readVarInt(payload, offsetRef);
+  const count = readVarInt(payload, offsetRef);
+  const ids = [];
+  let previousId = 0;
+
+  for (let i = 0; i < count; i += 1) {
+    const delta = readVarInt(payload, offsetRef);
+    if (delta <= 0) {
+      throw new Error("Invalid progress delta");
+    }
+    previousId += delta;
+    ids.push(previousId);
+  }
+
+  if (offsetRef.index !== payload.length) {
+    throw new Error("Invalid progress payload");
+  }
+
+  return { elapsed, ids };
+}
+
+function getStableProgressIds() {
+  return [...state.found]
+    .map((name) => state.meta.get(name))
+    .filter((entry) => entry && entry.dexId)
+    .map((entry) => Number(entry.dexId))
+    .filter((id) => Number.isInteger(id) && id > 0)
+    .sort((a, b) => a - b);
+}
+
+function encodeFoundProgress() {
+  return `${PROGRESS_CODE_PREFIX}${encodeProgressPayload({
+    ids: getStableProgressIds(),
+    elapsed: getElapsedSeconds()
+  })}`;
+}
+
+function decodeFoundProgress(code) {
+  if (!code || !code.startsWith(PROGRESS_CODE_PREFIX)) {
+    throw new Error("Invalid progress code");
+  }
+
+  const decoded = decodeProgressPayload(code.slice(PROGRESS_CODE_PREFIX.length));
+  const ids = new Set(decoded.ids);
+  const found = new Set();
+  state.meta.forEach((entry, name) => {
+    if (ids.has(Number(entry.dexId))) {
+      found.add(name);
+    }
+  });
+  return {
+    found,
+    elapsed: decoded.elapsed
+  };
+}
+
+function extractProgressCode(value) {
+  const raw = (value || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith(PROGRESS_CODE_PREFIX)) {
+    return raw;
+  }
+
+  try {
+    const url = new URL(raw, window.location.href);
+    const hash = url.hash.replace(/^#/, "");
+    if (hash.startsWith("progress=")) {
+      return decodeURIComponent(hash.slice("progress=".length));
+    }
+    if (hash.startsWith(PROGRESS_CODE_PREFIX)) {
+      return hash;
+    }
+  } catch (err) {
+    // ignore invalid URLs and try plain-text parsing below
+  }
+
+  if (raw.startsWith("#progress=")) {
+    return decodeURIComponent(raw.slice("#progress=".length));
+  }
+
+  if (raw.startsWith("progress=")) {
+    return decodeURIComponent(raw.slice("progress=".length));
+  }
+
+  return raw;
+}
+
+function setProgressFeedback(message) {
+  if (!progressFeedbackEl) return;
+  progressFeedbackEl.textContent = message || "";
+}
+
+function buildProgressShareLink() {
+  const code = encodeFoundProgress();
+  const url = new URL(window.location.href);
+  url.hash = `progress=${encodeURIComponent(code)}`;
+  return url.toString();
+}
+
+function applyImportedProgress(foundSet, { elapsed = 0, persist = true, resumeTimer = true } = {}) {
+  stopTimer();
+  state.found = new Set(
+    [...foundSet].filter((name) => state.meta.has(name))
+  );
+  state.savedElapsed = Math.max(0, elapsed);
+  state.lastSavedSec = -1;
+  setTimerText(formatTime(state.savedElapsed));
+  if (resumeTimer) startTimer();
+  state.seenBadges.clear();
+  state.badgesPrimed = false;
+  updateStats();
+  renderSprites();
+  if (persist) saveState();
+}
+
+async function copyProgressLink() {
+  if (!progressCodeEl || !state.allNames.length) return;
+
+  const shareLink = buildProgressShareLink();
+  progressCodeEl.value = shareLink;
+  progressCodeEl.focus();
+  progressCodeEl.select();
+
+  try {
+    await navigator.clipboard.writeText(shareLink);
+    setProgressFeedback("Progress link copied.");
+  } catch (err) {
+    setProgressFeedback("Progress link ready to copy.");
+  }
+}
+
+function importProgressValue(value, { fromHash = false } = {}) {
+  if (!state.allNames.length) return false;
+
+  const code = extractProgressCode(value);
+  if (!code) {
+    if (!fromHash) setProgressFeedback("Paste a progress link or code first.");
+    return false;
+  }
+
+  try {
+    const imported = decodeFoundProgress(code);
+    applyImportedProgress(imported.found, { elapsed: imported.elapsed });
+
+    if (progressCodeEl) {
+      progressCodeEl.value = buildProgressShareLink();
+      if (!fromHash) progressCodeEl.select();
+    }
+
+    const importedCount = [...imported.found].filter((name) => state.meta.has(name)).length;
+    setProgressFeedback(`Imported ${importedCount} Pokemon and timer ${formatTime(imported.elapsed)}.`);
+    showStatusHint("Progress imported.");
+    return true;
+  } catch (err) {
+    if (!fromHash) setProgressFeedback("That progress code is not valid.");
+    return false;
+  }
+}
+
+function restoreProgressFromHash() {
+  const hash = window.location.hash.replace(/^#/, "");
+  if (!hash) return false;
+  if (!hash.startsWith("progress=") && !hash.startsWith(PROGRESS_CODE_PREFIX)) {
+    return false;
+  }
+  const imported = importProgressValue(hash, { fromHash: true });
+  if (imported) {
+    const cleanUrl = `${window.location.pathname}${window.location.search}`;
+    window.history.replaceState(null, "", cleanUrl);
+  }
+  return imported;
+}
+
+function handleProgressHashChange() {
+  if (!state.allNames.length) return;
+  restoreProgressFromHash();
+}
+
 function normalizeGuess(value) {
   if (!value) return "";
   return value
@@ -225,6 +515,13 @@ function formatTime(seconds) {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function getElapsedSeconds() {
+  if (state.timerId && state.startTime) {
+    return Math.floor((Date.now() - state.startTime) / 1000);
+  }
+  return state.savedElapsed || 0;
 }
 
 function focusInput(preventScroll = true) {
@@ -335,10 +632,10 @@ async function playCryWithFallback(legacyUrl, modernUrl) {
 function startTimer(preserveStart = false) {
   if (state.timerId) return;
   if (!preserveStart || !state.startTime) {
-    state.startTime = Date.now();
+    state.startTime = Date.now() - (state.savedElapsed || 0) * 1000;
   }
   state.timerId = setInterval(() => {
-    const delta = Math.floor((Date.now() - state.startTime) / 1000);
+    const delta = getElapsedSeconds();
     setTimerText(formatTime(delta));
     if (delta !== state.lastSavedSec && delta % 5 === 0) {
       state.lastSavedSec = delta;
@@ -350,16 +647,16 @@ function startTimer(preserveStart = false) {
 
 function stopTimer() {
   if (state.timerId) {
+    state.savedElapsed = getElapsedSeconds();
     clearInterval(state.timerId);
     state.timerId = null;
   }
+  state.startTime = null;
 }
 
 function saveState() {
   if (state.isRestoring) return;
-  const elapsed = state.startTime
-    ? Math.floor((Date.now() - state.startTime) / 1000)
-    : 0;
+  const elapsed = getElapsedSeconds();
   const payload = {
     found: [...state.found],
     elapsed,
@@ -398,10 +695,11 @@ function restoreState() {
     state.found = new Set(data.found);
   }
 
-  if (data.elapsed) {
+  if (typeof data.elapsed === "number" && data.elapsed >= 0) {
+    state.savedElapsed = data.elapsed;
+    state.lastSavedSec = -1;
     setTimerText(formatTime(data.elapsed));
     if (data.running) {
-      state.startTime = Date.now() - data.elapsed * 1000;
       startTimer(true);
     }
   }
@@ -824,12 +1122,16 @@ function resetQuiz() {
   state.found.clear();
   state.seenBadges.clear();
   state.badgesPrimed = true;
+  state.savedElapsed = 0;
+  state.lastSavedSec = -1;
   setTimerText("00:00");
   inputEl.value = "";
   focusInput();
   updateStats();
   renderSprites();
   clearState();
+  if (progressCodeEl) progressCodeEl.value = "";
+  setProgressFeedback("");
 }
 
 function confirmReset() {
@@ -1488,8 +1790,10 @@ function buildGuessIndex() {
   state.guessPrefixes.clear();
   state.names.forEach((canonical) => {
     const labels = state.namesByLang.get(canonical);
+    const entry = state.meta.get(canonical);
+    const defaultLabel = entry ? entry.label : prettifyName(canonical);
     const localizedLabels = [
-      labels && labels.get("en") ? labels.get("en") : state.normalizedMap.get(canonical),
+      labels && labels.get("en") ? labels.get("en") : defaultLabel,
       labels && labels.get("de") ? labels.get("de") : null,
       labels && labels.get("es") ? labels.get("es") : null
     ];
@@ -1501,7 +1805,7 @@ function buildGuessIndex() {
       addPrefixes(guess);
     });
 
-    const fallbackGuess = normalizeGuess(state.normalizedMap.get(canonical));
+    const fallbackGuess = normalizeGuess(defaultLabel);
     if (fallbackGuess) {
       state.guessIndex.set(fallbackGuess, canonical);
       addPrefixes(fallbackGuess);
@@ -1527,7 +1831,6 @@ async function loadPokemon() {
     ]);
     const speciesEntries = speciesData && speciesData.results ? speciesData.results : [];
     const names = [];
-    state.normalizedMap.clear();
     state.meta = new Map();
     state.generationIndex = new Map();
     state.typeIndex = new Map();
@@ -1539,7 +1842,6 @@ async function loadPokemon() {
       if (!normalized) return;
       names.push(normalized);
       const label = prettifyName(entry.name);
-      state.normalizedMap.set(normalized, label);
       let sprite = "";
       const generation = generationData.generationMap.get(normalized) || "Unknown";
       const types =
@@ -1548,15 +1850,14 @@ async function loadPokemon() {
           : [];
       if (entry.url) {
         const match = entry.url.match(/\/pokemon-species\/(\d+)\//);
-      if (match) {
+        if (match) {
           sprite = `${spriteBase}${match[1]}.png`;
           entry.cryId = match[1];
-      }
+        }
       }
       state.meta.set(normalized, {
         label,
         sprite,
-        cryUrl: "",
         cryId: entry.cryId || "",
         dexId: entry.cryId || "",
         generation: formatGenerationLabel(generation),
@@ -1615,7 +1916,7 @@ async function loadPokemon() {
     restoreSettings();
     restoreState();
     applyFilters();
-    buildGuessIndex();
+    restoreProgressFromHash();
     setInputStatus(DEFAULT_STATUS);
   } catch (err) {
     console.error("loadPokemon failed", err);
@@ -1635,6 +1936,16 @@ resetBtn.addEventListener("click", confirmReset);
 if (resetBtnCompact) resetBtnCompact.addEventListener("click", confirmReset);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
 if (groupFilter) groupFilter.addEventListener("change", renderSprites);
+if (progressExportBtn) {
+  progressExportBtn.addEventListener("click", () => {
+    copyProgressLink();
+  });
+}
+if (progressImportBtn) {
+  progressImportBtn.addEventListener("click", () => {
+    importProgressValue(progressCodeEl ? progressCodeEl.value : "");
+  });
+}
 if (outlineToggle) {
   outlineToggle.checked = false;
   document.body.classList.add("outlines-off");
@@ -1788,6 +2099,8 @@ if ("serviceWorker" in navigator) {
       .catch(() => {});
   });
 }
+
+window.addEventListener("hashchange", handleProgressHashChange);
 
 syncTypoSettings();
 loadPokemon();
