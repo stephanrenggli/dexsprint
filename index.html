@@ -129,7 +129,14 @@
     </div>
     <div class="sidebar-section">
       <h3>Progress</h3>
-      <textarea id="progress-code" class="progress-code" rows="3" placeholder="Exported progress link or code" spellcheck="false"></textarea>
+      <label class="toggle">
+        <input id="progress-include-settings" type="checkbox" />
+        <span>Include Settings</span>
+      </label>
+      <div class="progress-token">
+        <input id="progress-code" class="progress-code" type="text" placeholder="Exported progress link or code" spellcheck="false" />
+        <button id="progress-copy" class="progress-copy" type="button" aria-label="Copy progress link" title="Copy progress link">⧉</button>
+      </div>
       <div class="progress-actions">
         <button id="progress-export" class="btn ghost btn-small" type="button">Export</button>
         <button id="progress-import" class="btn ghost btn-small" type="button">Import</button>
@@ -278,6 +285,23 @@
             <div class="info-section">
               <h4>Related Data</h4>
               <div id="info-facts" class="info-facts"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+        <div class="modal-card modal-card--confirm">
+          <button id="confirm-close" class="modal-close" type="button" aria-label="Close confirmation">x</button>
+          <div class="modal-content">
+            <div class="confirm-copy">
+              <h3 id="confirm-title">Confirm Action</h3>
+              <p id="confirm-message" class="confirm-message"></p>
+              <div id="confirm-stats" class="confirm-stats hidden"></div>
+            </div>
+            <div class="confirm-actions">
+              <button id="confirm-cancel" class="btn ghost btn-small" type="button">Cancel</button>
+              <button id="confirm-accept" class="btn btn-small" type="button">Confirm</button>
             </div>
           </div>
         </div>

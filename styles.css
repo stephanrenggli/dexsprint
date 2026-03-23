@@ -196,14 +196,45 @@ body.dark-mode {
 
 .progress-code {
   width: 100%;
-  min-height: 72px;
-  resize: vertical;
-  padding: 10px 12px;
+  min-width: 0;
+  height: 42px;
+  padding: 10px 42px 10px 12px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
+}
+
+.progress-token {
+  position: relative;
+}
+
+.progress-copy {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.progress-copy:hover,
+.progress-copy:focus-visible {
+  background: color-mix(in srgb, var(--surface-3) 80%, transparent);
+  color: var(--ink);
+  outline: none;
 }
 
 .progress-actions {
@@ -908,6 +939,65 @@ body.dark-mode {
 .modal-content img {
   width: 88px;
   height: 88px;
+}
+
+.modal-card--confirm {
+  width: min(420px, 92vw);
+}
+
+.confirm-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.confirm-copy h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.confirm-message {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.confirm-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.confirm-stats.hidden {
+  display: none;
+}
+
+.confirm-stat {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+  display: grid;
+  gap: 4px;
+}
+
+.confirm-stat__label {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.confirm-stat__value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 #info-title {

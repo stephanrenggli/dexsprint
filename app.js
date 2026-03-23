@@ -73,10 +73,19 @@ const infoGenus = document.getElementById("info-genus");
 const infoAbilities = document.getElementById("info-abilities");
 const infoStats = document.getElementById("info-stats");
 const infoFacts = document.getElementById("info-facts");
+const confirmModal = document.getElementById("confirm-modal");
+const confirmClose = document.getElementById("confirm-close");
+const confirmTitle = document.getElementById("confirm-title");
+const confirmMessage = document.getElementById("confirm-message");
+const confirmStats = document.getElementById("confirm-stats");
+const confirmCancel = document.getElementById("confirm-cancel");
+const confirmAccept = document.getElementById("confirm-accept");
 const progressCodeEl = document.getElementById("progress-code");
 const progressExportBtn = document.getElementById("progress-export");
+const progressCopyBtn = document.getElementById("progress-copy");
 const progressImportBtn = document.getElementById("progress-import");
 const progressFeedbackEl = document.getElementById("progress-feedback");
+const progressIncludeSettingsEl = document.getElementById("progress-include-settings");
 
 const pokedex = new Pokedex.Pokedex({
   cache: true,
@@ -260,7 +269,15 @@ function bytesToChecksum(bytes) {
   ) >>> 0;
 }
 
-function encodeProgressPayload({ ids, elapsed }) {
+function encodeUtf8(value) {
+  return new TextEncoder().encode(value);
+}
+
+function decodeUtf8(bytes) {
+  return new TextDecoder().decode(bytes);
+}
+
+function encodeProgressPayload({ ids, elapsed, settings = null }) {
   const payload = [];
   writeVarInt(elapsed, payload);
   writeVarInt(ids.length, payload);
@@ -270,6 +287,15 @@ function encodeProgressPayload({ ids, elapsed }) {
     writeVarInt(id - previousId, payload);
     previousId = id;
   });
+
+  if (settings) {
+    const settingsBytes = encodeUtf8(JSON.stringify(settings));
+    writeVarInt(1, payload);
+    writeVarInt(settingsBytes.length, payload);
+    settingsBytes.forEach((value) => payload.push(value));
+  } else {
+    writeVarInt(0, payload);
+  }
 
   const payloadBytes = Uint8Array.from(payload);
   const checksum = checksumBytes(computeChecksum(payloadBytes));
@@ -304,11 +330,25 @@ function decodeProgressPayload(serialized) {
     ids.push(previousId);
   }
 
+  let settings = null;
+  const hasSettings = offsetRef.index < payload.length ? readVarInt(payload, offsetRef) : 0;
+  if (hasSettings) {
+    const settingsLength = readVarInt(payload, offsetRef);
+    const settingsEnd = offsetRef.index + settingsLength;
+    if (settingsEnd > payload.length) {
+      throw new Error("Invalid progress payload");
+    }
+    settings = JSON.parse(
+      decodeUtf8(payload.slice(offsetRef.index, settingsEnd))
+    );
+    offsetRef.index = settingsEnd;
+  }
+
   if (offsetRef.index !== payload.length) {
     throw new Error("Invalid progress payload");
   }
 
-  return { elapsed, ids };
+  return { elapsed, ids, settings };
 }
 
 function getStableProgressIds() {
@@ -320,10 +360,72 @@ function getStableProgressIds() {
     .sort((a, b) => a - b);
 }
 
+function getSettingsPayload() {
+  return {
+    compact: document.body.classList.contains("compact-mode"),
+    outlinesOff: document.body.classList.contains("outlines-off"),
+    cries: criesToggle ? criesToggle.checked : false,
+    legacyCries: legacyCriesToggle ? legacyCriesToggle.checked : false,
+    showDex: showDexToggle ? showDexToggle.checked : false,
+    shiny: shinyToggle ? shinyToggle.checked : false,
+    typoMode: typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
+    autocorrect: autocorrectToggle ? autocorrectToggle.checked : true,
+    sidebarCollapsed: document.body.classList.contains("sidebar-collapsed"),
+    dark: document.body.classList.contains("dark-mode"),
+    theme: document.body.dataset.theme || DEFAULT_THEME
+  };
+}
+
+function getShareableSettingsPayload() {
+  const { sidebarCollapsed, ...shareableSettings } = getSettingsPayload();
+  return shareableSettings;
+}
+
+function applySettingsPayload(data, { persist = true } = {}) {
+  if (!data || typeof data !== "object") return;
+
+  document.body.classList.toggle("compact-mode", Boolean(data.compact));
+  if (compactToggle) {
+    compactToggle.textContent = data.compact ? "Normal Mode" : "Compact Mode";
+  }
+
+  if (outlineToggle) outlineToggle.checked = !data.outlinesOff;
+  document.body.classList.toggle("outlines-off", Boolean(data.outlinesOff));
+
+  if (Object.prototype.hasOwnProperty.call(data, "sidebarCollapsed")) {
+    document.body.classList.toggle("sidebar-collapsed", Boolean(data.sidebarCollapsed));
+    const settingsLabel = data.sidebarCollapsed ? "Show Settings" : "Hide Settings";
+    if (filtersToggle) filtersToggle.textContent = settingsLabel;
+    if (filtersToggleCompact) filtersToggleCompact.textContent = settingsLabel;
+  }
+
+  document.body.classList.toggle("dark-mode", Boolean(data.dark));
+  if (darkToggle) darkToggle.checked = Boolean(data.dark);
+
+  setTheme(data.theme || DEFAULT_THEME, false);
+
+  if (criesToggle) criesToggle.checked = Boolean(data.cries);
+  if (legacyCriesToggle) legacyCriesToggle.checked = Boolean(data.legacyCries);
+  if (showDexToggle) showDexToggle.checked = Boolean(data.showDex);
+  if (shinyToggle) shinyToggle.checked = Boolean(data.shiny);
+  if (typoModeSelect) typoModeSelect.value = data.typoMode || DEFAULT_TYPO_MODE;
+  if (autocorrectToggle) autocorrectToggle.checked = data.autocorrect !== false;
+
+  syncTypoSettings();
+
+  if (persist) {
+    localStorage.setItem(`${STORAGE_KEY}:settings`, JSON.stringify(getSettingsPayload()));
+  }
+}
+
 function encodeFoundProgress() {
   return `${PROGRESS_CODE_PREFIX}${encodeProgressPayload({
     ids: getStableProgressIds(),
-    elapsed: getElapsedSeconds()
+    elapsed: getElapsedSeconds(),
+    settings:
+      progressIncludeSettingsEl && progressIncludeSettingsEl.checked
+        ? getShareableSettingsPayload()
+        : null
   })}`;
 }
 
@@ -342,7 +444,8 @@ function decodeFoundProgress(code) {
   });
   return {
     found,
-    elapsed: decoded.elapsed
+    elapsed: decoded.elapsed,
+    settings: decoded.settings
   };
 }
 
@@ -377,9 +480,109 @@ function extractProgressCode(value) {
   return raw;
 }
 
+function isProgressUrlValue(value) {
+  const raw = (value || "").trim();
+  if (!raw) return false;
+
+  try {
+    const url = new URL(raw, window.location.href);
+    const hash = url.hash.replace(/^#/, "");
+    return hash.startsWith("progress=") || hash.startsWith(PROGRESS_CODE_PREFIX);
+  } catch (err) {
+    return false;
+  }
+}
+
+function getImportPreviewStats(imported) {
+  const importedCount = [...imported.found].filter((name) => state.meta.has(name)).length;
+  return [
+    { label: "Pokemon", value: String(importedCount) },
+    { label: "Timer", value: formatTime(imported.elapsed) },
+    { label: "Settings", value: imported.settings ? "Included" : "Not included" }
+  ];
+}
+
 function setProgressFeedback(message) {
   if (!progressFeedbackEl) return;
   progressFeedbackEl.textContent = message || "";
+}
+
+let progressCleanupTimeout = null;
+let confirmResolver = null;
+
+function scheduleImportedProgressCleanup() {
+  if (progressCleanupTimeout) clearTimeout(progressCleanupTimeout);
+  progressCleanupTimeout = setTimeout(() => {
+    if (progressCodeEl) progressCodeEl.value = "";
+    setProgressFeedback("");
+    progressCleanupTimeout = null;
+  }, 4000);
+}
+
+function closeConfirmModal(result) {
+  if (!confirmModal) return;
+  confirmModal.classList.add("hidden");
+  const resolver = confirmResolver;
+  confirmResolver = null;
+  if (resolver) resolver(Boolean(result));
+}
+
+function renderConfirmStats(items) {
+  if (!confirmStats) return;
+  confirmStats.innerHTML = "";
+  if (!items || !items.length) {
+    confirmStats.classList.add("hidden");
+    return;
+  }
+
+  items.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "confirm-stat";
+
+    const label = document.createElement("span");
+    label.className = "confirm-stat__label";
+    label.textContent = item.label;
+
+    const value = document.createElement("strong");
+    value.className = "confirm-stat__value";
+    value.textContent = item.value;
+
+    card.appendChild(label);
+    card.appendChild(value);
+    confirmStats.appendChild(card);
+  });
+
+  confirmStats.classList.remove("hidden");
+}
+
+function requestConfirmation(message, { title = "Confirm Action", confirmLabel = "Confirm", stats = [] } = {}) {
+  if (!confirmModal || !confirmMessage || !confirmAccept || !confirmTitle) {
+    return Promise.resolve(window.confirm(message));
+  }
+
+  if (confirmResolver) {
+    confirmResolver(false);
+    confirmResolver = null;
+  }
+
+  confirmTitle.textContent = title;
+  confirmMessage.textContent = message;
+  confirmAccept.textContent = confirmLabel;
+  renderConfirmStats(stats);
+  confirmModal.classList.remove("hidden");
+
+  return new Promise((resolve) => {
+    confirmResolver = resolve;
+    requestAnimationFrame(() => {
+      if (confirmAccept) confirmAccept.focus();
+    });
+  });
+}
+
+function selectProgressCode() {
+  if (!progressCodeEl) return;
+  progressCodeEl.focus();
+  progressCodeEl.select();
 }
 
 function buildProgressShareLink() {
@@ -410,8 +613,7 @@ async function copyProgressLink() {
 
   const shareLink = buildProgressShareLink();
   progressCodeEl.value = shareLink;
-  progressCodeEl.focus();
-  progressCodeEl.select();
+  selectProgressCode();
 
   try {
     await navigator.clipboard.writeText(shareLink);
@@ -421,7 +623,25 @@ async function copyProgressLink() {
   }
 }
 
-function importProgressValue(value, { fromHash = false } = {}) {
+async function copyExistingProgressValue() {
+  if (!progressCodeEl) return;
+  const value = progressCodeEl.value.trim();
+  if (!value) {
+    setProgressFeedback("Export a progress link first.");
+    return;
+  }
+
+  selectProgressCode();
+
+  try {
+    await navigator.clipboard.writeText(value);
+    setProgressFeedback("Progress link copied.");
+  } catch (err) {
+    setProgressFeedback("Progress link ready to copy.");
+  }
+}
+
+async function importProgressValue(value, { fromHash = false } = {}) {
   if (!state.allNames.length) return false;
 
   const code = extractProgressCode(value);
@@ -432,15 +652,31 @@ function importProgressValue(value, { fromHash = false } = {}) {
 
   try {
     const imported = decodeFoundProgress(code);
+    if (!fromHash && isProgressUrlValue(value)) {
+      const ok = await requestConfirmation("Import progress from this shared link?", {
+        title: "Import Shared Progress",
+        confirmLabel: "Import",
+        stats: getImportPreviewStats(imported)
+      });
+      if (!ok) return false;
+    }
+    if (progressIncludeSettingsEl) {
+      progressIncludeSettingsEl.checked = Boolean(imported.settings);
+    }
+    if (imported.settings) {
+      applySettingsPayload(imported.settings);
+    }
     applyImportedProgress(imported.found, { elapsed: imported.elapsed });
 
     if (progressCodeEl) {
       progressCodeEl.value = buildProgressShareLink();
-      if (!fromHash) progressCodeEl.select();
+      if (!fromHash) selectProgressCode();
     }
 
     const importedCount = [...imported.found].filter((name) => state.meta.has(name)).length;
-    setProgressFeedback(`Imported ${importedCount} Pokemon and timer ${formatTime(imported.elapsed)}.`);
+    const settingsNote = imported.settings ? " with settings" : "";
+    setProgressFeedback(`Imported ${importedCount} Pokemon, timer ${formatTime(imported.elapsed)}${settingsNote}.`);
+    scheduleImportedProgressCleanup();
     showStatusHint("Progress imported.");
     return true;
   } catch (err) {
@@ -449,23 +685,39 @@ function importProgressValue(value, { fromHash = false } = {}) {
   }
 }
 
-function restoreProgressFromHash() {
+async function restoreProgressFromHash() {
   const hash = window.location.hash.replace(/^#/, "");
   if (!hash) return false;
   if (!hash.startsWith("progress=") && !hash.startsWith(PROGRESS_CODE_PREFIX)) {
     return false;
   }
-  const imported = importProgressValue(hash, { fromHash: true });
-  if (imported) {
-    const cleanUrl = `${window.location.pathname}${window.location.search}`;
+  const cleanUrl = `${window.location.pathname}${window.location.search}`;
+  try {
+    const code = extractProgressCode(hash);
+    const imported = decodeFoundProgress(code);
+    const ok = await requestConfirmation("Import progress from this shared link?", {
+      title: "Import Shared Progress",
+      confirmLabel: "Import",
+      stats: getImportPreviewStats(imported)
+    });
+    if (!ok) {
+      window.history.replaceState(null, "", cleanUrl);
+      return false;
+    }
+    const didImport = await importProgressValue(hash, { fromHash: true });
+    if (didImport) {
+      window.history.replaceState(null, "", cleanUrl);
+    }
+    return didImport;
+  } catch (err) {
     window.history.replaceState(null, "", cleanUrl);
+    return false;
   }
-  return imported;
 }
 
-function handleProgressHashChange() {
+async function handleProgressHashChange() {
   if (!state.allNames.length) return;
-  restoreProgressFromHash();
+  await restoreProgressFromHash();
 }
 
 function normalizeGuess(value) {
@@ -709,20 +961,7 @@ function restoreState() {
 }
 
 function saveSettings() {
-  const payload = {
-    compact: document.body.classList.contains("compact-mode"),
-    outlinesOff: document.body.classList.contains("outlines-off"),
-    cries: criesToggle ? criesToggle.checked : false,
-    legacyCries: legacyCriesToggle ? legacyCriesToggle.checked : false,
-    showDex: showDexToggle ? showDexToggle.checked : false,
-    shiny: shinyToggle ? shinyToggle.checked : false,
-    typoMode: typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
-    autocorrect: autocorrectToggle ? autocorrectToggle.checked : true,
-    sidebarCollapsed: document.body.classList.contains("sidebar-collapsed"),
-    dark: document.body.classList.contains("dark-mode"),
-    theme: document.body.dataset.theme || DEFAULT_THEME
-  };
-  localStorage.setItem(`${STORAGE_KEY}:settings`, JSON.stringify(payload));
+  localStorage.setItem(`${STORAGE_KEY}:settings`, JSON.stringify(getSettingsPayload()));
 }
 
 function updateThemeColorMeta(color) {
@@ -745,30 +984,7 @@ function restoreSettings() {
   } catch (err) {
     return;
   }
-  if (data.compact) {
-    document.body.classList.add("compact-mode");
-    if (compactToggle) compactToggle.textContent = "Normal Mode";
-  }
-  if (outlineToggle) outlineToggle.checked = !data.outlinesOff;
-  document.body.classList.toggle("outlines-off", Boolean(data.outlinesOff));
-  if (data.sidebarCollapsed) {
-    document.body.classList.add("sidebar-collapsed");
-    if (filtersToggle) filtersToggle.textContent = "Show Settings";
-    if (filtersToggleCompact) filtersToggleCompact.textContent = "Show Settings";
-  } else if (filtersToggle) {
-    filtersToggle.textContent = "Hide Settings";
-    if (filtersToggleCompact) filtersToggleCompact.textContent = "Hide Settings";
-  }
-  document.body.classList.toggle("dark-mode", Boolean(data.dark));
-  if (darkToggle) darkToggle.checked = Boolean(data.dark);
-  setTheme(data.theme || DEFAULT_THEME, false);
-  if (criesToggle) criesToggle.checked = Boolean(data.cries);
-  if (legacyCriesToggle) legacyCriesToggle.checked = Boolean(data.legacyCries);
-  if (showDexToggle) showDexToggle.checked = Boolean(data.showDex);
-  if (shinyToggle) shinyToggle.checked = Boolean(data.shiny);
-  if (typoModeSelect) typoModeSelect.value = data.typoMode || DEFAULT_TYPO_MODE;
-  if (autocorrectToggle) autocorrectToggle.checked = data.autocorrect !== false;
-  syncTypoSettings();
+  applySettingsPayload(data, { persist: false });
 }
 
 function resetSettings() {
@@ -1134,15 +1350,19 @@ function resetQuiz() {
   setProgressFeedback("");
 }
 
-function confirmReset() {
+async function confirmReset() {
   const total = state.names.length;
   const found = state.names.filter((name) => state.found.has(name)).length;
   if (total && found) {
-    const ok = window.confirm(
-      `Reset the quiz? This will clear ${found} found Pokemon and the timer.`
+    const ok = await requestConfirmation(
+      `Reset the quiz? This will clear ${found} found Pokemon and the timer.`,
+      { title: "Reset Quiz", confirmLabel: "Reset" }
     );
     if (!ok) return;
-  } else if (!window.confirm("Reset the quiz?")) {
+  } else if (!(await requestConfirmation("Reset the quiz?", {
+    title: "Reset Quiz",
+    confirmLabel: "Reset"
+  }))) {
     return;
   }
   resetQuiz();
@@ -1916,7 +2136,7 @@ async function loadPokemon() {
     restoreSettings();
     restoreState();
     applyFilters();
-    restoreProgressFromHash();
+    await restoreProgressFromHash();
     setInputStatus(DEFAULT_STATUS);
   } catch (err) {
     console.error("loadPokemon failed", err);
@@ -1939,6 +2159,11 @@ if (groupFilter) groupFilter.addEventListener("change", renderSprites);
 if (progressExportBtn) {
   progressExportBtn.addEventListener("click", () => {
     copyProgressLink();
+  });
+}
+if (progressCopyBtn) {
+  progressCopyBtn.addEventListener("click", () => {
+    copyExistingProgressValue();
   });
 }
 if (progressImportBtn) {
@@ -2062,6 +2287,20 @@ if (infoModal) {
     if (event.target === infoModal) closeInfoModal();
   });
 }
+if (confirmAccept) confirmAccept.addEventListener("click", () => closeConfirmModal(true));
+if (confirmCancel) confirmCancel.addEventListener("click", () => closeConfirmModal(false));
+if (confirmClose) confirmClose.addEventListener("click", () => closeConfirmModal(false));
+if (confirmModal) {
+  confirmModal.addEventListener("click", (event) => {
+    if (event.target === confirmModal) closeConfirmModal(false);
+  });
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && confirmResolver) {
+    closeConfirmModal(false);
+  }
+});
 
 if (inputEl) {
   focusInput();
