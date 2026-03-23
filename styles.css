@@ -767,6 +767,10 @@ body.dark-mode {
   font-weight: 500;
 }
 
+.toggle input {
+  accent-color: var(--accent);
+}
+
 .theme-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
