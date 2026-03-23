@@ -1029,6 +1029,15 @@ function resetSettings() {
   applyFilters();
 }
 
+async function confirmResetSettings() {
+  const ok = await requestConfirmation(
+    "Reset all settings to their defaults?",
+    { title: "Reset Settings", confirmLabel: "Reset" }
+  );
+  if (!ok) return;
+  resetSettings();
+}
+
 function setTheme(themeId, persist = true) {
   const theme = THEMES.find((t) => t.id === themeId) || THEMES[0];
   document.body.dataset.theme = theme.id;
@@ -2265,7 +2274,10 @@ if (shinyToggle) {
 }
 
 if (settingsReset) {
-  settingsReset.addEventListener("click", resetSettings);
+  settingsReset.addEventListener("click", async (event) => {
+    event.preventDefault();
+    await confirmResetSettings();
+  });
 }
 
 if (typoModeSelect) {
