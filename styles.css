@@ -698,11 +698,6 @@ body.dark-mode {
   margin-bottom: 6px;
 }
 
-.study-panel__title {
-  margin: 0;
-  font-size: 1.45rem;
-}
-
 .study-panel__subtitle {
   margin: 6px 0 0;
   color: var(--muted);
@@ -711,6 +706,7 @@ body.dark-mode {
 
 .study-panel__counter {
   flex: 0 0 auto;
+  align-self: center;
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border));
@@ -726,6 +722,10 @@ body.dark-mode {
   background: var(--surface);
   border: 1px solid var(--border);
   align-items: start;
+}
+
+.study-card[hidden] {
+  display: none;
 }
 
 .study-card__sprite-wrap {
@@ -783,6 +783,10 @@ body.dark-mode {
 
 .study-actions {
   justify-content: flex-start;
+}
+
+.study-actions[hidden] {
+  display: none;
 }
 
 @keyframes study-name-swap {

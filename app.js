@@ -93,10 +93,12 @@ const progressIncludeSettingsEl = document.getElementById("progress-include-sett
 const studyPanel = document.getElementById("study-panel");
 const studySubtitle = document.getElementById("study-subtitle");
 const studyCounter = document.getElementById("study-counter");
+const studyCard = document.getElementById("study-card");
 const studySprite = document.getElementById("study-sprite");
 const studyMeta = document.getElementById("study-meta");
 const studyTypes = document.getElementById("study-types");
 const studyName = document.getElementById("study-name");
+const studyActions = document.getElementById("study-actions");
 const studyRevealBtn = document.getElementById("study-reveal");
 const studyAgainBtn = document.getElementById("study-again");
 
@@ -1214,6 +1216,8 @@ function renderStudyPanel() {
   const entry = currentName ? state.meta.get(currentName) : null;
 
   if (!entry) {
+    if (studyCard) studyCard.hidden = true;
+    if (studyActions) studyActions.hidden = true;
     if (studySubtitle) {
       studySubtitle.textContent = state.names.length
         ? "Everything here is found."
@@ -1224,17 +1228,17 @@ function renderStudyPanel() {
       studySprite.removeAttribute("src");
       studySprite.alt = "";
     }
-    if (studyName) studyName.textContent = "No Pokemon ready for study right now.";
+    if (studyName) studyName.textContent = "";
     setInputStatus(
       state.names.length ? "All Pokemon in this filtered pool are already found." : DEFAULT_STATUS
     );
     renderStudyMeta(null);
     renderStudyTypes(null);
-    if (studyRevealBtn) studyRevealBtn.disabled = true;
-    if (studyAgainBtn) studyAgainBtn.disabled = true;
     return;
   }
 
+  if (studyCard) studyCard.hidden = false;
+  if (studyActions) studyActions.hidden = false;
   if (studySubtitle) {
     studySubtitle.textContent = state.studyRevealed
       ? "Answer revealed"
@@ -1261,7 +1265,7 @@ function renderStudyPanel() {
   if (!inputEl?.value.trim()) {
     setInputStatus(DEFAULT_STATUS);
   }
-  if (studyRevealBtn) studyRevealBtn.disabled = false;
+  if (studyRevealBtn) studyRevealBtn.disabled = state.studyRevealed;
   if (studyAgainBtn) studyAgainBtn.disabled = false;
 }
 
@@ -1957,7 +1961,7 @@ function handleGuess(value) {
     const currentName = state.studyCurrent;
     if (!currentName) return;
     if (state.studyRevealed) {
-      showStatusHint("Use Again to continue to another Pokemon.");
+      showStatusHint("Use Next to continue to another Pokemon.");
       return;
     }
     const canonical = state.guessIndex.get(normalized);
@@ -1973,7 +1977,7 @@ function handleGuess(value) {
       showStatusHint(`Corrected to ${label}.`);
       return;
     }
-    showStatusHint("Not quite. Reveal it or try again.");
+    showStatusHint("Not quite. Reveal it or press Next.");
     return;
   }
   const canonical = state.guessIndex.get(normalized);
@@ -2595,6 +2599,7 @@ if (practiceModeSelect) {
 if (studyRevealBtn) {
   studyRevealBtn.addEventListener("click", () => {
     if (!state.studyCurrent) return;
+    if (state.studyRevealed) return;
     startTimer();
     state.studyRevealed = true;
     if (inputEl) {

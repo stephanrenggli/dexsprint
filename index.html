@@ -78,10 +78,10 @@
     <div class="sidebar-section">
       <h3>Gameplay</h3>
       <div class="filter filter--select">
-        <label for="practice-mode">Practice Mode</label>
+        <label for="practice-mode">Game Mode</label>
         <select id="practice-mode">
-          <option value="off" selected>Normal</option>
-          <option value="study">Study</option>
+          <option value="off" selected>Challenge</option>
+          <option value="study">Practice</option>
         </select>
       </div>
       <div class="filter filter--select">
@@ -267,7 +267,7 @@
           </div>
           <div id="study-counter" class="study-panel__counter">0 Pokemon left</div>
         </div>
-        <div class="study-card info-hero">
+        <div id="study-card" class="study-card info-hero">
           <div class="study-card__sprite-wrap info-sprite-wrap">
             <img id="study-sprite" class="study-card__sprite" alt="" />
           </div>
@@ -277,9 +277,9 @@
             <div id="study-types" class="study-card__types info-types"></div>
           </div>
         </div>
-        <div class="study-actions">
+        <div id="study-actions" class="study-actions">
           <button id="study-reveal" class="btn ghost btn-small" type="button">Reveal</button>
-          <button id="study-again" class="btn ghost btn-small" type="button">Again</button>
+          <button id="study-again" class="btn ghost btn-small" type="button">Next</button>
         </div>
       </section>
 
