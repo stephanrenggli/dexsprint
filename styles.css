@@ -2134,3 +2134,13 @@ body.dark-mode .sprite-card--hidden {
 .site-footer p {
   margin: 0;
 }
+
+.site-footer a {
+  color: var(--footer-ink);
+  text-decoration-color: color-mix(in srgb, var(--footer-ink) 38%, transparent);
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: var(--ink);
+}
