@@ -59,7 +59,7 @@ const shinyToggle = document.getElementById("shiny-toggle");
 const settingsReset = document.getElementById("settings-reset");
 const darkToggle = document.getElementById("dark-toggle");
 const themeChooser = document.getElementById("theme-chooser");
-const practiceModeSelect = document.getElementById("practice-mode");
+const gameModeSelect = document.getElementById("game-mode");
 const typoModeSelect = document.getElementById("typo-mode");
 const autocorrectToggle = document.getElementById("autocorrect-toggle");
 const badgeHeading = document.getElementById("badge-heading");
@@ -94,13 +94,14 @@ const studyPanel = document.getElementById("study-panel");
 const studySubtitle = document.getElementById("study-subtitle");
 const studyCounter = document.getElementById("study-counter");
 const studyCard = document.getElementById("study-card");
+const studySpriteWrap = document.querySelector(".study-card__sprite-wrap");
 const studySprite = document.getElementById("study-sprite");
 const studyMeta = document.getElementById("study-meta");
 const studyTypes = document.getElementById("study-types");
 const studyName = document.getElementById("study-name");
 const studyActions = document.getElementById("study-actions");
 const studyRevealBtn = document.getElementById("study-reveal");
-const studyAgainBtn = document.getElementById("study-again");
+const studyNextBtn = document.getElementById("study-next");
 
 const pokedex = new Pokedex.Pokedex({
   cache: true,
@@ -128,7 +129,7 @@ const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 const STORAGE_KEY = "pokequiz-state";
 const DEFAULT_STATUS = "";
-const DEFAULT_PRACTICE_MODE = "off";
+const DEFAULT_GAME_MODE = "off";
 const DEFAULT_TYPO_MODE = "normal";
 const PROGRESS_CODE_PREFIX = "dq3.";
 const BADGES = [
@@ -378,7 +379,7 @@ function getStableProgressIds() {
 
 function getSettingsPayload() {
   return {
-    practiceMode: getPracticeMode(),
+    gameMode: getGameMode(),
     compact: document.body.classList.contains("compact-mode"),
     outlinesOff: document.body.classList.contains("outlines-off"),
     cries: criesToggle ? criesToggle.checked : false,
@@ -398,19 +399,20 @@ function getShareableSettingsPayload() {
   return shareableSettings;
 }
 
-function getPracticeMode() {
-  return practiceModeSelect ? practiceModeSelect.value : DEFAULT_PRACTICE_MODE;
+function getGameMode() {
+  return gameModeSelect ? gameModeSelect.value : DEFAULT_GAME_MODE;
 }
 
 function isStudyMode() {
-  return getPracticeMode() === "study";
+  return getGameMode() === "study";
 }
 
 function applySettingsPayload(data, { persist = true } = {}) {
   if (!data || typeof data !== "object") return;
 
-  if (practiceModeSelect) {
-    practiceModeSelect.value = data.practiceMode === "study" ? "study" : DEFAULT_PRACTICE_MODE;
+  if (gameModeSelect) {
+    const requestedMode = data.gameMode ?? data.practiceMode;
+    gameModeSelect.value = requestedMode === "study" ? "study" : DEFAULT_GAME_MODE;
   }
 
   document.body.classList.toggle("compact-mode", Boolean(data.compact));
@@ -1046,7 +1048,7 @@ function restoreSettings() {
 
 function resetSettings() {
   localStorage.removeItem(`${STORAGE_KEY}:settings`);
-  if (practiceModeSelect) practiceModeSelect.value = DEFAULT_PRACTICE_MODE;
+  if (gameModeSelect) gameModeSelect.value = DEFAULT_GAME_MODE;
   document.body.classList.remove("compact-mode");
   document.body.classList.remove("dark-mode");
   document.body.classList.add("outlines-off");
@@ -1145,6 +1147,51 @@ function renderStudyTypes(entry) {
   });
 }
 
+function getStudyScenePalette(entry) {
+  const sceneByType = {
+    Normal: { sky: "#c9d6df", sky2: "#8fa4b3", ground: "#b28f65", ground2: "#6e5438", shadow: "rgba(72, 50, 28, 0.34)" },
+    Fire: { sky: "#ffb15c", sky2: "#ff6b2c", ground: "#bf4a24", ground2: "#5f160e", shadow: "rgba(96, 22, 8, 0.4)" },
+    Water: { sky: "#88ddff", sky2: "#2d90ff", ground: "#2879b8", ground2: "#173e75", shadow: "rgba(13, 46, 88, 0.38)" },
+    Electric: { sky: "#fff06b", sky2: "#ffbf00", ground: "#d28d00", ground2: "#6e4e00", shadow: "rgba(97, 74, 0, 0.34)" },
+    Grass: { sky: "#baf06b", sky2: "#61b84a", ground: "#4d9a3f", ground2: "#234d1c", shadow: "rgba(27, 67, 21, 0.34)" },
+    Ice: { sky: "#d7fcff", sky2: "#78dbff", ground: "#7cb6d8", ground2: "#3d6f97", shadow: "rgba(43, 78, 101, 0.3)" },
+    Fighting: { sky: "#dc9b8f", sky2: "#bb4938", ground: "#8d3128", ground2: "#41120f", shadow: "rgba(65, 18, 15, 0.4)" },
+    Poison: { sky: "#d49df2", sky2: "#8f3cc8", ground: "#6e3198", ground2: "#34114e", shadow: "rgba(49, 14, 73, 0.4)" },
+    Ground: { sky: "#e5c26b", sky2: "#b9873f", ground: "#8c6330", ground2: "#4b3315", shadow: "rgba(65, 43, 16, 0.36)" },
+    Flying: { sky: "#d9e5ff", sky2: "#7ea2ff", ground: "#7b96cf", ground2: "#40548d", shadow: "rgba(47, 66, 110, 0.3)" },
+    Psychic: { sky: "#ffb4d3", sky2: "#ff4f97", ground: "#d04d82", ground2: "#6e1f42", shadow: "rgba(95, 18, 51, 0.36)" },
+    Bug: { sky: "#d6ee7a", sky2: "#95bc2d", ground: "#758f24", ground2: "#384510", shadow: "rgba(42, 52, 12, 0.36)" },
+    Rock: { sky: "#d7c1a1", sky2: "#9a7a4c", ground: "#7c613f", ground2: "#43321f", shadow: "rgba(50, 37, 22, 0.34)" },
+    Ghost: { sky: "#b3a5e7", sky2: "#6a56b8", ground: "#574190", ground2: "#261943", shadow: "rgba(28, 18, 53, 0.42)" },
+    Dragon: { sky: "#b2a0ff", sky2: "#5f37ff", ground: "#4b39bf", ground2: "#1f1368", shadow: "rgba(25, 17, 76, 0.42)" },
+    Dark: { sky: "#988f89", sky2: "#564a42", ground: "#443934", ground2: "#1a1412", shadow: "rgba(16, 12, 10, 0.44)" },
+    Steel: { sky: "#d4dee7", sky2: "#8fa2b7", ground: "#74879c", ground2: "#394857", shadow: "rgba(40, 51, 63, 0.32)" },
+    Fairy: { sky: "#ffc7df", sky2: "#ff8fbe", ground: "#d978a1", ground2: "#70344f", shadow: "rgba(92, 36, 61, 0.34)" }
+  };
+
+  const types = entry?.types || [];
+  const primary = sceneByType[types[0]] || sceneByType.Normal;
+  const secondary = sceneByType[types[1]] || primary;
+
+  return {
+    sky: primary.sky,
+    sky2: secondary.sky2,
+    ground: primary.ground,
+    ground2: secondary.ground2,
+    shadow: primary.shadow
+  };
+}
+
+function applyStudyScene(entry) {
+  if (!studySpriteWrap) return;
+  const palette = getStudyScenePalette(entry);
+  studySpriteWrap.style.setProperty("--study-sky", palette.sky);
+  studySpriteWrap.style.setProperty("--study-sky-2", palette.sky2);
+  studySpriteWrap.style.setProperty("--study-ground", palette.ground);
+  studySpriteWrap.style.setProperty("--study-ground-2", palette.ground2);
+  studySpriteWrap.style.setProperty("--study-shadow", palette.shadow);
+}
+
 function getMaskedStudyName(label) {
   return [...(label || "")]
     .map((char) => (/\s/.test(char) ? char : "?"))
@@ -1199,13 +1246,22 @@ function renderStudyName(label, { revealed = false, animate = false } = {}) {
   studyName._revealTimer = setTimeout(tick, 42);
 }
 
+function clearStudyNameReveal() {
+  if (!studyName) return;
+  if (studyName._revealTimer) {
+    clearTimeout(studyName._revealTimer);
+    studyName._revealTimer = null;
+  }
+  studyName.classList.remove("study-card__name--reveal");
+}
+
 function renderStudyPanel() {
   if (!studyPanel) return;
 
   const active = isStudyMode();
   studyPanel.hidden = !active;
-  if (inputEl) inputEl.disabled = false;
   if (!active) {
+    clearStudyNameReveal();
     syncInlineStatusVisibility();
     return;
   }
@@ -1216,6 +1272,7 @@ function renderStudyPanel() {
   const entry = currentName ? state.meta.get(currentName) : null;
 
   if (!entry) {
+    clearStudyNameReveal();
     if (studyCard) studyCard.hidden = true;
     if (studyActions) studyActions.hidden = true;
     if (studySubtitle) {
@@ -1228,6 +1285,7 @@ function renderStudyPanel() {
       studySprite.removeAttribute("src");
       studySprite.alt = "";
     }
+    applyStudyScene(null);
     if (studyName) studyName.textContent = "";
     setInputStatus(
       state.names.length ? "All Pokemon in this filtered pool are already found." : DEFAULT_STATUS
@@ -1252,6 +1310,7 @@ function renderStudyPanel() {
     studySprite.src = getSpriteForEntry(entry);
     studySprite.alt = state.studyRevealed ? entry.label : "Study Pokemon";
   }
+  applyStudyScene(entry);
   renderStudyMeta(entry);
   renderStudyTypes(entry);
   if (studyName) {
@@ -1266,7 +1325,7 @@ function renderStudyPanel() {
     setInputStatus(DEFAULT_STATUS);
   }
   if (studyRevealBtn) studyRevealBtn.disabled = state.studyRevealed;
-  if (studyAgainBtn) studyAgainBtn.disabled = false;
+  if (studyNextBtn) studyNextBtn.disabled = false;
 }
 
 function advanceStudyCard({ markFound = false, repeat = false } = {}) {
@@ -1961,7 +2020,7 @@ function handleGuess(value) {
     const currentName = state.studyCurrent;
     if (!currentName) return;
     if (state.studyRevealed) {
-      showStatusHint("Use Next to continue to another Pokemon.");
+      showStatusHint("Use Next to continue.");
       return;
     }
     const canonical = state.guessIndex.get(normalized);
@@ -2584,9 +2643,9 @@ if (settingsReset) {
   });
 }
 
-if (practiceModeSelect) {
-  practiceModeSelect.addEventListener("change", () => {
-    if (practiceModeSelect.value !== "study") {
+if (gameModeSelect) {
+  gameModeSelect.addEventListener("change", () => {
+    if (gameModeSelect.value !== "study") {
       state.studyDeck = [];
       state.studyCurrent = null;
       state.studyRevealed = false;
@@ -2611,8 +2670,8 @@ if (studyRevealBtn) {
   });
 }
 
-if (studyAgainBtn) {
-  studyAgainBtn.addEventListener("click", () => {
+if (studyNextBtn) {
+  studyNextBtn.addEventListener("click", () => {
     if (!state.studyCurrent) return;
     startTimer();
     advanceStudyCard({ repeat: true });
