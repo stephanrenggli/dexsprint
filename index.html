@@ -78,6 +78,13 @@
     <div class="sidebar-section">
       <h3>Gameplay</h3>
       <div class="filter filter--select">
+        <label for="practice-mode">Practice Mode</label>
+        <select id="practice-mode">
+          <option value="off" selected>Normal</option>
+          <option value="study">Study</option>
+        </select>
+      </div>
+      <div class="filter filter--select">
         <label for="typo-mode">Typo Tolerance</label>
         <select id="typo-mode">
           <option value="strict">Strict</option>
@@ -251,6 +258,30 @@
           <span id="progress-value" class="progress-value">0%</span>
         </div>
       </div>
+
+      <section id="study-panel" class="study-panel" hidden aria-live="polite">
+        <div class="study-panel__header">
+          <div>
+            <p class="eyebrow study-panel__eyebrow">Study Mode</p>
+            <p id="study-subtitle" class="study-panel__subtitle">Learn from your current filters.</p>
+          </div>
+          <div id="study-counter" class="study-panel__counter">0 Pokemon left</div>
+        </div>
+        <div class="study-card info-hero">
+          <div class="study-card__sprite-wrap info-sprite-wrap">
+            <img id="study-sprite" class="study-card__sprite" alt="" />
+          </div>
+          <div class="study-card__body info-main">
+            <h3 id="study-name" class="study-card__name">???</h3>
+            <div id="study-meta" class="study-card__meta info-meta-row"></div>
+            <div id="study-types" class="study-card__types info-types"></div>
+          </div>
+        </div>
+        <div class="study-actions">
+          <button id="study-reveal" class="btn ghost btn-small" type="button">Reveal</button>
+          <button id="study-again" class="btn ghost btn-small" type="button">Again</button>
+        </div>
+      </section>
 
       <div class="sprite-board">
         <div class="sprite-board__header">

@@ -7,6 +7,9 @@
   guessIndex: new Map(),
   guessPrefixes: new Set(),
   namesByLang: new Map(),
+  studyDeck: [],
+  studyCurrent: null,
+  studyRevealed: false,
   found: new Set(),
   recentlyFound: new Set(),
   cryAudio: null,
@@ -56,6 +59,7 @@ const shinyToggle = document.getElementById("shiny-toggle");
 const settingsReset = document.getElementById("settings-reset");
 const darkToggle = document.getElementById("dark-toggle");
 const themeChooser = document.getElementById("theme-chooser");
+const practiceModeSelect = document.getElementById("practice-mode");
 const typoModeSelect = document.getElementById("typo-mode");
 const autocorrectToggle = document.getElementById("autocorrect-toggle");
 const badgeHeading = document.getElementById("badge-heading");
@@ -86,6 +90,15 @@ const progressCopyBtn = document.getElementById("progress-copy");
 const progressImportBtn = document.getElementById("progress-import");
 const progressFeedbackEl = document.getElementById("progress-feedback");
 const progressIncludeSettingsEl = document.getElementById("progress-include-settings");
+const studyPanel = document.getElementById("study-panel");
+const studySubtitle = document.getElementById("study-subtitle");
+const studyCounter = document.getElementById("study-counter");
+const studySprite = document.getElementById("study-sprite");
+const studyMeta = document.getElementById("study-meta");
+const studyTypes = document.getElementById("study-types");
+const studyName = document.getElementById("study-name");
+const studyRevealBtn = document.getElementById("study-reveal");
+const studyAgainBtn = document.getElementById("study-again");
 
 const pokedex = new Pokedex.Pokedex({
   cache: true,
@@ -113,6 +126,7 @@ const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 const STORAGE_KEY = "pokequiz-state";
 const DEFAULT_STATUS = "";
+const DEFAULT_PRACTICE_MODE = "off";
 const DEFAULT_TYPO_MODE = "normal";
 const PROGRESS_CODE_PREFIX = "dq3.";
 const BADGES = [
@@ -362,6 +376,7 @@ function getStableProgressIds() {
 
 function getSettingsPayload() {
   return {
+    practiceMode: getPracticeMode(),
     compact: document.body.classList.contains("compact-mode"),
     outlinesOff: document.body.classList.contains("outlines-off"),
     cries: criesToggle ? criesToggle.checked : false,
@@ -381,8 +396,20 @@ function getShareableSettingsPayload() {
   return shareableSettings;
 }
 
+function getPracticeMode() {
+  return practiceModeSelect ? practiceModeSelect.value : DEFAULT_PRACTICE_MODE;
+}
+
+function isStudyMode() {
+  return getPracticeMode() === "study";
+}
+
 function applySettingsPayload(data, { persist = true } = {}) {
   if (!data || typeof data !== "object") return;
+
+  if (practiceModeSelect) {
+    practiceModeSelect.value = data.practiceMode === "study" ? "study" : DEFAULT_PRACTICE_MODE;
+  }
 
   document.body.classList.toggle("compact-mode", Boolean(data.compact));
   if (compactToggle) {
@@ -605,6 +632,7 @@ function applyImportedProgress(foundSet, { elapsed = 0, persist = true, resumeTi
   state.badgesPrimed = false;
   updateStats();
   renderSprites();
+  renderStudyPanel();
   if (persist) saveState();
 }
 
@@ -928,6 +956,9 @@ function saveState() {
   const elapsed = getElapsedSeconds();
   const payload = {
     found: [...state.found],
+    studyDeck: state.studyDeck,
+    studyCurrent: state.studyCurrent,
+    studyRevealed: state.studyRevealed,
     elapsed,
     running: Boolean(state.timerId),
     group: groupFilter ? groupFilter.value : "none",
@@ -963,6 +994,13 @@ function restoreState() {
   if (Array.isArray(data.found)) {
     state.found = new Set(data.found);
   }
+  if (Array.isArray(data.studyDeck)) {
+    state.studyDeck = data.studyDeck.filter((name) => typeof name === "string");
+  }
+  if (typeof data.studyCurrent === "string") {
+    state.studyCurrent = data.studyCurrent;
+  }
+  state.studyRevealed = Boolean(data.studyRevealed);
 
   if (typeof data.elapsed === "number" && data.elapsed >= 0) {
     state.savedElapsed = data.elapsed;
@@ -1006,6 +1044,7 @@ function restoreSettings() {
 
 function resetSettings() {
   localStorage.removeItem(`${STORAGE_KEY}:settings`);
+  if (practiceModeSelect) practiceModeSelect.value = DEFAULT_PRACTICE_MODE;
   document.body.classList.remove("compact-mode");
   document.body.classList.remove("dark-mode");
   document.body.classList.add("outlines-off");
@@ -1027,6 +1066,234 @@ function resetSettings() {
   setChipGroupSelections(genFilter, []);
   setChipGroupSelections(typeFilter, []);
   applyFilters();
+}
+
+function getStudyCandidates() {
+  return state.names.filter((name) => !state.found.has(name));
+}
+
+function ensureStudyDeck() {
+  const candidates = getStudyCandidates();
+  const candidateSet = new Set(candidates);
+  state.studyDeck = state.studyDeck.filter((name) => candidateSet.has(name));
+
+  if (state.studyCurrent && !candidateSet.has(state.studyCurrent)) {
+    state.studyCurrent = null;
+    state.studyRevealed = false;
+  }
+
+  if (!state.studyCurrent && state.studyDeck.length) {
+    state.studyCurrent = state.studyDeck.shift();
+    state.studyRevealed = false;
+  }
+
+  if (!state.studyCurrent && candidates.length) {
+    state.studyDeck = sampleRandomNames(candidates, candidates.length);
+    state.studyCurrent = state.studyDeck.shift() || null;
+    state.studyRevealed = false;
+  }
+}
+
+function sampleRandomNames(source, count) {
+  const pool = source.slice();
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, Math.min(count, pool.length));
+}
+
+function renderStudyMeta(entry) {
+  if (!studyMeta) return;
+  studyMeta.innerHTML = "";
+  if (!entry) return;
+
+  const values = [];
+  if (entry.dexId) {
+    values.push(`#${String(entry.dexId).padStart(4, "0")}`);
+  }
+  if (entry.generation) {
+    values.push(entry.generation);
+  }
+
+  values.forEach((value) => {
+    const chip = document.createElement("span");
+    chip.className = "study-card__meta-chip";
+    chip.textContent = value;
+    studyMeta.appendChild(chip);
+  });
+}
+
+function renderStudyTypes(entry) {
+  if (!studyTypes) return;
+  studyTypes.innerHTML = "";
+  if (!entry || !entry.types) return;
+
+  entry.types.forEach((typeName) => {
+    const chip = document.createElement("span");
+    chip.className = "info-type-chip";
+    const icon = document.createElement("img");
+    icon.alt = `${typeName} type`;
+    icon.src = `${typeIconBase}${getTypeId(typeName)}.png`;
+    const text = document.createElement("span");
+    text.textContent = typeName;
+    chip.appendChild(icon);
+    chip.appendChild(text);
+    studyTypes.appendChild(chip);
+  });
+}
+
+function getMaskedStudyName(label) {
+  return [...(label || "")]
+    .map((char) => (/\s/.test(char) ? char : "?"))
+    .join("");
+}
+
+function renderStudyName(label, { revealed = false, animate = false } = {}) {
+  if (!studyName) return;
+  if (studyName._revealTimer) {
+    clearTimeout(studyName._revealTimer);
+    studyName._revealTimer = null;
+  }
+  studyName.dataset.revealed = revealed ? "true" : "false";
+  studyName.classList.remove("study-card__name--reveal");
+
+  const text = label || "";
+  if (!revealed) {
+    studyName.textContent = getMaskedStudyName(text);
+    return;
+  }
+
+  if (!animate) {
+    studyName.textContent = text;
+    return;
+  }
+
+  const chars = [...text];
+  const revealedChars = chars.map((char) => (/\s/.test(char) ? char : "?"));
+  const revealIndexes = chars
+    .map((char, index) => (/\s/.test(char) ? -1 : index))
+    .filter((index) => index >= 0);
+  let revealStep = 0;
+
+  studyName.textContent = revealedChars.join("");
+  studyName.classList.add("study-card__name--reveal");
+
+  const tick = () => {
+    if (!studyName) return;
+    const index = revealIndexes[revealStep];
+    if (typeof index !== "number") {
+      studyName.textContent = text;
+      studyName.classList.remove("study-card__name--reveal");
+      studyName._revealTimer = null;
+      return;
+    }
+    revealedChars[index] = chars[index];
+    studyName.textContent = revealedChars.join("");
+    revealStep += 1;
+    studyName._revealTimer = setTimeout(tick, 42);
+  };
+
+  studyName._revealTimer = setTimeout(tick, 42);
+}
+
+function renderStudyPanel() {
+  if (!studyPanel) return;
+
+  const active = isStudyMode();
+  studyPanel.hidden = !active;
+  if (inputEl) inputEl.disabled = false;
+  if (!active) {
+    syncInlineStatusVisibility();
+    return;
+  }
+
+  ensureStudyDeck();
+  const candidates = getStudyCandidates();
+  const currentName = state.studyCurrent;
+  const entry = currentName ? state.meta.get(currentName) : null;
+
+  if (!entry) {
+    if (studySubtitle) {
+      studySubtitle.textContent = state.names.length
+        ? "Everything here is found."
+        : "Adjust your filters.";
+    }
+    if (studyCounter) studyCounter.textContent = "0 Pokemon left";
+    if (studySprite) {
+      studySprite.removeAttribute("src");
+      studySprite.alt = "";
+    }
+    if (studyName) studyName.textContent = "No Pokemon ready for study right now.";
+    setInputStatus(
+      state.names.length ? "All Pokemon in this filtered pool are already found." : DEFAULT_STATUS
+    );
+    renderStudyMeta(null);
+    renderStudyTypes(null);
+    if (studyRevealBtn) studyRevealBtn.disabled = true;
+    if (studyAgainBtn) studyAgainBtn.disabled = true;
+    return;
+  }
+
+  if (studySubtitle) {
+    studySubtitle.textContent = state.studyRevealed
+      ? "Answer revealed"
+      : "Guess from the clues";
+  }
+  if (studyCounter) {
+    const remaining = new Set([...candidates, ...state.studyDeck, currentName]).size;
+    studyCounter.textContent = `${remaining} Pokemon left`;
+  }
+  if (studySprite) {
+    studySprite.src = getSpriteForEntry(entry);
+    studySprite.alt = state.studyRevealed ? entry.label : "Study Pokemon";
+  }
+  renderStudyMeta(entry);
+  renderStudyTypes(entry);
+  if (studyName) {
+    const shouldAnimate = state.studyRevealed && studyName.dataset.lastReveal !== currentName;
+    renderStudyName(entry.label, {
+      revealed: state.studyRevealed,
+      animate: shouldAnimate
+    });
+    studyName.dataset.lastReveal = state.studyRevealed ? currentName : "";
+  }
+  if (!inputEl?.value.trim()) {
+    setInputStatus(DEFAULT_STATUS);
+  }
+  if (studyRevealBtn) studyRevealBtn.disabled = false;
+  if (studyAgainBtn) studyAgainBtn.disabled = false;
+}
+
+function advanceStudyCard({ markFound = false, repeat = false } = {}) {
+  const currentName = state.studyCurrent;
+  if (!currentName) return;
+
+  if (markFound && !state.found.has(currentName)) {
+    state.found.add(currentName);
+    state.recentlyFound.add(currentName);
+    showRevealPreview(state.meta.get(currentName));
+    playCry(currentName);
+  }
+
+  const candidates = getStudyCandidates().filter((name) => name !== currentName);
+  const candidateSet = new Set(candidates);
+  state.studyDeck = state.studyDeck.filter((name) => candidateSet.has(name));
+  if (repeat && candidateSet.has(currentName)) {
+    state.studyDeck.push(currentName);
+  }
+
+  state.studyCurrent = state.studyDeck.shift() || null;
+  if (!state.studyCurrent && candidates.length) {
+    state.studyDeck = sampleRandomNames(candidates, candidates.length);
+    state.studyCurrent = state.studyDeck.shift() || null;
+  }
+  state.studyRevealed = false;
+  if (inputEl) inputEl.value = "";
+  updateStats();
+  renderSprites();
+  renderStudyPanel();
+  saveState();
 }
 
 async function confirmResetSettings() {
@@ -1362,6 +1629,9 @@ function renderSpritesGrouped() {
 function resetQuiz() {
   stopTimer();
   state.found.clear();
+  state.studyDeck = [];
+  state.studyCurrent = null;
+  state.studyRevealed = false;
   state.seenBadges.clear();
   state.badgesPrimed = true;
   state.savedElapsed = 0;
@@ -1371,6 +1641,7 @@ function resetQuiz() {
   focusInput();
   updateStats();
   renderSprites();
+  renderStudyPanel();
   clearState();
   if (progressCodeEl) progressCodeEl.value = "";
   setProgressFeedback("");
@@ -1682,6 +1953,29 @@ function syncTypoSettings() {
 function handleGuess(value) {
   const normalized = normalizeGuess(value);
   if (!normalized) return;
+  if (isStudyMode()) {
+    const currentName = state.studyCurrent;
+    if (!currentName) return;
+    if (state.studyRevealed) {
+      showStatusHint("Use Again to continue to another Pokemon.");
+      return;
+    }
+    const canonical = state.guessIndex.get(normalized);
+    if (canonical === currentName) {
+      advanceStudyCard({ markFound: true });
+      showStatusHint("Correct!");
+      return;
+    }
+    const typoMatch = findTypoMatch(normalized);
+    if (typoMatch === currentName) {
+      advanceStudyCard({ markFound: true });
+      const label = state.meta.get(currentName)?.label || "Pokemon";
+      showStatusHint(`Corrected to ${label}.`);
+      return;
+    }
+    showStatusHint("Not quite. Reveal it or try again.");
+    return;
+  }
   const canonical = state.guessIndex.get(normalized);
   if (canonical && state.names.includes(canonical)) {
     const isNew = !state.found.has(canonical);
@@ -1689,6 +1983,7 @@ function handleGuess(value) {
     if (isNew) state.recentlyFound.add(canonical);
     updateStats();
     renderSprites();
+    renderStudyPanel();
     if (isNew) {
       showRevealPreview(state.meta.get(canonical));
       playCry(canonical);
@@ -1712,6 +2007,7 @@ function handleGuess(value) {
     if (isNew) state.recentlyFound.add(typoMatch);
     updateStats();
     renderSprites();
+    renderStudyPanel();
     if (isNew) {
       showRevealPreview(state.meta.get(typoMatch));
       playCry(typoMatch);
@@ -1722,7 +2018,9 @@ function handleGuess(value) {
       showStatusHint("Already found!");
       highlightPokemon(typoMatch);
     }
+    return;
   }
+
 }
 
 function highlightPokemon(canonical) {
@@ -2026,6 +2324,7 @@ function applyFilters() {
   updateStats();
   renderSprites();
   buildGuessIndex();
+  renderStudyPanel();
   syncChipGroup(typeFilter);
   syncChipGroup(genFilter);
   saveState();
@@ -2182,6 +2481,7 @@ resetBtn.addEventListener("click", confirmReset);
 if (resetBtnCompact) resetBtnCompact.addEventListener("click", confirmReset);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
 if (groupFilter) groupFilter.addEventListener("change", renderSprites);
+if (groupFilter) groupFilter.addEventListener("change", renderStudyPanel);
 if (progressExportBtn) {
   progressExportBtn.addEventListener("click", () => {
     copyProgressLink();
@@ -2280,6 +2580,40 @@ if (settingsReset) {
   });
 }
 
+if (practiceModeSelect) {
+  practiceModeSelect.addEventListener("change", () => {
+    if (practiceModeSelect.value !== "study") {
+      state.studyDeck = [];
+      state.studyCurrent = null;
+      state.studyRevealed = false;
+    }
+    applyFilters();
+    saveSettings();
+  });
+}
+
+if (studyRevealBtn) {
+  studyRevealBtn.addEventListener("click", () => {
+    if (!state.studyCurrent) return;
+    startTimer();
+    state.studyRevealed = true;
+    if (inputEl) {
+      inputEl.value = "";
+      syncInlineStatusVisibility();
+    }
+    renderStudyPanel();
+    saveState();
+  });
+}
+
+if (studyAgainBtn) {
+  studyAgainBtn.addEventListener("click", () => {
+    if (!state.studyCurrent) return;
+    startTimer();
+    advanceStudyCard({ repeat: true });
+  });
+}
+
 if (typoModeSelect) {
   typoModeSelect.addEventListener("change", () => {
     syncTypoSettings();
@@ -2339,7 +2673,7 @@ if (inputEl) {
     if (!(target instanceof HTMLElement)) return;
     if (
       target.closest(
-        "input, textarea, select, button, a, label, .sidebar, .modal, .sprite-board, .sprite-card"
+        "input, textarea, select, button, a, label, .sidebar, .modal, .sprite-board, .sprite-card, .study-panel"
       )
     ) {
       return;
