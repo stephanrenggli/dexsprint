@@ -1,16 +1,25 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>DexSprint</title>
+  <meta name="description" content="DexSprint is a browser-based Pokemon name quiz with multilingual guessing, themed layouts, achievements, and live PokeAPI-backed details." />
   <meta name="theme-color" content="#f7f1e5" />
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta property="og:title" content="DexSprint" />
+  <meta property="og:description" content="Name as many Pokemon as you can in this fast, browser-based quiz with themed UI, achievements, and live detail popups." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="assets/favicon.svg" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="DexSprint" />
+  <meta name="twitter:description" content="A browser-based Pokemon name quiz with multilingual guesses, unlocks, and live PokeAPI details." />
+  <meta name="twitter:image" content="assets/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <script id="theme-config" type="application/json">{"defaultTheme":"normal","themes":[{"id":"normal","name":"Normal","color":"#A8A878","accent2":"#8A8A58"},{"id":"fire","name":"Fire","color":"#F08030","accent2":"#E0621A"},{"id":"water","name":"Water","color":"#6890F0","accent2":"#4E7CE8"},{"id":"electric","name":"Electric","color":"#F8D030","accent2":"#E6B800"},{"id":"grass","name":"Grass","color":"#78C850","accent2":"#5FA63A"},{"id":"ice","name":"Ice","color":"#98D8D8","accent2":"#7FC6C6"},{"id":"fighting","name":"Fighting","color":"#C03028","accent2":"#A61F1A"},{"id":"poison","name":"Poison","color":"#A040A0","accent2":"#7F2E7F"},{"id":"ground","name":"Ground","color":"#E0C068","accent2":"#C9A84A"},{"id":"flying","name":"Flying","color":"#A890F0","accent2":"#8E72E6"},{"id":"psychic","name":"Psychic","color":"#F85888","accent2":"#E04070"},{"id":"bug","name":"Bug","color":"#A8B820","accent2":"#8C9A12"},{"id":"rock","name":"Rock","color":"#B8A038","accent2":"#9E8524"},{"id":"ghost","name":"Ghost","color":"#705898","accent2":"#5A457E"},{"id":"dragon","name":"Dragon","color":"#7038F8","accent2":"#5A22E6"},{"id":"dark","name":"Dark","color":"#705848","accent2":"#5A463A"},{"id":"steel","name":"Steel","color":"#B8B8D0","accent2":"#9FA0B7"},{"id":"fairy","name":"Fairy","color":"#EE99AC","accent2":"#DB8097"}]}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
   <script>
@@ -142,7 +151,7 @@
       </label>
       <div class="progress-token">
         <input id="progress-code" class="progress-code" type="text" placeholder="Exported progress link or code" spellcheck="false" />
-        <button id="progress-copy" class="progress-copy" type="button" aria-label="Copy progress link" title="Copy progress link">⧉</button>
+        <button id="progress-copy" class="progress-copy" type="button" aria-label="Copy progress link" title="Copy progress link">?</button>
       </div>
       <div class="progress-actions">
         <button id="progress-export" class="btn ghost btn-small" type="button">Export</button>
@@ -343,7 +352,7 @@
 
   <footer class="site-footer">
     <p>Inspired by <a href="https://pkmnquiz.com/" target="_blank" rel="noopener">pkmnquiz.com</a>. Built using PokeAPI data, pokeapi-js-wrapper, and public sprite/cry assets.</p>
-    <p>Pokémon and Pokémon character names are trademarks of Nintendo, Creatures Inc., and GAME FREAK Inc. This is a fan-made derivative project.</p>
+    <p>Pok&eacute;mon and Pok&eacute;mon character names are trademarks of Nintendo, Creatures Inc., and GAME FREAK Inc. This is a fan-made derivative project.</p>
     <p>Fully vibe-coded using Codex.</p>
   </footer>
 
@@ -355,7 +364,9 @@
     </span>
   </div>
 
-  <script src="https://unpkg.com/pokeapi-js-wrapper/dist/index.js"></script>
-  <script src="app.js"></script>
+  <script src="js/vendor/pokeapi-js-wrapper.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
+
+

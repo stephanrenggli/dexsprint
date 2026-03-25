@@ -24,7 +24,7 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 ## Tech
 
 - Plain HTML, CSS, and JavaScript
-- [PokeAPI](https://pokeapi.co/) data via [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper)
+- [PokeAPI](https://pokeapi.co/) data via a vendored copy of [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper)
 - `pokeapi-js-wrapper-sw.js` for service-worker-based caching support
 - Public Pokemon sprite and cry assets from PokeAPI-related repositories
 
@@ -34,10 +34,12 @@ There is no build step.
 
 Because the app uses a service worker, you should run it through a local web server instead of opening `index.html` directly.
 
+The deployable app lives in `site/`.
+
 Examples:
 
 ```powershell
-python -m http.server 8080
+python -m http.server 8080 --directory site
 ```
 
 Then open:
@@ -50,10 +52,13 @@ http://localhost:8080/
 
 This project can be deployed as a static site on any basic web server, including Nginx.
 
+For Dokploy, set the static publish directory to `site`.
+
 Make sure:
 
-- the site is served over HTTP(S), not opened as a local file
-- `index.html`, `app.js`, `styles.css`, `favicon.svg`, and `pokeapi-js-wrapper-sw.js` are all published together at the same path
+- the contents of `site/` are served over HTTP(S), not opened as local files
+- `site/index.html`, `site/js/app.js`, `site/css/styles.css`, `site/assets/favicon.svg`, and `site/pokeapi-js-wrapper-sw.js` are all published together at the same path
+- `site/js/vendor/pokeapi-js-wrapper.js` is published with the rest of the static assets
 - the service worker file remains reachable from the same scope as the app
 
 ## Notes
@@ -73,3 +78,4 @@ Make sure:
 Pokemon and Pokemon character names are trademarks of Nintendo, Creatures Inc., and GAME FREAK Inc.
 
 This is a fan-made derivative project.
+
