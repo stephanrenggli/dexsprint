@@ -61,6 +61,23 @@ Make sure:
 - `site/js/vendor/pokeapi-js-wrapper.js` is published with the rest of the static assets
 - the service worker file remains reachable from the same scope as the app
 
+## Releases
+
+Semantic Release is configured through `.github/workflows/release.yml` and `.releaserc.json`.
+
+When commits land on `main`, GitHub Actions will:
+
+- calculate the next semantic version from conventional commits
+- create or update `CHANGELOG.md`
+- bump the version in `package.json`
+- create a git tag like `v1.2.3`
+- publish a GitHub Release with release notes
+
+Notes:
+
+- the workflow uses the default `GITHUB_TOKEN`, so repository Actions permissions must allow creating and pushing contents
+- commit messages should keep using conventional commit prefixes like `feat:`, `fix:`, and `chore:`
+
 ## Notes
 
 - Progress and settings persist in the browser until reset
@@ -78,4 +95,3 @@ Make sure:
 Pokemon and Pokemon character names are trademarks of Nintendo, Creatures Inc., and GAME FREAK Inc.
 
 This is a fan-made derivative project.
-
