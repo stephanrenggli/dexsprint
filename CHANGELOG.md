@@ -1,3 +1,11 @@
+# [1.1.0](https://github.com/stephanrenggli/dexsprint/compare/v1.0.0...v1.1.0) (2026-03-25)
+
+
+### Features
+
+* **site:** load changelog from github releases ([cee167d](https://github.com/stephanrenggli/dexsprint/commit/cee167d58f8e3ffca21c8a493a23e6a75b269d30))
+* **site:** show release version and changelog ([7a9d8b8](https://github.com/stephanrenggli/dexsprint/commit/7a9d8b8b430a19b34786a7c336f342765be98646))
+
 # 1.0.0 (2026-03-25)
 
 
