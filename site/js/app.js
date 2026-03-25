@@ -120,6 +120,8 @@ const pokedex = new Pokedex.Pokedex({
 const typeIconBase =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/small/";
 const themeConfigEl = document.getElementById("theme-config");
+const githubRepoMeta = document.querySelector('meta[name="dexsprint-github-repo"]');
+const githubRepo = githubRepoMeta ? githubRepoMeta.getAttribute("content") : "";
 const themeConfig = themeConfigEl
   ? JSON.parse(themeConfigEl.textContent)
   : { defaultTheme: "normal", themes: [] };
@@ -641,122 +643,87 @@ function closeModal(modal, { restoreFocus = true } = {}) {
   }
 }
 
-function formatInlineMarkdown(text) {
-  const fragment = document.createDocumentFragment();
-  const pattern = /\[([^\]]+)\]\(([^)]+)\)|`([^`]+)`/g;
-  let lastIndex = 0;
-  let match;
-
-  while ((match = pattern.exec(text))) {
-    if (match.index > lastIndex) {
-      fragment.append(document.createTextNode(text.slice(lastIndex, match.index)));
-    }
-
-    if (match[1] && match[2]) {
-      const link = document.createElement("a");
-      link.href = match[2];
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = match[1];
-      fragment.append(link);
-    } else if (match[3]) {
-      const code = document.createElement("code");
-      code.textContent = match[3];
-      fragment.append(code);
-    }
-
-    lastIndex = match.index + match[0].length;
+function resolveReleaseHref(value) {
+  const href = String(value || "").trim();
+  if (!href) return "#";
+  if (/^(https?:|mailto:|tel:)/i.test(href)) return href;
+  if (href.startsWith("//")) return `https:${href}`;
+  if (href.startsWith("/")) return `https://github.com${href}`;
+  if (href.startsWith("#")) return href;
+  if (!githubRepo) return href;
+  if (/^(commit|compare|pull|issues|releases|tree|blob)\//i.test(href)) {
+    return `https://github.com/${githubRepo}/${href}`;
   }
-
-  if (lastIndex < text.length) {
-    fragment.append(document.createTextNode(text.slice(lastIndex)));
-  }
-
-  return fragment;
+  return `https://github.com/${githubRepo}/blob/main/${href.replace(/^\.?\//, "")}`;
 }
 
-function parseChangelogMarkdown(markdown) {
+function renderReleaseBodyHtml(bodyHtml, fallbackBody) {
+  if (!bodyHtml) {
+    const fallback = document.createElement("p");
+    fallback.textContent = fallbackBody || "Release notes were not provided for this version.";
+    return fallback;
+  }
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = bodyHtml;
+  wrapper.querySelectorAll("a").forEach((link) => {
+    const href = link.getAttribute("href");
+    link.href = resolveReleaseHref(href || "");
+    link.target = "_blank";
+    link.rel = "noopener";
+  });
+  return wrapper;
+}
+
+function renderGitHubReleases(releases) {
   const container = document.createElement("div");
   container.className = "changelog-content";
 
-  const lines = markdown.split(/\r?\n/);
-  let releaseCard = null;
-  let releaseBody = null;
-  let section = null;
-  let list = null;
-
-  const ensureSection = (title = "") => {
-    if (!releaseBody) return null;
-    if (section && section.dataset.title === title) return section;
-    section = document.createElement("section");
-    section.className = "changelog-release__section";
-    section.dataset.title = title;
-    if (title) {
-      const heading = document.createElement("h5");
-      heading.textContent = title;
-      section.appendChild(heading);
-    }
-    releaseBody.appendChild(section);
-    list = null;
-    return section;
-  };
-
-  lines.forEach((line) => {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed === "# Changelog" || trimmed.startsWith("All notable changes")) {
-      return;
-    }
-
-    if (trimmed.startsWith("## ")) {
-      releaseCard = document.createElement("article");
-      releaseCard.className = "changelog-release";
-      const title = document.createElement("h4");
-      title.className = "changelog-release__title";
-      title.textContent = trimmed.replace(/^##\s+/, "");
-      releaseBody = document.createElement("div");
-      releaseBody.className = "changelog-release__body";
-      releaseCard.appendChild(title);
-      releaseCard.appendChild(releaseBody);
-      container.appendChild(releaseCard);
-      section = null;
-      list = null;
-      return;
-    }
-
-    if (!releaseBody) return;
-
-    if (trimmed.startsWith("### ")) {
-      ensureSection(trimmed.replace(/^###\s+/, ""));
-      return;
-    }
-
-    if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
-      const targetSection = ensureSection("");
-      if (!targetSection) return;
-      if (!list) {
-        list = document.createElement("ul");
-        targetSection.appendChild(list);
-      }
-      const item = document.createElement("li");
-      item.appendChild(formatInlineMarkdown(trimmed.slice(2)));
-      list.appendChild(item);
-      return;
-    }
-
-    const targetSection = ensureSection("");
-    if (!targetSection) return;
-    list = null;
-    const paragraph = document.createElement("p");
-    paragraph.appendChild(formatInlineMarkdown(trimmed));
-    targetSection.appendChild(paragraph);
-  });
-
-  if (!container.children.length) {
+  if (!releases.length) {
     const empty = document.createElement("p");
     empty.className = "changelog-state";
-    empty.textContent = "No changelog entries are available yet.";
+    empty.textContent = "No published releases are available yet.";
     container.appendChild(empty);
+    return container;
   }
+
+  releases.forEach((release) => {
+    const article = document.createElement("article");
+    article.className = "changelog-release";
+
+    const title = document.createElement("h4");
+    title.className = "changelog-release__title";
+    title.textContent = release.name || release.tag_name || "Untitled release";
+    article.appendChild(title);
+
+    const meta = document.createElement("p");
+    meta.className = "changelog-release__meta";
+    const publishedAt = release.published_at
+      ? new Date(release.published_at).toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        })
+      : "Unpublished";
+    meta.textContent = `Released ${publishedAt}`;
+    article.appendChild(meta);
+
+    const body = document.createElement("div");
+    body.className = "changelog-release__body";
+    body.appendChild(renderReleaseBodyHtml(release.body_html, release.body || ""));
+    article.appendChild(body);
+
+    if (release.html_url) {
+      const link = document.createElement("a");
+      link.className = "site-footer__link changelog-release__link";
+      link.href = release.html_url;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = "View on GitHub";
+      article.appendChild(link);
+    }
+
+    container.appendChild(article);
+  });
 
   return container;
 }
@@ -770,19 +737,28 @@ async function ensureChangelogLoaded() {
   changelogContent.appendChild(loading);
 
   try {
-    const response = await fetch("changelog.md", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`Unable to load changelog (${response.status})`);
+    if (!githubRepo) {
+      throw new Error("Missing GitHub repository metadata");
     }
-    const markdown = await response.text();
-    const parsed = parseChangelogMarkdown(markdown);
+    const response = await fetch(`https://api.github.com/repos/${githubRepo}/releases?per_page=8`, {
+      headers: {
+        Accept: "application/vnd.github.full+json"
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Unable to load releases (${response.status})`);
+    }
+    const releases = await response.json();
+    const parsed = renderGitHubReleases(
+      Array.isArray(releases) ? releases.filter((release) => !release.draft) : []
+    );
     changelogContent.replaceChildren(parsed);
     changelogMarkupLoaded = true;
   } catch (err) {
     changelogContent.innerHTML = "";
     const fallback = document.createElement("p");
     fallback.className = "changelog-state";
-    fallback.textContent = "The changelog is not available yet. It will appear after the next published release.";
+    fallback.textContent = "The changelog is not available right now. Please try again after the next published GitHub release.";
     changelogContent.appendChild(fallback);
   }
 }

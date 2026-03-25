@@ -1,4 +1,4 @@
-import { copyFile, readFile, writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 
 const version = process.argv[2];
 
@@ -8,8 +8,6 @@ if (!version) {
 }
 
 const indexPath = new URL("../site/index.html", import.meta.url);
-const changelogSourcePath = new URL("../CHANGELOG.md", import.meta.url);
-const changelogTargetPath = new URL("../site/changelog.md", import.meta.url);
 const current = await readFile(indexPath, "utf8");
 
 const next = current
@@ -28,4 +26,3 @@ if (next === current) {
 }
 
 await writeFile(indexPath, next);
-await copyFile(changelogSourcePath, changelogTargetPath);

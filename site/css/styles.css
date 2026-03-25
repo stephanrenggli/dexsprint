@@ -2393,21 +2393,25 @@ body.dark-mode .sprite-card--hidden {
 }
 
 .site-footer__meta-actions {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
   margin-left: auto;
+  row-gap: 8px;
 }
 
 .site-footer__link {
+  display: inline-flex;
+  align-items: center;
   appearance: none;
   border: 0;
   background: transparent;
   color: var(--footer-ink);
   padding: 0;
   font: inherit;
+  line-height: 1.2;
   cursor: pointer;
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--footer-ink) 38%, transparent);
@@ -2420,11 +2424,16 @@ body.dark-mode .sprite-card--hidden {
 }
 
 .site-version {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-variant-numeric: tabular-nums;
   font-size: 0.78rem;
+  line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 4px 10px;
+  min-height: 28px;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--footer-ink) 22%, transparent);
   background: color-mix(in srgb, var(--surface) 72%, transparent);
@@ -2437,11 +2446,21 @@ body.dark-mode .sprite-card--hidden {
 
 .modal-card--changelog {
   max-width: 760px;
+  max-height: min(80vh, 900px);
+}
+
+.modal-card--changelog .modal-content {
+  gap: 18px;
+  min-height: 0;
 }
 
 .changelog-content {
   display: grid;
-  gap: 16px;
+  gap: 14px;
+  overflow-y: auto;
+  max-height: min(56vh, 640px);
+  padding-right: 6px;
+  min-height: 0;
 }
 
 .changelog-state {
@@ -2451,29 +2470,40 @@ body.dark-mode .sprite-card--hidden {
 
 .changelog-release {
   display: grid;
-  gap: 10px;
-  padding: 16px;
+  gap: 12px;
+  padding: 18px;
   border: 1px solid var(--border);
   border-radius: 18px;
   background: color-mix(in srgb, var(--surface-2) 86%, transparent);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
 
 .changelog-release__title {
   margin: 0;
   font-size: 1.05rem;
+  line-height: 1.2;
 }
 
 .changelog-release__body {
   display: grid;
   gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
 }
 
-.changelog-release__section {
-  display: grid;
-  gap: 6px;
+.changelog-release__meta {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
 }
 
-.changelog-release__section h5 {
+.changelog-release__body p,
+.changelog-release__body ul,
+.changelog-release__body li {
+  margin: 0;
+}
+
+.changelog-release__body h5 {
   margin: 0;
   font-size: 0.78rem;
   letter-spacing: 0.12em;
@@ -2481,15 +2511,37 @@ body.dark-mode .sprite-card--hidden {
   color: var(--muted);
 }
 
-.changelog-release__section ul {
-  margin: 0;
+.changelog-release__body ul {
   padding-left: 18px;
   display: grid;
   gap: 6px;
 }
 
-.changelog-release__section p {
-  margin: 0;
+.changelog-release__body code {
+  font-family: inherit;
+  font-size: 0.86em;
+  padding: 0.1em 0.4em;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-4) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+}
+
+.changelog-release__body a,
+.changelog-release__link {
+  color: var(--footer-ink);
+  text-decoration-color: color-mix(in srgb, var(--footer-ink) 38%, transparent);
+  text-underline-offset: 0.18em;
+}
+
+.changelog-release__body a:hover,
+.changelog-release__body a:focus-visible,
+.changelog-release__link:hover,
+.changelog-release__link:focus-visible {
+  color: var(--ink);
+}
+
+.changelog-release__link {
+  justify-self: start;
 }
 
 .site-footer a {
