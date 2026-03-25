@@ -89,6 +89,10 @@ const confirmMessage = document.getElementById("confirm-message");
 const confirmStats = document.getElementById("confirm-stats");
 const confirmCancel = document.getElementById("confirm-cancel");
 const confirmAccept = document.getElementById("confirm-accept");
+const changelogModal = document.getElementById("changelog-modal");
+const changelogClose = document.getElementById("changelog-close");
+const changelogOpen = document.getElementById("changelog-open");
+const changelogContent = document.getElementById("changelog-content");
 const progressCodeEl = document.getElementById("progress-code");
 const progressExportBtn = document.getElementById("progress-export");
 const progressCopyBtn = document.getElementById("progress-copy");
@@ -554,6 +558,7 @@ function setProgressFeedback(message) {
 let progressCleanupTimeout = null;
 let confirmResolver = null;
 let activeModal = null;
+let changelogMarkupLoaded = false;
 
 function scheduleImportedProgressCleanup() {
   if (progressCleanupTimeout) clearTimeout(progressCleanupTimeout);
@@ -634,6 +639,162 @@ function closeModal(modal, { restoreFocus = true } = {}) {
       restoreEl.focus();
     }
   }
+}
+
+function formatInlineMarkdown(text) {
+  const fragment = document.createDocumentFragment();
+  const pattern = /\[([^\]]+)\]\(([^)]+)\)|`([^`]+)`/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = pattern.exec(text))) {
+    if (match.index > lastIndex) {
+      fragment.append(document.createTextNode(text.slice(lastIndex, match.index)));
+    }
+
+    if (match[1] && match[2]) {
+      const link = document.createElement("a");
+      link.href = match[2];
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = match[1];
+      fragment.append(link);
+    } else if (match[3]) {
+      const code = document.createElement("code");
+      code.textContent = match[3];
+      fragment.append(code);
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    fragment.append(document.createTextNode(text.slice(lastIndex)));
+  }
+
+  return fragment;
+}
+
+function parseChangelogMarkdown(markdown) {
+  const container = document.createElement("div");
+  container.className = "changelog-content";
+
+  const lines = markdown.split(/\r?\n/);
+  let releaseCard = null;
+  let releaseBody = null;
+  let section = null;
+  let list = null;
+
+  const ensureSection = (title = "") => {
+    if (!releaseBody) return null;
+    if (section && section.dataset.title === title) return section;
+    section = document.createElement("section");
+    section.className = "changelog-release__section";
+    section.dataset.title = title;
+    if (title) {
+      const heading = document.createElement("h5");
+      heading.textContent = title;
+      section.appendChild(heading);
+    }
+    releaseBody.appendChild(section);
+    list = null;
+    return section;
+  };
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed === "# Changelog" || trimmed.startsWith("All notable changes")) {
+      return;
+    }
+
+    if (trimmed.startsWith("## ")) {
+      releaseCard = document.createElement("article");
+      releaseCard.className = "changelog-release";
+      const title = document.createElement("h4");
+      title.className = "changelog-release__title";
+      title.textContent = trimmed.replace(/^##\s+/, "");
+      releaseBody = document.createElement("div");
+      releaseBody.className = "changelog-release__body";
+      releaseCard.appendChild(title);
+      releaseCard.appendChild(releaseBody);
+      container.appendChild(releaseCard);
+      section = null;
+      list = null;
+      return;
+    }
+
+    if (!releaseBody) return;
+
+    if (trimmed.startsWith("### ")) {
+      ensureSection(trimmed.replace(/^###\s+/, ""));
+      return;
+    }
+
+    if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
+      const targetSection = ensureSection("");
+      if (!targetSection) return;
+      if (!list) {
+        list = document.createElement("ul");
+        targetSection.appendChild(list);
+      }
+      const item = document.createElement("li");
+      item.appendChild(formatInlineMarkdown(trimmed.slice(2)));
+      list.appendChild(item);
+      return;
+    }
+
+    const targetSection = ensureSection("");
+    if (!targetSection) return;
+    list = null;
+    const paragraph = document.createElement("p");
+    paragraph.appendChild(formatInlineMarkdown(trimmed));
+    targetSection.appendChild(paragraph);
+  });
+
+  if (!container.children.length) {
+    const empty = document.createElement("p");
+    empty.className = "changelog-state";
+    empty.textContent = "No changelog entries are available yet.";
+    container.appendChild(empty);
+  }
+
+  return container;
+}
+
+async function ensureChangelogLoaded() {
+  if (!changelogContent || changelogMarkupLoaded) return;
+  changelogContent.innerHTML = "";
+  const loading = document.createElement("p");
+  loading.className = "changelog-state";
+  loading.textContent = "Loading changelog...";
+  changelogContent.appendChild(loading);
+
+  try {
+    const response = await fetch("changelog.md", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Unable to load changelog (${response.status})`);
+    }
+    const markdown = await response.text();
+    const parsed = parseChangelogMarkdown(markdown);
+    changelogContent.replaceChildren(parsed);
+    changelogMarkupLoaded = true;
+  } catch (err) {
+    changelogContent.innerHTML = "";
+    const fallback = document.createElement("p");
+    fallback.className = "changelog-state";
+    fallback.textContent = "The changelog is not available yet. It will appear after the next published release.";
+    changelogContent.appendChild(fallback);
+  }
+}
+
+function openChangelogModal() {
+  if (!changelogModal) return;
+  ensureChangelogLoaded();
+  openModal(changelogModal, changelogClose);
+}
+
+function closeChangelogModal() {
+  closeModal(changelogModal);
 }
 
 function renderConfirmStats(items) {
@@ -2944,11 +3105,22 @@ if (confirmModal) {
     if (event.target === confirmModal) closeConfirmModal(false);
   });
 }
+if (changelogOpen) changelogOpen.addEventListener("click", openChangelogModal);
+if (changelogClose) changelogClose.addEventListener("click", closeChangelogModal);
+if (changelogModal) {
+  changelogModal.addEventListener("click", (event) => {
+    if (event.target === changelogModal) closeChangelogModal();
+  });
+}
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (confirmResolver) {
       closeConfirmModal(false);
+      return;
+    }
+    if (changelogModal && !changelogModal.classList.contains("hidden")) {
+      closeChangelogModal();
       return;
     }
     if (infoModal && !infoModal.classList.contains("hidden")) {

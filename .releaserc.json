@@ -18,13 +18,21 @@
         "npmPublish": false
       }
     ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "npm run sync-site-version -- ${nextRelease.version}"
+      }
+    ],
     "@semantic-release/github",
     [
       "@semantic-release/git",
       {
         "assets": [
           "CHANGELOG.md",
-          "package.json"
+          "package.json",
+          "site/index.html",
+          "site/changelog.md"
         ],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
