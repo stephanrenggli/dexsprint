@@ -1,10 +1,12 @@
 ﻿const state = {
   names: [],
   allNames: [],
+  activeNames: new Set(),
   meta: new Map(),
   generationIndex: new Map(),
   typeIndex: new Map(),
   guessIndex: new Map(),
+  guessByLength: new Map(),
   guessPrefixes: new Set(),
   namesByLang: new Map(),
   studyDeck: [],
@@ -540,6 +542,7 @@ function setProgressFeedback(message) {
 
 let progressCleanupTimeout = null;
 let confirmResolver = null;
+let activeModal = null;
 
 function scheduleImportedProgressCleanup() {
   if (progressCleanupTimeout) clearTimeout(progressCleanupTimeout);
@@ -552,10 +555,74 @@ function scheduleImportedProgressCleanup() {
 
 function closeConfirmModal(result) {
   if (!confirmModal) return;
-  confirmModal.classList.add("hidden");
+  closeModal(confirmModal);
   const resolver = confirmResolver;
   confirmResolver = null;
   if (resolver) resolver(Boolean(result));
+}
+
+function getModalFocusableElements(modal) {
+  if (!modal) return [];
+  return [...modal.querySelectorAll("a[href], button, textarea, input, select, [tabindex]:not([tabindex='-1'])")]
+    .filter((el) => !el.hasAttribute("disabled") && el.getAttribute("aria-hidden") !== "true");
+}
+
+function trapModalFocus(event) {
+  if (!activeModal || event.key !== "Tab") return;
+  const focusable = getModalFocusableElements(activeModal);
+  if (!focusable.length) {
+    event.preventDefault();
+    if (activeModal.focus) activeModal.focus();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const current = document.activeElement;
+  if (event.shiftKey && current === first) {
+    event.preventDefault();
+    last.focus();
+    return;
+  }
+  if (!event.shiftKey && current === last) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
+function openModal(modal, initialFocus = null) {
+  if (!modal) return;
+  const activeEl = document.activeElement;
+  if (activeEl instanceof HTMLElement) {
+    modal._restoreFocusEl = activeEl;
+  }
+  modal.classList.remove("hidden");
+  activeModal = modal;
+  document.body.classList.add("modal-open");
+  const fallback = getModalFocusableElements(modal)[0] || modal;
+  const target = initialFocus || fallback;
+  requestAnimationFrame(() => {
+    if (target && target.focus) target.focus();
+  });
+}
+
+function closeModal(modal, { restoreFocus = true } = {}) {
+  if (!modal) return;
+  modal.classList.add("hidden");
+  if (activeModal === modal) {
+    activeModal = null;
+  }
+  if (!activeModal) {
+    document.body.classList.remove("modal-open");
+  }
+  if (!restoreFocus) return;
+  const restoreEl = modal._restoreFocusEl;
+  if (restoreEl && typeof restoreEl.focus === "function" && document.contains(restoreEl)) {
+    try {
+      restoreEl.focus({ preventScroll: true });
+    } catch (err) {
+      restoreEl.focus();
+    }
+  }
 }
 
 function renderConfirmStats(items) {
@@ -600,13 +667,10 @@ function requestConfirmation(message, { title = "Confirm Action", confirmLabel =
   confirmMessage.textContent = message;
   confirmAccept.textContent = confirmLabel;
   renderConfirmStats(stats);
-  confirmModal.classList.remove("hidden");
+  openModal(confirmModal, confirmAccept);
 
   return new Promise((resolve) => {
     confirmResolver = resolve;
-    requestAnimationFrame(() => {
-      if (confirmAccept) confirmAccept.focus();
-    });
   });
 }
 
@@ -1354,7 +1418,9 @@ function advanceStudyCard({ markFound = false, repeat = false } = {}) {
   state.studyRevealed = false;
   if (inputEl) inputEl.value = "";
   updateStats();
-  renderSprites();
+  if (markFound) {
+    updateSpriteCardsForPokemon(currentName, { animateReveal: true });
+  }
   renderStudyPanel();
   saveState();
 }
@@ -1669,11 +1735,12 @@ function renderSpritesGrouped() {
       const percent = total === 0 ? 0 : Math.round((found / total) * 100);
       const section = document.createElement("section");
       section.className = "group-card";
+      section.dataset.groupName = groupName;
       const title = document.createElement("h3");
       title.className = "group-title";
       title.textContent =
         mode === "generation"
-          ? `${groupName} — ${percent}%`
+          ? `${groupName} - ${percent}%`
           : groupName;
       const grid = document.createElement("div");
       grid.className = "sprite-grid";
@@ -1742,7 +1809,7 @@ async function openInfoModal(entry) {
   if (infoAbilities) infoAbilities.innerHTML = "";
   if (infoFacts) infoFacts.innerHTML = "";
   state.activeEntry = entry;
-  infoModal.classList.remove("hidden");
+  openModal(infoModal, infoClose);
   playCry(entry.normalized || normalizeName(entry.label || ""));
 
   try {
@@ -1760,7 +1827,7 @@ async function openInfoModal(entry) {
 
 function closeInfoModal() {
   if (!infoModal) return;
-  infoModal.classList.add("hidden");
+  closeModal(infoModal);
   state.activeEntry = null;
 }
 
@@ -1976,7 +2043,7 @@ function findTypoMatch(normalized) {
   let bestCanonical = null;
   let bestDist = maxDist + 1;
   let bestCount = 0;
-  for (const candidate of state.guessIndex.keys()) {
+  for (const candidate of getTypoCandidates(normalized, maxDist)) {
     if (Math.abs(candidate.length - normalized.length) > maxDist) continue;
     const dist = levenshteinWithin(normalized, candidate, maxDist);
     if (dist > maxDist) continue;
@@ -2013,6 +2080,19 @@ function syncTypoSettings() {
     ?.classList.toggle("toggle--disabled", isStrict);
 }
 
+function getTypoCandidates(normalized, maxDist) {
+  if (!state.guessByLength.size) {
+    return state.guessIndex.keys();
+  }
+  const candidates = [];
+  for (let len = normalized.length - maxDist; len <= normalized.length + maxDist; len += 1) {
+    const guesses = state.guessByLength.get(len);
+    if (!guesses) continue;
+    guesses.forEach((guess) => candidates.push(guess));
+  }
+  return candidates;
+}
+
 function handleGuess(value) {
   const normalized = normalizeGuess(value);
   if (!normalized) return;
@@ -2040,12 +2120,12 @@ function handleGuess(value) {
     return;
   }
   const canonical = state.guessIndex.get(normalized);
-  if (canonical && state.names.includes(canonical)) {
+  if (canonical && state.activeNames.has(canonical)) {
     const isNew = !state.found.has(canonical);
     state.found.add(canonical);
     if (isNew) state.recentlyFound.add(canonical);
     updateStats();
-    renderSprites();
+    updateSpriteCardsForPokemon(canonical, { animateReveal: isNew });
     renderStudyPanel();
     if (isNew) {
       showRevealPreview(state.meta.get(canonical));
@@ -2059,7 +2139,7 @@ function handleGuess(value) {
     return;
   }
   const typoMatch = findTypoMatch(normalized);
-  if (typoMatch && state.names.includes(typoMatch)) {
+  if (typoMatch && state.activeNames.has(typoMatch)) {
     if (autocorrectToggle && !autocorrectToggle.checked) {
       const label = state.meta.get(typoMatch)?.label || "Pokemon";
       showStatusHint(`Did you mean ${label}?`);
@@ -2069,7 +2149,7 @@ function handleGuess(value) {
     state.found.add(typoMatch);
     if (isNew) state.recentlyFound.add(typoMatch);
     updateStats();
-    renderSprites();
+    updateSpriteCardsForPokemon(typoMatch, { animateReveal: isNew });
     renderStudyPanel();
     if (isNew) {
       showRevealPreview(state.meta.get(typoMatch));
@@ -2084,6 +2164,60 @@ function handleGuess(value) {
     return;
   }
 
+}
+
+function refreshGroupedGenerationHeaders() {
+  if (!spriteGrid || !groupFilter || groupFilter.value !== "generation") return;
+  const sections = [...spriteGrid.querySelectorAll(".group-card")];
+  sections.forEach((section) => {
+    const title = section.querySelector(".group-title");
+    if (!title) return;
+    const cards = [...section.querySelectorAll(".sprite-card")];
+    const total = cards.length;
+    const found = cards.filter((card) => !card.classList.contains("sprite-card--hidden")).length;
+    const percent = total === 0 ? 0 : Math.round((found / total) * 100);
+    const groupName = section.dataset.groupName || title.textContent || "";
+    title.textContent = `${groupName} - ${percent}%`;
+  });
+}
+
+function updateSpriteCardsForPokemon(canonical, { animateReveal = false } = {}) {
+  if (!canonical || !spriteGrid) return;
+  const entry = state.meta.get(canonical);
+  if (!entry) return;
+  const cards = [...spriteGrid.querySelectorAll(`.sprite-card[data-pokemon="${canonical}"]`)];
+  if (!cards.length) return;
+
+  const isFound = state.found.has(canonical);
+  cards.forEach((card) => {
+    const img = card.querySelector("img");
+    const label = card.querySelector(".sprite-card__name");
+    card.classList.toggle("sprite-card--hidden", !isFound);
+    if (isFound && animateReveal) {
+      card.classList.remove("sprite-card--revealed");
+      void card.offsetWidth;
+      card.classList.add("sprite-card--revealed");
+      if (!document.body.classList.contains("outlines-off")) {
+        card.classList.add("sprite-card--outline-reveal");
+      }
+      const spriteUrl = getSpriteForEntry(entry).replace(/"/g, '\\"');
+      card.style.setProperty("--reveal-sprite", `url("${spriteUrl}")`);
+    } else {
+      card.classList.remove("sprite-card--revealed");
+      card.classList.remove("sprite-card--outline-reveal");
+      card.style.removeProperty("--reveal-sprite");
+    }
+    if (img) {
+      img.src = getSpriteForEntry(entry);
+      img.alt = isFound ? entry.label : "Unknown Pokemon";
+    }
+    if (label) {
+      label.textContent = isFound ? entry.label : getHiddenLabel(entry);
+    }
+  });
+
+  refreshGroupedGenerationHeaders();
+  state.recentlyFound.delete(canonical);
 }
 
 function highlightPokemon(canonical) {
@@ -2384,6 +2518,7 @@ function applyFilters() {
   }
 
   state.names = filtered;
+  state.activeNames = new Set(filtered);
   updateStats();
   renderSprites();
   buildGuessIndex();
@@ -2395,7 +2530,20 @@ function applyFilters() {
 
 function buildGuessIndex() {
   state.guessIndex.clear();
+  state.guessByLength.clear();
   state.guessPrefixes.clear();
+  const registerGuess = (guess, canonical) => {
+    if (!guess) return;
+    const isNewGuess = !state.guessIndex.has(guess);
+    state.guessIndex.set(guess, canonical);
+    if (isNewGuess) {
+      addPrefixes(guess);
+      if (!state.guessByLength.has(guess.length)) {
+        state.guessByLength.set(guess.length, []);
+      }
+      state.guessByLength.get(guess.length).push(guess);
+    }
+  };
   state.names.forEach((canonical) => {
     const labels = state.namesByLang.get(canonical);
     const entry = state.meta.get(canonical);
@@ -2408,17 +2556,27 @@ function buildGuessIndex() {
 
     localizedLabels.forEach((label) => {
       const guess = normalizeGuess(label);
-      if (!guess) return;
-      state.guessIndex.set(guess, canonical);
-      addPrefixes(guess);
+      registerGuess(guess, canonical);
     });
 
     const fallbackGuess = normalizeGuess(defaultLabel);
-    if (fallbackGuess) {
-      state.guessIndex.set(fallbackGuess, canonical);
-      addPrefixes(fallbackGuess);
-    }
+    registerGuess(fallbackGuess, canonical);
   });
+}
+
+async function fetchResourcesInBatches(urls, batchSize = 40) {
+  const output = [];
+  for (let i = 0; i < urls.length; i += batchSize) {
+    const batch = urls.slice(i, i + batchSize);
+    if (!batch.length) continue;
+    const batchResult = await pokedex.resource(batch);
+    if (Array.isArray(batchResult)) {
+      output.push(...batchResult);
+    } else if (batchResult) {
+      output.push(batchResult);
+    }
+  }
+  return output;
 }
 
 function addPrefixes(value) {
@@ -2484,7 +2642,7 @@ async function loadPokemon() {
       .map((canonical) => speciesByName.get(canonical))
       .filter(Boolean);
     const speciesDetails = detailUrls.length
-      ? await pokedex.resource(detailUrls)
+      ? await fetchResourcesInBatches(detailUrls, 40)
       : [];
 
     speciesDetails.forEach((detail) => {
@@ -2724,9 +2882,17 @@ if (confirmModal) {
 }
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && confirmResolver) {
-    closeConfirmModal(false);
+  if (event.key === "Escape") {
+    if (confirmResolver) {
+      closeConfirmModal(false);
+      return;
+    }
+    if (infoModal && !infoModal.classList.contains("hidden")) {
+      closeInfoModal();
+      return;
+    }
   }
+  trapModalFocus(event);
 });
 
 if (inputEl) {
@@ -2756,14 +2922,6 @@ if (inputEl) {
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
   }
-}
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("./pokeapi-js-wrapper-sw.js", { scope: "./" })
-      .catch(() => {});
-  });
 }
 
 window.addEventListener("hashchange", handleProgressHashChange);
