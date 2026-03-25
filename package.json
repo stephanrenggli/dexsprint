@@ -1,6 +1,6 @@
 {
   "name": "dexsprint",
-  "version": "0.0.0-development",
+  "version": "1.0.0",
   "private": true,
   "description": "Semantic release tooling for the DexSprint static site",
   "scripts": {
