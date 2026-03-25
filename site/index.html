@@ -165,27 +165,6 @@
       <p id="progress-feedback" class="progress-feedback" aria-live="polite"></p>
     </div>
     <div class="sidebar-section">
-      <h3>Filters</h3>
-      <div class="filters">
-        <div class="filter filter--select">
-          <label for="group-filter">Group By</label>
-          <select id="group-filter">
-            <option value="none">None</option>
-            <option value="generation" selected>Generation</option>
-            <option value="type">Type</option>
-          </select>
-        </div>
-        <div class="filter">
-          <label>Generations</label>
-          <div id="gen-filter" class="chip-grid chip-grid--generations"></div>
-        </div>
-        <div class="filter">
-          <label for="type-filter">Type</label>
-          <div id="type-filter" class="chip-grid chip-grid--types"></div>
-        </div>
-      </div>
-    </div>
-    <div class="sidebar-section">
       <h3 id="badge-heading">Achievements</h3>
       <div id="badge-list" class="badge-list"></div>
     </div>
@@ -301,6 +280,42 @@
           <div>
             <h2>Sprites</h2>
             <p class="muted">Sprites appear as you find each Pokemon.</p>
+          </div>
+        </div>
+        <div class="sprite-board-filters">
+          <div class="sprite-board-filters__top">
+            <p id="filter-summary" class="filter-summary" aria-live="polite">
+              Group: Generations - Generations: All - Types: All
+            </p>
+            <div class="sprite-board-filters__actions">
+              <div class="filter filter--select group-by-inline">
+                <label for="group-filter">Group By</label>
+                <select id="group-filter">
+                  <option value="none">None</option>
+                  <option value="generation" selected>Generations</option>
+                  <option value="type">Type</option>
+                </select>
+              </div>
+              <button
+                id="filters-panel-toggle"
+                class="btn ghost btn-small"
+                type="button"
+                aria-expanded="false"
+                aria-controls="filters-panel"
+              >
+                Edit Filters
+              </button>
+            </div>
+          </div>
+          <div id="filters-panel" class="filters filters-panel" hidden>
+            <div class="filter">
+              <label>Generations</label>
+              <div id="gen-filter" class="chip-grid chip-grid--generations"></div>
+            </div>
+            <div class="filter">
+              <label for="type-filter">Type</label>
+              <div id="type-filter" class="chip-grid chip-grid--types"></div>
+            </div>
           </div>
         </div>
         <div id="sprite-grid" class="sprite-grid"></div>

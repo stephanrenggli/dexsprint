@@ -44,6 +44,9 @@ const retryBtn = document.getElementById("retry-btn");
 const genFilter = document.getElementById("gen-filter");
 const typeFilter = document.getElementById("type-filter");
 const groupFilter = document.getElementById("group-filter");
+const filtersPanel = document.getElementById("filters-panel");
+const filtersPanelToggle = document.getElementById("filters-panel-toggle");
+const filterSummary = document.getElementById("filter-summary");
 const spriteGrid = document.getElementById("sprite-grid");
 const progressBar = document.getElementById("progress-bar");
 const progressValue = document.getElementById("progress-value");
@@ -391,13 +394,14 @@ function getSettingsPayload() {
     typoMode: typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
     autocorrect: autocorrectToggle ? autocorrectToggle.checked : true,
     sidebarCollapsed: document.body.classList.contains("sidebar-collapsed"),
+    filtersPanelExpanded: Boolean(filtersPanel && !filtersPanel.hidden),
     dark: document.body.classList.contains("dark-mode"),
     theme: document.body.dataset.theme || DEFAULT_THEME
   };
 }
 
 function getShareableSettingsPayload() {
-  const { sidebarCollapsed, ...shareableSettings } = getSettingsPayload();
+  const { sidebarCollapsed, filtersPanelExpanded, ...shareableSettings } = getSettingsPayload();
   return shareableSettings;
 }
 
@@ -432,6 +436,12 @@ function applySettingsPayload(data, { persist = true } = {}) {
     if (filtersToggleCompact) filtersToggleCompact.textContent = settingsLabel;
   }
 
+  if (Object.prototype.hasOwnProperty.call(data, "filtersPanelExpanded")) {
+    setFiltersPanelExpanded(Boolean(data.filtersPanelExpanded), { persist: false });
+  } else {
+    setFiltersPanelExpanded(false, { persist: false });
+  }
+
   document.body.classList.toggle("dark-mode", Boolean(data.dark));
   if (darkToggle) darkToggle.checked = Boolean(data.dark);
 
@@ -445,6 +455,7 @@ function applySettingsPayload(data, { persist = true } = {}) {
   if (autocorrectToggle) autocorrectToggle.checked = data.autocorrect !== false;
 
   syncTypoSettings();
+  updateFilterSummary();
 
   if (persist) {
     localStorage.setItem(`${STORAGE_KEY}:settings`, JSON.stringify(getSettingsPayload()));
@@ -1128,6 +1139,7 @@ function resetSettings() {
   if (autocorrectToggle) autocorrectToggle.checked = true;
   if (outlineToggle) outlineToggle.checked = false;
   if (darkToggle) darkToggle.checked = false;
+  setFiltersPanelExpanded(false, { persist: false });
   setTheme(DEFAULT_THEME, false);
   syncTypoSettings();
   if (groupFilter) groupFilter.value = "generation";
@@ -2465,11 +2477,23 @@ function handleChipGroupChange(container, e) {
     const allChecked = others.every((box) => box.checked);
     allBox.checked = allChecked;
   }
+
+  // Avoid an implicit "all" state with no visible checkmarks.
+  const anyChecked = others.some((box) => box.checked);
+  if (!anyChecked) {
+    allBox.checked = true;
+    others.forEach((box) => (box.checked = true));
+  }
 }
 
 function getSelectedFromChips(container) {
   const { allBox, others } = getChipGroupBoxes(container);
   if (!allBox) return [];
+  const anyChecked = others.some((box) => box.checked);
+  if (!allBox.checked && !anyChecked) {
+    allBox.checked = true;
+    others.forEach((box) => (box.checked = true));
+  }
   if (allBox.checked) return [];
   return others.filter((box) => box.checked).map((box) => box.value);
 }
@@ -2492,6 +2516,38 @@ function setChipGroupSelections(container, selectedValues) {
   allBox.checked = false;
   const selectedSet = new Set(selectedValues);
   others.forEach((box) => (box.checked = selectedSet.has(box.value)));
+}
+
+function summarizeFilterSelection(values, formatter) {
+  if (!values || !values.length) return "All";
+  const labels = values.map(formatter).filter(Boolean);
+  if (!labels.length) return "All";
+  if (labels.length <= 2) return labels.join(", ");
+  return `${labels[0]}, ${labels[1]} +${labels.length - 2}`;
+}
+
+function updateFilterSummary() {
+  if (!filterSummary) return;
+  const groupMap = { none: "None", generation: "Generations", type: "Type" };
+  const groupLabel = groupMap[groupFilter ? groupFilter.value : "generation"] || "Generation";
+  const generationSummary = summarizeFilterSelection(
+    getSelectedGenerations(),
+    (gen) => formatGenerationLabel(gen)
+  );
+  const typeSummary = summarizeFilterSelection(
+    getSelectedTypes(),
+    (type) => prettifyName(type)
+  );
+  filterSummary.textContent = `Group: ${groupLabel} - Generations: ${generationSummary} - Types: ${typeSummary}`;
+}
+
+function setFiltersPanelExpanded(expanded, { persist = true } = {}) {
+  if (!filtersPanel || !filtersPanelToggle) return;
+  const isExpanded = Boolean(expanded);
+  filtersPanel.hidden = !isExpanded;
+  filtersPanelToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+  filtersPanelToggle.textContent = isExpanded ? "Hide Filters" : "Edit Filters";
+  if (persist) saveSettings();
 }
 
 function applyFilters() {
@@ -2525,6 +2581,7 @@ function applyFilters() {
   renderStudyPanel();
   syncChipGroup(typeFilter);
   syncChipGroup(genFilter);
+  updateFilterSummary();
   saveState();
 }
 
@@ -2703,6 +2760,13 @@ if (resetBtnCompact) resetBtnCompact.addEventListener("click", confirmReset);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
 if (groupFilter) groupFilter.addEventListener("change", renderSprites);
 if (groupFilter) groupFilter.addEventListener("change", renderStudyPanel);
+if (groupFilter) groupFilter.addEventListener("change", updateFilterSummary);
+if (groupFilter) groupFilter.addEventListener("change", saveState);
+if (filtersPanelToggle) {
+  filtersPanelToggle.addEventListener("click", () => {
+    setFiltersPanelExpanded(filtersPanel ? filtersPanel.hidden : false);
+  });
+}
 if (progressExportBtn) {
   progressExportBtn.addEventListener("click", () => {
     copyProgressLink();
