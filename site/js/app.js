@@ -51,6 +51,7 @@ const spriteGrid = document.getElementById("sprite-grid");
 const progressBar = document.getElementById("progress-bar");
 const progressValue = document.getElementById("progress-value");
 const resetBtn = document.getElementById("reset-btn");
+const installBtn = document.getElementById("install-btn");
 const resetBtnCompact = document.getElementById("reset-btn-compact");
 const filtersToggleCompact = document.getElementById("filters-toggle-compact");
 const outlineToggle = document.getElementById("outline-toggle");
@@ -115,7 +116,7 @@ const studyNextBtn = document.getElementById("study-next");
 const pokedex = new Pokedex.Pokedex({
   cache: true,
   timeout: 10000,
-  cacheImages: true
+  cacheImages: false
 });
 const typeIconBase =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/small/";
@@ -196,6 +197,59 @@ const BADGES = [
       totalCount > 0 && foundCount === totalCount
   }
 ];
+
+let deferredInstallPrompt = null;
+
+function isStandaloneMode() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function syncInstallButton() {
+  if (!installBtn) return;
+  const canInstall = Boolean(deferredInstallPrompt) && !isStandaloneMode();
+  installBtn.hidden = !canInstall;
+}
+
+async function registerAppServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  try {
+    await navigator.serviceWorker.register("./sw.js");
+  } catch (error) {
+    console.warn("Service worker registration failed", error);
+  }
+}
+
+function setupInstallPrompt() {
+  if (!installBtn) return;
+
+  syncInstallButton();
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    syncInstallButton();
+  });
+
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    syncInstallButton();
+    setStatus("DexSprint installed.");
+  });
+
+  installBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+
+    deferredInstallPrompt.prompt();
+    try {
+      await deferredInstallPrompt.userChoice;
+    } catch (error) {
+      console.warn("Install prompt failed", error);
+    }
+    deferredInstallPrompt = null;
+    syncInstallButton();
+  });
+}
 
 function normalizeName(value) {
   if (!value) return "";
@@ -3139,4 +3193,6 @@ if (inputEl) {
 window.addEventListener("hashchange", handleProgressHashChange);
 
 syncTypoSettings();
+setupInstallPrompt();
+registerAppServiceWorker();
 loadPokemon();

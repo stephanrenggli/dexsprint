@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "DexSprint",
+  "short_name": "DexSprint",
+  "description": "A Pokemon guessing game with multilingual guesses, achievements, and live PokeAPI-backed details.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f1e5",
+  "theme_color": "#f7f1e5",
+  "icons": [
+    {
+      "src": "assets/192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
