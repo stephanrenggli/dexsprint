@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/stephanrenggli/dexsprint/compare/v1.2.0...v1.3.0) (2026-04-01)
+
+
+### Features
+
+* refresh site background and footer copy ([04dfad6](https://github.com/stephanrenggli/dexsprint/commit/04dfad6ff04be8033d6d760d93fc6d76afefbed2))
+
+
+### Performance Improvements
+
+* optimize app startup and rendering ([b2525b7](https://github.com/stephanrenggli/dexsprint/commit/b2525b7872cfc6f63f5a84fd3adf8966798f6075))
+
 # [1.2.0](https://github.com/stephanrenggli/dexsprint/compare/v1.1.0...v1.2.0) (2026-04-01)
 
 
