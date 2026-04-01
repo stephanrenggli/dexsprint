@@ -74,14 +74,16 @@ body {
 
 html {
   background-color: #f7f1e5;
+  background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
 }
 
 body {
   font-family: "Space Grotesk", system-ui, sans-serif;
   color: var(--ink);
-  background-color: var(--bg-2);
-  background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
+  background: transparent;
   min-height: 100vh;
+  padding-bottom: 24px;
+  box-sizing: border-box;
   overflow-x: hidden;
 }
 
@@ -123,37 +125,55 @@ body.dark-mode {
   background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
 }
 
-.bg-orb {
+.bg-scene {
   position: fixed;
-  width: 360px;
-  height: 360px;
-  border-radius: 50%;
-  filter: blur(10px);
-  opacity: 0.45;
+  inset: 0;
+  pointer-events: none;
   z-index: 0;
+  overflow: hidden;
+  opacity: 1;
 }
 
-.orb-1 {
-  background: radial-gradient(circle, #ff8c8c 0%, #ff4b4b 50%, transparent 70%);
-  top: -80px;
-  left: -80px;
-  animation: drift 18s ease-in-out infinite;
+.bg-scene::before,
+.bg-scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.orb-2 {
-  background: radial-gradient(circle, #9cc1ff 0%, #2b6fef 55%, transparent 72%);
-  bottom: -120px;
-  right: -80px;
-  animation: drift 22s ease-in-out infinite reverse;
+.bg-scene::before {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 10%, transparent), transparent 26%),
+    linear-gradient(90deg, transparent 0 4%, color-mix(in srgb, var(--accent) 10%, transparent) 4% 4.5%, transparent 4.5% 95.5%, color-mix(in srgb, var(--accent-2) 10%, transparent) 95.5% 96%, transparent 96% 100%),
+    linear-gradient(180deg, transparent 0 6%, color-mix(in srgb, var(--border) 18%, transparent) 6% 6.4%, transparent 6.4% 90.5%, color-mix(in srgb, var(--border) 16%, transparent) 90.5% 91%, transparent 91% 100%),
+    radial-gradient(circle at 10% 11%, color-mix(in srgb, var(--accent) 24%, transparent) 0 18px, transparent 18px 100%),
+    radial-gradient(circle at 15% 11%, color-mix(in srgb, #fffdf7 24%, transparent) 0 8px, transparent 8px 100%),
+    radial-gradient(circle at 20% 11%, color-mix(in srgb, var(--accent-2) 18%, transparent) 0 6px, transparent 6px 100%),
+    radial-gradient(circle at 23.5% 11%, color-mix(in srgb, #f6c445 18%, transparent) 0 6px, transparent 6px 100%),
+    linear-gradient(180deg, transparent 0 74%, color-mix(in srgb, var(--surface-2) 22%, transparent) 74% 100%);
+}
+
+.bg-scene::after {
+  background:
+    linear-gradient(90deg, transparent 0 7%, color-mix(in srgb, var(--border-strong) 18%, transparent) 7% 7.2%, transparent 7.2% 92.8%, color-mix(in srgb, var(--border-strong) 18%, transparent) 92.8% 93%, transparent 93% 100%),
+    linear-gradient(180deg, transparent 0 14%, color-mix(in srgb, var(--border) 14%, transparent) 14% 14.2%, transparent 14.2% 84%, color-mix(in srgb, var(--border) 12%, transparent) 84% 84.2%, transparent 84.2% 100%),
+    linear-gradient(90deg, transparent 0 10%, color-mix(in srgb, var(--surface) 16%, transparent) 10% 28%, transparent 28% 72%, color-mix(in srgb, var(--surface) 14%, transparent) 72% 90%, transparent 90% 100%),
+    repeating-linear-gradient(90deg, transparent 0 120px, color-mix(in srgb, var(--border) 8%, transparent) 120px 122px, transparent 122px 244px),
+    repeating-linear-gradient(180deg, transparent 0 88px, color-mix(in srgb, var(--border) 7%, transparent) 88px 90px, transparent 90px 180px),
+    linear-gradient(180deg, transparent 0 12%, color-mix(in srgb, #fffdf7 8%, transparent) 12% 18%, transparent 18% 100%);
+  opacity: 0.8;
 }
 
 .bg-grid {
   position: fixed;
   inset: 0;
-  background-image: linear-gradient(rgba(28, 27, 25, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(28, 27, 25, 0.04) 1px, transparent 1px);
-  background-size: 36px 36px;
-  opacity: 0.2;
+  background-image:
+    repeating-linear-gradient(180deg, color-mix(in srgb, var(--ink) 2.2%, transparent) 0 1px, transparent 1px 9px),
+    linear-gradient(90deg, transparent 0 8%, color-mix(in srgb, var(--accent) 7%, transparent) 8% 8.25%, transparent 8.25% 91.75%, color-mix(in srgb, var(--accent-2) 7%, transparent) 91.75% 92%, transparent 92% 100%),
+    linear-gradient(180deg, transparent 0 82%, color-mix(in srgb, #fffdf7 5%, transparent) 82% 100%);
+  background-size: 100% 10px, 100% 100%, 100% 100%;
+  opacity: 0.22;
   pointer-events: none;
 }
 
@@ -2364,7 +2384,9 @@ body.dark-mode .sprite-card--hidden {
 }
 
 .site-footer {
-  margin: 40px auto 24px;
+  position: relative;
+  z-index: 2;
+  margin: 40px auto 0;
   max-width: 1100px;
   padding: 18px 20px 16px;
   color: var(--footer-ink);
