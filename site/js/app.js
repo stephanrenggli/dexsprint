@@ -2,6 +2,7 @@
   names: [],
   allNames: [],
   activeNames: new Set(),
+  activeFoundCount: 0,
   meta: new Map(),
   generationIndex: new Map(),
   typeIndex: new Map(),
@@ -24,7 +25,11 @@
   startTime: null,
   savedElapsed: 0,
   activeEntry: null,
-  seenBadges: new Set()
+  seenBadges: new Set(),
+  badgeRevision: 0,
+  renderedBadgeRevision: -1,
+  restoredFilterSelections: { gens: [], types: [] },
+  saveStateTimer: null
 };
 
 const totalCount = document.getElementById("total-count");
@@ -140,6 +145,7 @@ const criesLatestBase =
 const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 const STORAGE_KEY = "pokequiz-state";
+const SAVE_STATE_DEBOUNCE_MS = 150;
 const DEFAULT_STATUS = "";
 const DEFAULT_GAME_MODE = "off";
 const DEFAULT_TYPO_MODE = "normal";
@@ -894,12 +900,14 @@ function applyImportedProgress(foundSet, { elapsed = 0, persist = true, resumeTi
   state.found = new Set(
     [...foundSet].filter((name) => state.meta.has(name))
   );
+  state.badgeRevision += 1;
   state.savedElapsed = Math.max(0, elapsed);
   state.lastSavedSec = -1;
   setTimerText(formatTime(state.savedElapsed));
   if (resumeTimer) startTimer();
   state.seenBadges.clear();
   state.badgesPrimed = false;
+  recalculateActiveFoundCount();
   updateStats();
   renderSprites();
   renderStudyPanel();
@@ -1221,10 +1229,9 @@ function stopTimer() {
   state.startTime = null;
 }
 
-function saveState() {
-  if (state.isRestoring) return;
+function buildStatePayload() {
   const elapsed = getElapsedSeconds();
-  const payload = {
+  return {
     found: [...state.found],
     studyDeck: state.studyDeck,
     studyCurrent: state.studyCurrent,
@@ -1235,10 +1242,36 @@ function saveState() {
     gens: getSelectedGenerations(),
     types: getSelectedTypes()
   };
+}
+
+function flushStateSave() {
+  if (state.isRestoring) return;
+  if (state.saveStateTimer) {
+    clearTimeout(state.saveStateTimer);
+    state.saveStateTimer = null;
+  }
+  const payload = buildStatePayload();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
 
+function saveState({ immediate = false } = {}) {
+  if (state.isRestoring) return;
+  if (immediate) {
+    flushStateSave();
+    return;
+  }
+  if (state.saveStateTimer) clearTimeout(state.saveStateTimer);
+  state.saveStateTimer = setTimeout(() => {
+    state.saveStateTimer = null;
+    flushStateSave();
+  }, SAVE_STATE_DEBOUNCE_MS);
+}
+
 function clearState() {
+  if (state.saveStateTimer) {
+    clearTimeout(state.saveStateTimer);
+    state.saveStateTimer = null;
+  }
   localStorage.removeItem(STORAGE_KEY);
 }
 
@@ -1258,11 +1291,17 @@ function restoreState() {
     groupFilter.value = allowed.has(data.group) ? data.group : "generation";
   }
 
+  state.restoredFilterSelections = {
+    gens: Array.isArray(data.gens) ? data.gens : [],
+    types: Array.isArray(data.types) ? data.types : []
+  };
+
   setChipGroupSelections(genFilter, data.gens || []);
   setChipGroupSelections(typeFilter, data.types || []);
 
   if (Array.isArray(data.found)) {
     state.found = new Set(data.found);
+    state.badgeRevision += 1;
   }
   if (Array.isArray(data.studyDeck)) {
     state.studyDeck = data.studyDeck.filter((name) => typeof name === "string");
@@ -1599,8 +1638,7 @@ function advanceStudyCard({ markFound = false, repeat = false } = {}) {
   const currentName = state.studyCurrent;
   if (!currentName) return;
 
-  if (markFound && !state.found.has(currentName)) {
-    state.found.add(currentName);
+  if (markFound && markPokemonFound(currentName)) {
     state.recentlyFound.add(currentName);
     showRevealPreview(state.meta.get(currentName));
     playCry(currentName);
@@ -1694,7 +1732,7 @@ function tint(hex, amount) {
 
 function updateStats() {
   const total = state.names.length;
-  const found = state.names.filter((name) => state.found.has(name)).length;
+  const found = state.activeFoundCount;
   totalCount.textContent = total;
   foundCount.textContent = found;
   remainingCount.textContent = total - found;
@@ -1712,10 +1750,13 @@ function updateStats() {
     state.hasCelebratedCompletion = false;
     clearCompletionCelebration();
   }
-  try {
-    renderBadges();
-  } catch (err) {
-    console.error("Badge rendering failed", err);
+  if (state.renderedBadgeRevision !== state.badgeRevision) {
+    try {
+      renderBadges();
+      state.renderedBadgeRevision = state.badgeRevision;
+    } catch (err) {
+      console.error("Badge rendering failed", err);
+    }
   }
 }
 
@@ -1744,7 +1785,7 @@ function getCompletedGroupEntries(indexMap) {
 function renderBadges() {
   if (!badgeList) return;
   const context = getBadgeContext();
-  badgeList.innerHTML = "";
+  const fragment = document.createDocumentFragment();
   let unlockedCount = 0;
   const unlockedIds = [];
 
@@ -1776,8 +1817,10 @@ function renderBadges() {
     copy.appendChild(description);
     item.appendChild(icon);
     item.appendChild(copy);
-    badgeList.appendChild(item);
+    fragment.appendChild(item);
   });
+
+  badgeList.replaceChildren(fragment);
 
   if (badgeHeading) {
     badgeHeading.textContent = `Achievements (${unlockedCount}/${BADGES.length})`;
@@ -1870,25 +1913,45 @@ function createSpriteCard(entry, isFound) {
   return card;
 }
 
+function recalculateActiveFoundCount() {
+  let count = 0;
+  state.names.forEach((name) => {
+    if (state.found.has(name)) count += 1;
+  });
+  state.activeFoundCount = count;
+  return count;
+}
+
+function markPokemonFound(canonical) {
+  if (!canonical || state.found.has(canonical)) return false;
+  state.found.add(canonical);
+  if (state.activeNames.has(canonical)) {
+    state.activeFoundCount += 1;
+  }
+  state.badgeRevision += 1;
+  return true;
+}
+
 
 function renderSprites() {
   if (!spriteGrid) return;
-  spriteGrid.innerHTML = "";
+  const fragment = document.createDocumentFragment();
   spriteGrid.className = "sprite-grid";
   if (groupFilter && groupFilter.value !== "none") {
-    renderSpritesGrouped();
+    renderSpritesGrouped(fragment);
   } else {
     state.names.forEach((name) => {
       const entry = state.meta.get(name);
       if (!entry) return;
       const isFound = state.found.has(name);
-      spriteGrid.appendChild(createSpriteCard(entry, isFound));
+      fragment.appendChild(createSpriteCard(entry, isFound));
     });
   }
+  spriteGrid.replaceChildren(fragment);
   state.recentlyFound.clear();
 }
 
-function renderSpritesGrouped() {
+function renderSpritesGrouped(fragment) {
   const mode = groupFilter ? groupFilter.value : "none";
   if (mode === "none") return;
   const groups = new Map();
@@ -1954,7 +2017,7 @@ function renderSpritesGrouped() {
 
       section.appendChild(title);
       section.appendChild(grid);
-      spriteGrid.appendChild(section);
+      fragment.appendChild(section);
     });
   spriteGrid.className = "sprite-groups";
 }
@@ -1962,10 +2025,12 @@ function renderSpritesGrouped() {
 function resetQuiz() {
   stopTimer();
   state.found.clear();
+  state.activeFoundCount = 0;
   state.studyDeck = [];
   state.studyCurrent = null;
   state.studyRevealed = false;
   state.seenBadges.clear();
+  state.badgeRevision += 1;
   state.badgesPrimed = true;
   state.savedElapsed = 0;
   state.lastSavedSec = -1;
@@ -1982,7 +2047,7 @@ function resetQuiz() {
 
 async function confirmReset() {
   const total = state.names.length;
-  const found = state.names.filter((name) => state.found.has(name)).length;
+  const found = state.activeFoundCount;
   if (total && found) {
     const ok = await requestConfirmation(
       `Reset the quiz? This will clear ${found} found Pokemon and the timer.`,
@@ -2324,8 +2389,7 @@ function handleGuess(value) {
   }
   const canonical = state.guessIndex.get(normalized);
   if (canonical && state.activeNames.has(canonical)) {
-    const isNew = !state.found.has(canonical);
-    state.found.add(canonical);
+    const isNew = markPokemonFound(canonical);
     if (isNew) state.recentlyFound.add(canonical);
     updateStats();
     updateSpriteCardsForPokemon(canonical, { animateReveal: isNew });
@@ -2348,8 +2412,7 @@ function handleGuess(value) {
       showStatusHint(`Did you mean ${label}?`);
       return;
     }
-    const isNew = !state.found.has(typoMatch);
-    state.found.add(typoMatch);
+    const isNew = markPokemonFound(typoMatch);
     if (isNew) state.recentlyFound.add(typoMatch);
     updateStats();
     updateSpriteCardsForPokemon(typoMatch, { animateReveal: isNew });
@@ -2559,6 +2622,66 @@ async function loadTypes() {
   return { entries: entries.filter(Boolean), typeMap };
 }
 
+function applyMetadataIndexes(generationData, typeData) {
+  state.generationIndex = new Map();
+  state.typeIndex = new Map();
+
+  generationData.entries.forEach((entry) => {
+    state.generationIndex.set(
+      entry.name,
+      new Set(entry.names.map(normalizeName))
+    );
+  });
+
+  typeData.entries.forEach((entry) => {
+    state.typeIndex.set(entry.name, new Set(entry.names.map(normalizeName)));
+  });
+
+  state.meta.forEach((entry, normalized) => {
+    entry.generation = formatGenerationLabel(
+      generationData.generationMap.get(normalized) || "Unknown"
+    );
+    entry.types = typeData.typeMap.has(normalized)
+      ? [...typeData.typeMap.get(normalized)].sort().map(prettifyName)
+      : [];
+  });
+}
+
+function refreshActiveDetailViews() {
+  if (state.activeEntry && infoModal && !infoModal.classList.contains("hidden")) {
+    openInfoModal(state.activeEntry);
+  }
+  renderStudyPanel();
+}
+
+function scheduleFilterMetadataHydration(generationPromise, typePromise) {
+  const hydrate = async () => {
+    try {
+      const [generationData, typeData] = await Promise.all([generationPromise, typePromise]);
+      applyMetadataIndexes(generationData, typeData);
+      populateGenChips(generationData.entries);
+      populateTypeChips(typeData.entries);
+      setChipGroupSelections(genFilter, state.restoredFilterSelections.gens);
+      setChipGroupSelections(typeFilter, state.restoredFilterSelections.types);
+      applyFilters();
+      refreshActiveDetailViews();
+    } catch (error) {
+      console.warn("Metadata hydration failed", error);
+    }
+  };
+
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(() => {
+      void hydrate();
+    }, { timeout: 1000 });
+    return;
+  }
+
+  window.setTimeout(() => {
+    void hydrate();
+  }, 0);
+}
+
 function populateTypeChips(entries) {
   if (!typeFilter) return;
   typeFilter.innerHTML = "";
@@ -2766,6 +2889,7 @@ function applyFilters() {
 
   state.names = filtered;
   state.activeNames = new Set(filtered);
+  recalculateActiveFoundCount();
   updateStats();
   renderSprites();
   buildGuessIndex();
@@ -2827,6 +2951,52 @@ async function fetchResourcesInBatches(urls, batchSize = 40) {
   return output;
 }
 
+function hydrateLocalizedNames(speciesDetails) {
+  speciesDetails.forEach((detail) => {
+    if (!detail || !detail.name) return;
+    const canonical = normalizeName(detail.name);
+    if (!canonical) return;
+    const namesByLang = new Map();
+    (detail.names || []).forEach((nameEntry) => {
+      if (!nameEntry || !nameEntry.language) return;
+      if (nameEntry.language.name === "en") {
+        namesByLang.set("en", nameEntry.name);
+      }
+      if (nameEntry.language.name === "de") {
+        namesByLang.set("de", nameEntry.name);
+      }
+      if (nameEntry.language.name === "es") {
+        namesByLang.set("es", nameEntry.name);
+      }
+    });
+    state.namesByLang.set(canonical, namesByLang);
+  });
+  buildGuessIndex();
+}
+
+function scheduleLocalizedNameHydration(detailUrls) {
+  if (!detailUrls.length) return;
+  const hydrate = async () => {
+    try {
+      const speciesDetails = await fetchResourcesInBatches(detailUrls, 40);
+      hydrateLocalizedNames(speciesDetails);
+    } catch (error) {
+      console.warn("Localized name hydration failed", error);
+    }
+  };
+
+  if ("requestIdleCallback" in window) {
+    window.requestIdleCallback(() => {
+      void hydrate();
+    }, { timeout: 1500 });
+    return;
+  }
+
+  window.setTimeout(() => {
+    void hydrate();
+  }, 0);
+}
+
 function addPrefixes(value) {
   if (value.length < 3) return;
   for (let i = 2; i < value.length; i += 1) {
@@ -2838,11 +3008,9 @@ async function loadPokemon() {
   setInputStatus("Loading Pokemon list...");
   if (retryBtn) retryBtn.hidden = true;
   try {
-    const [speciesData, generationData, typeData] = await Promise.all([
-      pokedex.getPokemonSpeciesList({ limit: 2000 }),
-      loadGenerations(),
-      loadTypes()
-    ]);
+    const generationPromise = loadGenerations();
+    const typePromise = loadTypes();
+    const speciesData = await pokedex.getPokemonSpeciesList({ limit: 2000 });
     const speciesEntries = speciesData && speciesData.results ? speciesData.results : [];
     const names = [];
     state.meta = new Map();
@@ -2857,11 +3025,6 @@ async function loadPokemon() {
       names.push(normalized);
       const label = prettifyName(entry.name);
       let sprite = "";
-      const generation = generationData.generationMap.get(normalized) || "Unknown";
-      const types =
-        typeData.typeMap.has(normalized)
-          ? [...typeData.typeMap.get(normalized)].sort()
-          : [];
       if (entry.url) {
         const match = entry.url.match(/\/pokemon-species\/(\d+)\//);
         if (match) {
@@ -2874,8 +3037,8 @@ async function loadPokemon() {
         sprite,
         cryId: entry.cryId || "",
         dexId: entry.cryId || "",
-        generation: formatGenerationLabel(generation),
-        types: types.map(prettifyName),
+        generation: "Unknown",
+        types: [],
         normalized
       });
     });
@@ -2889,47 +3052,14 @@ async function loadPokemon() {
     const detailUrls = names
       .map((canonical) => speciesByName.get(canonical))
       .filter(Boolean);
-    const speciesDetails = detailUrls.length
-      ? await fetchResourcesInBatches(detailUrls, 40)
-      : [];
-
-    speciesDetails.forEach((detail) => {
-      if (!detail || !detail.name) return;
-      const canonical = normalizeName(detail.name);
-      if (!canonical) return;
-      const namesByLang = new Map();
-      (detail.names || []).forEach((nameEntry) => {
-        if (!nameEntry || !nameEntry.language) return;
-        if (nameEntry.language.name === "en") {
-          namesByLang.set("en", nameEntry.name);
-        }
-        if (nameEntry.language.name === "de") {
-          namesByLang.set("de", nameEntry.name);
-        }
-        if (nameEntry.language.name === "es") {
-          namesByLang.set("es", nameEntry.name);
-        }
-      });
-      state.namesByLang.set(canonical, namesByLang);
-    });
 
     state.allNames = names;
-    generationData.entries.forEach((entry) => {
-      state.generationIndex.set(
-        entry.name,
-        new Set(entry.names.map(normalizeName))
-      );
-    });
-    typeData.entries.forEach((entry) => {
-      state.typeIndex.set(entry.name, new Set(entry.names.map(normalizeName)));
-    });
-
-    populateGenChips(generationData.entries);
-    populateTypeChips(typeData.entries);
     initThemes();
     restoreSettings();
     restoreState();
     applyFilters();
+    scheduleLocalizedNameHydration(detailUrls);
+    scheduleFilterMetadataHydration(generationPromise, typePromise);
     await restoreProgressFromHash();
     setInputStatus(DEFAULT_STATUS);
   } catch (err) {
@@ -3191,6 +3321,12 @@ if (inputEl) {
 }
 
 window.addEventListener("hashchange", handleProgressHashChange);
+window.addEventListener("pagehide", flushStateSave);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    flushStateSave();
+  }
+});
 
 syncTypoSettings();
 setupInstallPrompt();
