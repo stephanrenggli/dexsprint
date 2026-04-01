@@ -2423,6 +2423,11 @@ body.dark-mode .sprite-card--hidden {
   color: var(--ink);
 }
 
+.site-footer__install {
+  white-space: nowrap;
+  min-height: 34px;
+}
+
 .site-version {
   display: inline-flex;
   align-items: center;
