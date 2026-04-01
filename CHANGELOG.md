@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/stephanrenggli/dexsprint/compare/v1.1.0...v1.2.0) (2026-04-01)
+
+
+### Features
+
+* add installable pwa assets and service worker ([268400a](https://github.com/stephanrenggli/dexsprint/commit/268400a085ea9fcaa06e1055ccfbc94a120326f2))
+
 # [1.1.0](https://github.com/stephanrenggli/dexsprint/compare/v1.0.0...v1.1.0) (2026-03-25)
 
 
