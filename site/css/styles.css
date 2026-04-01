@@ -1588,7 +1588,7 @@ body.dark-mode {
 
 .sprite-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
   gap: 8px;
 }
 
@@ -1630,11 +1630,12 @@ body.dark-mode {
   align-items: center;
   gap: 6px;
   min-height: 88px;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  transition: box-shadow 0.15s ease;
   position: relative;
   z-index: 1;
   transform-origin: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .sprite-card img {
@@ -1653,10 +1654,10 @@ body.dark-mode {
   font-size: 0.75rem;
   font-weight: 600;
   max-width: 100%;
+  line-height: 1.1;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
-  display: block;
+  text-overflow: ellipsis;
   position: relative;
   justify-self: center;
   text-align: center;
@@ -1693,19 +1694,25 @@ body.dark-mode .sprite-card--hidden {
 }
 
 .sprite-card:not(.sprite-card--hidden):hover {
-  transform: scale(1.08);
+  justify-self: center;
+  width: max-content;
+  min-width: 100%;
+  max-width: min(260px, calc(100vw - 32px));
+  padding-left: 10px;
+  padding-right: 10px;
   box-shadow: 0 14px 24px rgba(28, 27, 25, 0.18);
   z-index: 3;
 }
 
 .sprite-card:not(.sprite-card--hidden):hover .sprite-card__name {
-  white-space: normal;
+  max-width: none;
   overflow: visible;
+  white-space: nowrap;
   text-overflow: clip;
 }
 
 .sprite-card:not(.sprite-card--hidden):hover img {
-  transform: scale(1.15);
+  transform: scale(1.22);
 }
 
 .sprite-card--revealed {
