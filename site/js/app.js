@@ -673,6 +673,12 @@ function openModal(modal, initialFocus = null) {
   if (activeEl instanceof HTMLElement) {
     modal._restoreFocusEl = activeEl;
   }
+  const supportsStableScrollbarGutter =
+    typeof CSS !== "undefined" && CSS.supports && CSS.supports("scrollbar-gutter: stable both-edges");
+  const scrollbarGap = supportsStableScrollbarGutter
+    ? 0
+    : Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+  document.documentElement.style.setProperty("--modal-scrollbar-gap", `${scrollbarGap}px`);
   modal.classList.remove("hidden");
   activeModal = modal;
   document.body.classList.add("modal-open");
@@ -691,6 +697,7 @@ function closeModal(modal, { restoreFocus = true } = {}) {
   }
   if (!activeModal) {
     document.body.classList.remove("modal-open");
+    document.documentElement.style.setProperty("--modal-scrollbar-gap", "0px");
   }
   if (!restoreFocus) return;
   const restoreEl = modal._restoreFocusEl;

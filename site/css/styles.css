@@ -73,8 +73,10 @@ body {
 }
 
 html {
+  --modal-scrollbar-gap: 0px;
   background-color: #f7f1e5;
   background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
+  scrollbar-gutter: stable both-edges;
 }
 
 body {
@@ -89,6 +91,7 @@ body {
 
 body.modal-open {
   overflow: hidden;
+  padding-right: var(--modal-scrollbar-gap);
 }
 
 button,
