@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/stephanrenggli/dexsprint/compare/v1.3.1...v1.3.2) (2026-04-02)
+
+
+### Bug Fixes
+
+* contain sprite reveal shine animation ([027f9c5](https://github.com/stephanrenggli/dexsprint/commit/027f9c5d27c83e93942eb5b6295a6db5d30b68c4))
+
 ## [1.3.1](https://github.com/stephanrenggli/dexsprint/compare/v1.3.0...v1.3.1) (2026-04-02)
 
 
