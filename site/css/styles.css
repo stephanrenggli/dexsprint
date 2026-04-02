@@ -1726,16 +1726,19 @@ body.dark-mode .sprite-card--hidden {
 .sprite-card--revealed::after {
   content: "";
   position: absolute;
-  inset: -20% 35% -20% -45%;
+  inset: 0;
+  border-radius: inherit;
   background: linear-gradient(
     115deg,
     transparent 0%,
-    color-mix(in srgb, var(--accent-3) 20%, transparent) 35%,
-    rgba(255, 255, 255, 0.7) 50%,
-    color-mix(in srgb, var(--accent) 18%, transparent) 65%,
+    transparent 36%,
+    color-mix(in srgb, var(--accent-3) 14%, transparent) 44%,
+    rgba(255, 255, 255, 0.55) 50%,
+    color-mix(in srgb, var(--accent) 12%, transparent) 56%,
     transparent 100%
   );
-  transform: translateX(-130%) skewX(-18deg);
+  background-size: 220% 100%;
+  background-position: 140% 0;
   opacity: 0;
   pointer-events: none;
   animation: sprite-reveal-shimmer 620ms ease-out 80ms;
@@ -2113,14 +2116,14 @@ body.dark-mode .sprite-card--hidden {
 @keyframes sprite-reveal-shimmer {
   0% {
     opacity: 0;
-    transform: translateX(-130%) skewX(-18deg);
+    background-position: 140% 0;
   }
   25% {
-    opacity: 0.95;
+    opacity: 0.88;
   }
   100% {
     opacity: 0;
-    transform: translateX(185%) skewX(-18deg);
+    background-position: -40% 0;
   }
 }
 
