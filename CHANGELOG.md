@@ -1,3 +1,11 @@
+## [1.3.1](https://github.com/stephanrenggli/dexsprint/compare/v1.3.0...v1.3.1) (2026-04-02)
+
+
+### Bug Fixes
+
+* improve sprite card hover labels ([33f928f](https://github.com/stephanrenggli/dexsprint/commit/33f928ff7da62bce2b888002158698b3e01bac3c))
+* prevent modal layout shift ([89216b1](https://github.com/stephanrenggli/dexsprint/commit/89216b1dd851233492678cdd312e5bacefd2e764))
+
 # [1.3.0](https://github.com/stephanrenggli/dexsprint/compare/v1.2.0...v1.3.0) (2026-04-01)
 
 
