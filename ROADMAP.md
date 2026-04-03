@@ -6,8 +6,17 @@ It is intentionally separate from the README so the README stays focused on the 
 ## High Priority
 
 - Split `app.js` into smaller modules such as state, rendering, data loading, settings, and audio
+- Add a small automated test suite for normalization, typo matching, persistence restore, and progress encoding/decoding
 - Improve support for richer offline behavior, such as clearer cache status and optional fully bundled offline datasets
+- Decide whether DexSprint should stay shell-offline or become fully playable offline, then align caching and data loading with that choice
 - Add additional game modes such as timed challenge, streak mode, or focused quizzes by generation or type
+- Reduce DOM coupling by moving startup wiring and shared UI helpers into narrower modules
+
+## Current Risks
+
+- `app.js` currently concentrates most runtime behavior in one file, which makes changes harder to isolate and test
+- Offline support is good for the shell, but gameplay and changelog data still depend on live network calls
+- There is no dedicated test runner yet, so regressions in core logic would be easy to miss
 
 ## Recently Completed
 
