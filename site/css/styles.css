@@ -789,6 +789,10 @@ textarea {
   font-size: 0.8rem;
 }
 
+.btn-reset {
+  margin-left: auto;
+}
+
 #filters-panel-toggle,
 #filters-toggle,
 #filters-toggle-compact {

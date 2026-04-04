@@ -42,11 +42,9 @@ import {
 
 const totalCount = document.getElementById("total-count");
 const foundCount = document.getElementById("found-count");
-const remainingCount = document.getElementById("remaining-count");
 const timerEl = document.getElementById("timer");
 const compactTotalCount = document.getElementById("compact-total-count");
 const compactFoundCount = document.getElementById("compact-found-count");
-const compactRemainingCount = document.getElementById("compact-remaining-count");
 const compactTimerEl = document.getElementById("compact-timer");
 const statusEl = document.getElementById("status");
 const revealPill = document.getElementById("reveal-pill");
@@ -1657,19 +1655,18 @@ function initThemes() {
 }
 
 function updateStats() {
-  const total = state.names.length;
+  const filteredTotal = state.names.length;
+  const total = state.allNames.length;
   const found = state.activeFoundCount;
-  totalCount.textContent = total;
-  foundCount.textContent = found;
-  remainingCount.textContent = total - found;
+  if (foundCount) foundCount.textContent = `${found}/${filteredTotal}`;
+  if (totalCount) totalCount.textContent = total;
+  if (compactFoundCount) compactFoundCount.textContent = `${found}/${filteredTotal}`;
   if (compactTotalCount) compactTotalCount.textContent = total;
-  if (compactFoundCount) compactFoundCount.textContent = found;
-  if (compactRemainingCount) compactRemainingCount.textContent = total - found;
-  const progress = total === 0 ? 0 : (found / total) * 100;
+  const progress = filteredTotal === 0 ? 0 : (found / filteredTotal) * 100;
   progressBar.style.width = `${progress.toFixed(1)}%`;
   if (progressValue) progressValue.textContent = `${Math.round(progress)}%`;
-  renderProgressMilestones(total, found);
-  const isComplete = total > 0 && found === total;
+  renderProgressMilestones(filteredTotal, found);
+  const isComplete = filteredTotal > 0 && found === filteredTotal;
   if (isComplete && !state.hasCelebratedCompletion) {
     if (state.timerId) {
       stopTimer();

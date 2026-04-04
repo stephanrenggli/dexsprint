@@ -162,16 +162,12 @@
       </div>
       <div class="hero-card">
         <div class="stat">
+          <span class="label">Found</span>
+          <span id="found-count" class="value">0/0</span>
+        </div>
+        <div class="stat">
           <span class="label">Total</span>
           <span id="total-count" class="value">...</span>
-        </div>
-        <div class="stat">
-          <span class="label">Found</span>
-          <span id="found-count" class="value">0</span>
-        </div>
-        <div class="stat">
-          <span class="label">Remaining</span>
-          <span id="remaining-count" class="value">...</span>
         </div>
         <div class="stat">
           <span class="label">Timer</span>
@@ -187,10 +183,10 @@
           >
             Achievements
           </button>
-          <button id="reset-btn" class="btn ghost btn-small">Reset</button>
           <button id="filters-toggle" class="btn ghost btn-small" type="button">
             Show Settings
           </button>
+          <button id="reset-btn" class="btn ghost btn-small btn-reset">Reset</button>
         </div>
       </div>
     </header>
@@ -199,16 +195,12 @@
       <div class="compact-summary">
         <div class="compact-stats">
           <div class="stat">
+            <span class="label">Found</span>
+            <span id="compact-found-count" class="value">0/0</span>
+          </div>
+          <div class="stat">
             <span class="label">Total</span>
             <span id="compact-total-count" class="value">...</span>
-          </div>
-          <div class="stat">
-            <span class="label">Found</span>
-            <span id="compact-found-count" class="value">0</span>
-          </div>
-          <div class="stat">
-            <span class="label">Remaining</span>
-            <span id="compact-remaining-count" class="value">...</span>
           </div>
           <div class="stat">
             <span class="label">Timer</span>
@@ -224,9 +216,11 @@
             >
               Achievements
             </button>
-            <button id="reset-btn-compact" class="btn ghost btn-small" type="button">Reset</button>
             <button id="filters-toggle-compact" class="btn ghost btn-small" type="button">
               Show Settings
+            </button>
+            <button id="reset-btn-compact" class="btn ghost btn-small btn-reset" type="button">
+              Reset
             </button>
           </div>
         </div>
