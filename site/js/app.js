@@ -152,6 +152,7 @@ const criesLatestBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/";
 const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
+const WEEKLY_CHALLENGE_MS = 604800000;
 
 async function registerAppServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -203,12 +204,123 @@ function isStudyMode() {
   return getGameMode() === "study";
 }
 
+function isWeeklyChallengeMode() {
+  return getGameMode() === "weekly";
+}
+
+function getWeeklyChallengeWeekIndex() {
+  if (Number.isInteger(state.weeklyChallengeWeekOverride) && state.weeklyChallengeWeekOverride >= 0) {
+    return state.weeklyChallengeWeekOverride;
+  }
+  return Math.floor(Date.now() / WEEKLY_CHALLENGE_MS);
+}
+
+function getWeeklyGenerationLabel(slug) {
+  return formatGenerationLabel(slug).replace(/\s*\(Gen [^)]+\)$/, "");
+}
+
+function refreshWeeklyChallengeCatalog() {
+  const catalog = [];
+  [...state.generationIndex.keys()]
+    .slice()
+    .sort((a, b) => generationOrder(a) - generationOrder(b))
+    .forEach((slug) => {
+      const label = getWeeklyGenerationLabel(slug);
+      catalog.push({
+        id: `generation:${slug}`,
+        label: `${label} Only`,
+        requiresLegendaryData: false,
+        resolveNames: () => [...(state.generationIndex.get(slug) || [])]
+      });
+    });
+
+  [...state.typeIndex.keys()]
+    .slice()
+    .sort((a, b) => prettifyName(a).localeCompare(prettifyName(b)))
+    .forEach((type) => {
+      const label = prettifyName(type);
+      catalog.push({
+        id: `type:${type}`,
+        label: `${label} Only`,
+        requiresLegendaryData: false,
+        resolveNames: () => [...(state.typeIndex.get(type) || [])]
+      });
+    });
+
+  catalog.push({
+    id: "legendary",
+    label: "Legendary Pokemon Only",
+    requiresLegendaryData: true,
+    resolveNames: () => [...(state.legendaryIndex || new Set())]
+  });
+  state.weeklyChallengeCatalog = catalog;
+  state.weeklyChallengeCatalogReady = true;
+}
+
+function getWeeklyChallengeTheme() {
+  const catalog = state.weeklyChallengeCatalogReady ? state.weeklyChallengeCatalog : [];
+  if (!catalog.length) return null;
+  return catalog[getWeeklyChallengeWeekIndex() % catalog.length];
+}
+
+function isWeeklyChallengeReady(theme = getWeeklyChallengeTheme()) {
+  if (!state.weeklyChallengeCatalogReady) return false;
+  if (!theme) return false;
+  if (!state.groupMetadataReady) return false;
+  if (theme.requiresLegendaryData && !state.legendaryIndexReady) return false;
+  return true;
+}
+
+function getWeeklyChallengeNames(theme = getWeeklyChallengeTheme()) {
+  if (!theme) return [];
+  return theme.resolveNames ? theme.resolveNames() : [];
+}
+
+function setWeeklyChallengeFilterLock(locked) {
+  [genFilter, typeFilter].forEach((container) => {
+    if (!container) return;
+    container.querySelectorAll("input[type='checkbox']").forEach((input) => {
+      input.disabled = locked;
+    });
+    container.setAttribute("aria-disabled", locked ? "true" : "false");
+  });
+  if (filtersPanelToggle) {
+    filtersPanelToggle.disabled = locked;
+    filtersPanelToggle.setAttribute("aria-disabled", locked ? "true" : "false");
+  }
+}
+
+function syncWeeklyChallengeState() {
+  const locked = isWeeklyChallengeMode();
+  setWeeklyChallengeFilterLock(locked);
+  if (locked) {
+    setFiltersPanelExpanded(false, { persist: false });
+  } else if (filtersPanelToggle) {
+    filtersPanelToggle.disabled = false;
+    filtersPanelToggle.removeAttribute("aria-disabled");
+  }
+  if (inputEl) {
+    const theme = locked ? getWeeklyChallengeTheme() : null;
+    const loading = locked && !isWeeklyChallengeReady(theme);
+    inputEl.disabled = loading;
+    if (loading) {
+      setInputStatus("Loading weekly challenge theme...");
+    } else {
+      inputEl.placeholder = DEFAULT_INPUT_PLACEHOLDER;
+      if (statusEl && statusEl.textContent === "Loading weekly challenge theme...") {
+        setInputStatus(DEFAULT_STATUS);
+      }
+    }
+  }
+}
+
 function applySettingsPayload(data, { persist = true } = {}) {
   if (!data || typeof data !== "object") return;
 
   if (gameModeSelect) {
     const requestedMode = data.gameMode ?? data.practiceMode;
-    gameModeSelect.value = requestedMode === "study" ? "study" : DEFAULT_GAME_MODE;
+    const allowedModes = new Set([DEFAULT_GAME_MODE, "study", "weekly"]);
+    gameModeSelect.value = allowedModes.has(requestedMode) ? requestedMode : DEFAULT_GAME_MODE;
   }
 
   document.body.classList.toggle("compact-mode", Boolean(data.compact));
@@ -250,6 +362,7 @@ function applySettingsPayload(data, { persist = true } = {}) {
   if (persist) {
     localStorage.setItem(`${STORAGE_KEY}:settings`, JSON.stringify(getSettingsPayload()));
   }
+  syncWeeklyChallengeState();
 }
 
 function encodeFoundProgress() {
@@ -1150,6 +1263,7 @@ function resetSettings() {
   setChipGroupSelections(genFilter, []);
   setChipGroupSelections(typeFilter, []);
   applyFilters();
+  syncWeeklyChallengeState();
 }
 
 function getStudyCandidates() {
@@ -2454,11 +2568,13 @@ function scheduleFilterMetadataHydration(generationPromise, typePromise) {
     try {
       const [generationData, typeData] = await Promise.all([generationPromise, typePromise]);
       applyMetadataIndexes(generationData, typeData);
+      refreshWeeklyChallengeCatalog();
       populateGenChips(generationData.entries);
       populateTypeChips(typeData.entries);
       setChipGroupSelections(genFilter, state.restoredFilterSelections.gens);
       setChipGroupSelections(typeFilter, state.restoredFilterSelections.types);
       applyFilters();
+      syncWeeklyChallengeState();
       refreshActiveDetailViews();
     } catch (error) {
       console.warn("Metadata hydration failed", error);
@@ -2639,6 +2755,13 @@ function updateFilterSummary() {
   if (!filterSummary) return;
   const groupMap = { none: "None", generation: "Generations", type: "Type" };
   const groupLabel = groupMap[groupFilter ? groupFilter.value : "generation"] || "Generation";
+  if (isWeeklyChallengeMode()) {
+    const theme = getWeeklyChallengeTheme();
+    const themeLabel = theme ? theme.label : "Weekly Challenge";
+    const readinessLabel = theme && !isWeeklyChallengeReady(theme) ? "Loading challenge data" : "Filters locked";
+    filterSummary.textContent = `Weekly Challenge: ${themeLabel} - Group: ${groupLabel} - ${readinessLabel}`;
+    return;
+  }
   const generationSummary = summarizeFilterSelection(
     getSelectedGenerations(),
     (gen) => formatGenerationLabel(gen)
@@ -2660,26 +2783,38 @@ function setFiltersPanelExpanded(expanded, { persist = true } = {}) {
 }
 
 function applyFilters() {
-  const selectedGens = getSelectedGenerations();
-  const selectedTypes = getSelectedTypes();
   let filtered = state.allNames.slice();
 
-  if (selectedGens.length) {
-    const genUnion = new Set();
-    selectedGens.forEach((gen) => {
-      const genSet = state.generationIndex.get(gen) || new Set();
-      genSet.forEach((name) => genUnion.add(name));
-    });
-    filtered = filtered.filter((name) => genUnion.has(name));
-  }
+  if (isWeeklyChallengeMode()) {
+    const theme = getWeeklyChallengeTheme();
+    const challengeNames = getWeeklyChallengeNames(theme);
+    if (theme && isWeeklyChallengeReady(theme)) {
+      const challengeSet = new Set(challengeNames);
+      filtered = filtered.filter((name) => challengeSet.has(name));
+    } else {
+      filtered = [];
+    }
+  } else {
+    const selectedGens = getSelectedGenerations();
+    const selectedTypes = getSelectedTypes();
 
-  if (selectedTypes.length) {
-    const typeUnion = new Set();
-    selectedTypes.forEach((type) => {
-      const typeSet = state.typeIndex.get(type) || new Set();
-      typeSet.forEach((name) => typeUnion.add(name));
-    });
-    filtered = filtered.filter((name) => typeUnion.has(name));
+    if (selectedGens.length) {
+      const genUnion = new Set();
+      selectedGens.forEach((gen) => {
+        const genSet = state.generationIndex.get(gen) || new Set();
+        genSet.forEach((name) => genUnion.add(name));
+      });
+      filtered = filtered.filter((name) => genUnion.has(name));
+    }
+
+    if (selectedTypes.length) {
+      const typeUnion = new Set();
+      selectedTypes.forEach((type) => {
+        const typeSet = state.typeIndex.get(type) || new Set();
+        typeSet.forEach((name) => typeUnion.add(name));
+      });
+      filtered = filtered.filter((name) => typeUnion.has(name));
+    }
   }
 
   state.names = filtered;
@@ -2691,6 +2826,7 @@ function applyFilters() {
   renderStudyPanel();
   syncChipGroup(typeFilter);
   syncChipGroup(genFilter);
+  syncWeeklyChallengeState();
   updateFilterSummary();
   saveState();
 }
@@ -2728,6 +2864,10 @@ async function loadPokemon() {
     state.meta = new Map();
     state.generationIndex = new Map();
     state.typeIndex = new Map();
+    state.legendaryIndex = new Set();
+    state.legendaryIndexReady = false;
+    state.weeklyChallengeCatalog = [];
+    state.weeklyChallengeCatalogReady = false;
     state.guessIndex.clear();
     state.namesByLang.clear();
 
@@ -2770,10 +2910,23 @@ async function loadPokemon() {
     restoreSettings();
     restoreState();
     applyFilters();
-    scheduleLocalizedNameHydration(detailUrls);
+    scheduleLocalizedNameHydration({
+      state,
+      pokedex,
+      detailUrls,
+      fetchResourcesInBatches: fetchResourcesInBatchesModule,
+      onComplete: () => {
+        if (isWeeklyChallengeMode()) {
+          applyFilters();
+        }
+      }
+    });
     scheduleFilterMetadataHydration(generationPromise, typePromise);
     await restoreProgressFromHash();
-    setInputStatus(DEFAULT_STATUS);
+    syncWeeklyChallengeState();
+    if (!inputEl || !inputEl.disabled) {
+      setInputStatus(DEFAULT_STATUS);
+    }
   } catch (err) {
     console.error("loadPokemon failed", err);
     const message =
@@ -2914,6 +3067,24 @@ function listDebugTypes() {
   return [...state.typeIndex.keys()].map((slug) => prettifyName(slug));
 }
 
+function forceWeeklyChallengeWeek(value) {
+  if (value === null || value === undefined || value === "" || value === false) {
+    state.weeklyChallengeWeekOverride = null;
+  } else {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return false;
+    state.weeklyChallengeWeekOverride = parsed;
+  }
+
+  if (isWeeklyChallengeMode()) {
+    applyFilters();
+  } else {
+    updateFilterSummary();
+  }
+
+  return state.weeklyChallengeWeekOverride;
+}
+
 function getDebugState() {
   return {
     total: state.names.length,
@@ -2922,7 +3093,8 @@ function getDebugState() {
     studyMode: isStudyMode(),
     currentEntry: state.activeEntry ? state.activeEntry.label : null,
     completedGenerations: getCompletedGroupEntries(state.generationIndex),
-    completedTypes: getCompletedGroupEntries(state.typeIndex)
+    completedTypes: getCompletedGroupEntries(state.typeIndex),
+    weeklyChallengeWeekOverride: state.weeklyChallengeWeekOverride
   };
 }
 
@@ -2938,6 +3110,7 @@ function installDebugCommands() {
         clearSave: this.clearSave,
         listGenerations: listDebugGenerations,
         listTypes: listDebugTypes,
+        forceWeeklyMode: forceWeeklyChallengeWeek,
         state: getDebugState
       };
     },
@@ -2966,6 +3139,7 @@ function installDebugCommands() {
     },
     listGenerations: listDebugGenerations,
     listTypes: listDebugTypes,
+    forceWeeklyMode: forceWeeklyChallengeWeek,
     state: getDebugState
   };
 }
@@ -3090,6 +3264,7 @@ if (gameModeSelect) {
       state.studyCurrent = null;
       state.studyRevealed = false;
     }
+    showStatusHint("");
     applyFilters();
     saveSettings();
   });

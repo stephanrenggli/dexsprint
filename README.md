@@ -18,6 +18,7 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 - Pokemon cries with optional legacy cries
 - Persistent game state and settings via `localStorage`
 - Achievement badges with unlock notifications and progress cues
+- Weekly rotating challenge themes generated from the current dex data
 - Rich Pokemon detail modal with previous/next navigation, copy actions, replayable cries, sprite, types, genus, stat cards, abilities, and related species data
 - Mobile-friendly single-page UI
 
@@ -83,7 +84,7 @@ Notes:
 - Progress and settings persist in the browser until reset
 - The app fetches live Pokemon data from PokeAPI on load
 - If PokeAPI is unavailable, the app shows a retry action
-- A `window.dexsprintDebug` console API is available for local testing, including helpers to unlock Pokemon, types, generations, or clear save data
+- A `window.dexsprintDebug` console API is available for local testing, including helpers to unlock Pokemon, types, generations, force weekly challenge modes, or clear save data
 
 Example console commands:
 
@@ -92,6 +93,7 @@ dexsprintDebug.unlockGeneration("kanto")
 dexsprintDebug.unlockType("fire")
 dexsprintDebug.unlockPokemon("pikachu")
 dexsprintDebug.unlockAll()
+dexsprintDebug.forceWeeklyMode(0)
 dexsprintDebug.clearSave()
 ```
 

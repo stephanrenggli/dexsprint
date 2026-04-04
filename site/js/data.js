@@ -124,19 +124,51 @@ export function hydrateLocalizedNames(state, speciesDetails) {
   });
 }
 
+export function hydrateWeeklyChallengeIndex(state, speciesDetails) {
+  const legendaryIndex = new Set();
+
+  speciesDetails.forEach((detail) => {
+    if (!detail || !detail.name) return;
+    if (!detail.is_legendary) return;
+    const canonical = normalizeName(detail.name);
+    if (!canonical || !state.meta.has(canonical)) return;
+    legendaryIndex.add(canonical);
+  });
+
+  state.legendaryIndex = legendaryIndex;
+  state.legendaryIndexReady = true;
+}
+
 export function scheduleLocalizedNameHydration({
   state,
   pokedex,
   detailUrls,
-  fetchResourcesInBatches
+  fetchResourcesInBatches,
+  onComplete
 }) {
-  if (!detailUrls.length) return;
+  if (!detailUrls.length) {
+    state.legendaryIndex = new Set();
+    state.legendaryIndexReady = true;
+    if (typeof onComplete === "function") {
+      onComplete();
+    }
+    return;
+  }
   const hydrate = async () => {
     try {
       const speciesDetails = await fetchResourcesInBatches(pokedex, detailUrls, 40);
       hydrateLocalizedNames(state, speciesDetails);
+      hydrateWeeklyChallengeIndex(state, speciesDetails);
+      if (typeof onComplete === "function") {
+        onComplete();
+      }
     } catch (error) {
       console.warn("Localized name hydration failed", error);
+      state.legendaryIndex = new Set();
+      state.legendaryIndexReady = true;
+      if (typeof onComplete === "function") {
+        onComplete();
+      }
     }
   };
 

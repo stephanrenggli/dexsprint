@@ -8,7 +8,7 @@ It is intentionally separate from the README so the README stays focused on the 
 - Add a small automated test suite for normalization, typo matching, persistence restore, and progress encoding/decoding
 - Improve support for richer offline behavior, such as clearer cache status and optional fully bundled offline datasets
 - Decide whether DexSprint should stay shell-offline or become fully playable offline, then align caching and data loading with that choice
-- Add additional game modes such as timed challenge, streak mode, or focused quizzes by generation or type
+- Add additional game modes such as timed challenge or streak mode
 - Reduce DOM coupling by moving startup wiring and shared UI helpers into narrower modules
 
 ## Current Risks
@@ -23,7 +23,7 @@ It is intentionally separate from the README so the README stays focused on the 
 - Add daily challenge runs with a shared seed and optional personal streak tracking
 - Add timed sprint mode with best-time and best-score tracking
 - Add streak or survival mode where wrong guesses cost lives or end the run
-- Add more focused quiz modes by generation, type, region, legendary status, or special forms
+- Add more focused quiz modes for regions or special forms
 - Add hint options like first letter, generation, type, silhouette, cry, or Pokedex range hints
 - Add combo scoring for consecutive correct guesses and fast input bonuses
 - Add boss rounds for curated pools like starters, pseudo-legendaries, regional forms, or form collections
@@ -35,7 +35,6 @@ It is intentionally separate from the README so the README stays focused on the 
 - Add infinite mode that keeps generating new Pokemon after a set is cleared
 - Add shareable challenge codes and seeded runs so players can replay the same session
 - Add ghost races against a previous best time or best score
-- Add weekly rotating challenge themes such as Water types only, Gen 3 only, or only legendary Pokemon
 - Add unlockable modifiers that change the rules or difficulty as the player progresses
 
 ### UI / UX
@@ -71,7 +70,6 @@ It is intentionally separate from the README so the README stays focused on the 
 ### Technical / Refactor
 
 - Add lightweight automated tests for filter/group behavior and related UI state transitions
-- Add a small documented developer testing surface or console recipe for unlocking progress during local development
 - Introduce a clearer data abstraction layer for Pokemon metadata, localized names, forms, and derived groupings
 
 ## Notes
