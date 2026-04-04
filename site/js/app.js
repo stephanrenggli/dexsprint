@@ -646,10 +646,6 @@ function flashProgressChange() {
     .forEach((stat) => flashElement(stat, "stat--state-change", 900));
 }
 
-function flashMilestoneChange() {
-  flashElement(progressBar, "progress-bar--milestone", 800);
-}
-
 function flashProgressMilestone(count) {
   if (!progressMilestonesEl) return;
   const marker = progressMilestonesEl.querySelector(`[data-count="${count}"]`);
@@ -1097,18 +1093,19 @@ function getSpriteForEntry(entry) {
 
 function renderTextChips(container, values = [], className) {
   if (!container) return;
-  container.innerHTML = "";
+  const fragment = document.createDocumentFragment();
   values.forEach((value) => {
     const chip = document.createElement("span");
     chip.className = className;
     chip.textContent = value;
-    container.appendChild(chip);
+    fragment.appendChild(chip);
   });
+  container.replaceChildren(fragment);
 }
 
 function renderTypeChips(container, typeNames = []) {
   if (!container) return;
-  container.innerHTML = "";
+  const fragment = document.createDocumentFragment();
   (typeNames || []).forEach((typeName) => {
     const chip = document.createElement("span");
     chip.className = "info-type-chip";
@@ -1119,8 +1116,20 @@ function renderTypeChips(container, typeNames = []) {
     text.textContent = typeName;
     chip.appendChild(icon);
     chip.appendChild(text);
-    container.appendChild(chip);
+    fragment.appendChild(chip);
   });
+  container.replaceChildren(fragment);
+}
+
+function getPokemonMetaValues(entry) {
+  const values = [];
+  if (entry?.dexId) {
+    values.push(`#${String(entry.dexId).padStart(4, "0")}`);
+  }
+  if (entry?.generation) {
+    values.push(entry.generation);
+  }
+  return values;
 }
 
 function renderLabeledCards(
@@ -1135,7 +1144,7 @@ function renderLabeledCards(
   } = {}
 ) {
   if (!container) return;
-  container.innerHTML = "";
+  const fragment = document.createDocumentFragment();
   const list = items || [];
   if (!list.length) {
     if (hideWhenEmpty) {
@@ -1161,8 +1170,9 @@ function renderLabeledCards(
 
     card.appendChild(label);
     card.appendChild(value);
-    container.appendChild(card);
+    fragment.appendChild(card);
   });
+  container.replaceChildren(fragment);
 }
 
 function setTimerText(value) {
@@ -1445,14 +1455,7 @@ function sampleRandomNames(source, count) {
 
 function renderStudyMeta(entry) {
   if (!studyMeta) return;
-  const values = [];
-  if (entry?.dexId) {
-    values.push(`#${String(entry.dexId).padStart(4, "0")}`);
-  }
-  if (entry?.generation) {
-    values.push(entry.generation);
-  }
-  renderTextChips(studyMeta, values, "study-card__meta-chip");
+  renderTextChips(studyMeta, getPokemonMetaValues(entry), "study-card__meta-chip");
 }
 
 function renderStudyTypes(entry) {
@@ -1806,7 +1809,7 @@ function syncProgressMilestoneCues() {
     });
     flashProgressMilestone(entry.count);
   });
-  flashMilestoneChange();
+  flashElement(progressBar, "progress-bar--milestone", 800);
 }
 
 function syncProgressUnlockCues() {
@@ -2217,14 +2220,7 @@ function closeInfoModal() {
 
 function renderInfoMeta(entry) {
   if (!infoMeta) return;
-  const items = [];
-  if (entry?.dexId) {
-    items.push(`#${String(entry.dexId).padStart(4, "0")}`);
-  }
-  if (entry?.generation) {
-    items.push(entry.generation);
-  }
-  renderTextChips(infoMeta, items, "info-meta-chip");
+  renderTextChips(infoMeta, getPokemonMetaValues(entry), "info-meta-chip");
 }
 
 function renderInfoStats(details) {
@@ -2244,18 +2240,19 @@ function renderInfoStats(details) {
 
 function renderInfoAbilities(details) {
   if (!infoAbilities) return;
-  infoAbilities.innerHTML = "";
   const abilities = details.abilities || [];
   if (!abilities.length) {
     infoAbilities.textContent = "No ability data available.";
     return;
   }
+  const fragment = document.createDocumentFragment();
   abilities.forEach((ability) => {
     const chip = document.createElement("span");
     chip.className = "info-pill";
     chip.textContent = ability;
-    infoAbilities.appendChild(chip);
+    fragment.appendChild(chip);
   });
+  infoAbilities.replaceChildren(fragment);
 }
 
 function renderInfoFacts(details) {
@@ -2737,21 +2734,22 @@ function populateGenChips(entries) {
   if (!genFilter) return;
   genFilter.innerHTML = "";
 
-  const allChip = createChip("All", "all", true);
+  const allChip = createChipWithHandler("All", "all", true, onGenChipChange);
   genFilter.appendChild(allChip);
 
   entries
     .slice()
     .sort((a, b) => generationOrder(a.name) - generationOrder(b.name))
     .forEach((entry) => {
-      const chip = createChip(formatGenerationLabel(entry.name), entry.name, false);
+      const chip = createChipWithHandler(
+        formatGenerationLabel(entry.name),
+        entry.name,
+        false,
+        onGenChipChange
+      );
       genFilter.appendChild(chip);
     });
   syncChipGroup(genFilter);
-}
-
-function createChip(label, value, checked) {
-  return createChipWithHandler(label, value, checked, onGenChipChange);
 }
 
 function createChipWithHandler(label, value, checked, handler) {
