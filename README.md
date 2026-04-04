@@ -17,7 +17,7 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 - Optional outlines, shiny sprites, Pokedex ID display, dark mode, and type-based themes
 - Pokemon cries with optional legacy cries
 - Persistent game state and settings via `localStorage`
-- Achievement badges with unlock notifications and progress cues
+- Achievement badges in a modal with unlock notifications and progress cues
 - Weekly rotating challenge themes generated from the current dex data
 - Rich Pokemon detail modal with previous/next navigation, copy actions, replayable cries, sprite, types, genus, stat cards, abilities, and related species data
 - Mobile-friendly single-page UI

@@ -234,8 +234,8 @@ body {
 }
 
 body.modal-open {
-  overflow: hidden;
-  padding-right: var(--modal-scrollbar-gap);
+  overflow-y: scroll;
+  overscroll-behavior: none;
 }
 
 button,
@@ -1581,6 +1581,10 @@ textarea {
   width: min(420px, 92vw);
 }
 
+.modal-card--achievements {
+  width: min(760px, 94vw);
+}
+
 .confirm-copy {
   display: grid;
   gap: 10px;
@@ -1777,6 +1781,87 @@ textarea {
   color: var(--ink);
   font-size: 0.9rem;
   text-align: right;
+}
+
+.badge-list {
+  display: grid;
+  gap: 10px;
+}
+
+.badge-list--modal {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  max-height: min(60vh, 560px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.badge-list__state {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 16px;
+  color: var(--muted);
+  background: var(--surface-3);
+}
+
+.badge {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  box-shadow: var(--shadow);
+}
+
+.badge--locked {
+  opacity: 0.72;
+}
+
+.badge--unlocked {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  background: color-mix(in srgb, var(--surface) 86%, var(--accent) 14%);
+}
+
+.badge--just-unlocked {
+  animation: badge-unlocked-pop 700ms ease-out;
+}
+
+.badge__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.badge--locked .badge__icon {
+  color: var(--muted);
+}
+
+.badge__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.badge__title {
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.badge__description {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 

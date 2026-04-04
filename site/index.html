@@ -150,10 +150,6 @@
       </div>
       <p id="progress-feedback" class="progress-feedback" aria-live="polite"></p>
     </div>
-    <div class="sidebar-section">
-      <h3 id="badge-heading">Achievements</h3>
-      <div id="badge-list" class="badge-list"></div>
-    </div>
   </aside>
 
   <main class="app">
@@ -182,6 +178,15 @@
           <span id="timer" class="value">00:00</span>
         </div>
         <div class="hero-actions">
+          <button
+            id="achievements-open"
+            class="btn ghost btn-small"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="achievements-modal"
+          >
+            Achievements
+          </button>
           <button id="reset-btn" class="btn ghost btn-small">Reset</button>
           <button id="filters-toggle" class="btn ghost btn-small" type="button">
             Show Settings
@@ -210,6 +215,15 @@
             <span id="compact-timer" class="value">00:00</span>
           </div>
           <div class="compact-actions">
+            <button
+              id="achievements-open-compact"
+              class="btn ghost btn-small"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="achievements-modal"
+            >
+              Achievements
+            </button>
             <button id="reset-btn-compact" class="btn ghost btn-small" type="button">Reset</button>
             <button id="filters-toggle-compact" class="btn ghost btn-small" type="button">
               Show Settings
@@ -366,6 +380,22 @@
             <div id="changelog-content" class="changelog-content" aria-live="polite">
               <p class="changelog-state">Loading changelog...</p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="achievements-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="badge-heading">
+        <div class="modal-card modal-card--achievements">
+          <button id="achievements-close" class="modal-close" type="button" aria-label="Close achievements">x</button>
+          <div class="modal-content">
+            <div class="info-header">
+              <div class="info-main">
+                <p class="eyebrow">Progress</p>
+                <h3 id="badge-heading">Achievements</h3>
+                <p class="info-genus">Track unlocks, milestones, and completion badges from your current save.</p>
+              </div>
+            </div>
+            <div id="badge-list" class="badge-list badge-list--modal"></div>
           </div>
         </div>
       </div>

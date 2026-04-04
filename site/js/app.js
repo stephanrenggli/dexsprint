@@ -83,6 +83,10 @@ const typoModeSelect = document.getElementById("typo-mode");
 const autocorrectToggle = document.getElementById("autocorrect-toggle");
 const badgeHeading = document.getElementById("badge-heading");
 const badgeList = document.getElementById("badge-list");
+const achievementsOpenBtn = document.getElementById("achievements-open");
+const achievementsOpenCompactBtn = document.getElementById("achievements-open-compact");
+const achievementsModal = document.getElementById("achievements-modal");
+const achievementsClose = document.getElementById("achievements-close");
 const achievementToast = document.getElementById("achievement-toast");
 const achievementToastMeta = document.querySelector(".achievement-toast__meta");
 const achievementToastIcon = document.getElementById("achievement-toast-icon");
@@ -469,6 +473,7 @@ function setProgressFeedback(message) {
 let progressCleanupTimeout = null;
 let confirmResolver = null;
 let activeModal = null;
+let modalScrollLock = null;
 let changelogMarkupLoaded = false;
 let stateToastQueue = [];
 let stateToastActive = false;
@@ -524,16 +529,20 @@ function openModal(modal, initialFocus = null) {
   if (activeEl instanceof HTMLElement) {
     modal._restoreFocusEl = activeEl;
   }
-  modal._locksScroll = true;
-  const supportsStableScrollbarGutter =
-    typeof CSS !== "undefined" && CSS.supports && CSS.supports("scrollbar-gutter: stable both-edges");
-  const scrollbarGap = supportsStableScrollbarGutter
-    ? 0
-    : Math.max(0, window.innerWidth - document.documentElement.clientWidth);
-  document.documentElement.style.setProperty("--modal-scrollbar-gap", `${scrollbarGap}px`);
+  if (!modalScrollLock) {
+    modalScrollLock = {
+      x: window.scrollX,
+      y: window.scrollY
+    };
+    document.body.classList.add("modal-open");
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${modalScrollLock.y}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+  }
   modal.classList.remove("hidden");
   activeModal = modal;
-  document.body.classList.add("modal-open");
   const fallback = getModalFocusableElements(modal)[0] || modal;
   const target = initialFocus || fallback;
   requestAnimationFrame(() => {
@@ -542,19 +551,7 @@ function openModal(modal, initialFocus = null) {
 }
 
 function openInfoModalOverlay(modal, initialFocus = null) {
-  if (!modal) return;
-  const activeEl = document.activeElement;
-  if (activeEl instanceof HTMLElement) {
-    modal._restoreFocusEl = activeEl;
-  }
-  modal._locksScroll = false;
-  modal.classList.remove("hidden");
-  activeModal = modal;
-  const fallback = getModalFocusableElements(modal)[0] || modal;
-  const target = initialFocus || fallback;
-  requestAnimationFrame(() => {
-    if (target && target.focus) target.focus();
-  });
+  openModal(modal, initialFocus);
 }
 
 function closeModal(modal, { restoreFocus = true } = {}) {
@@ -565,7 +562,15 @@ function closeModal(modal, { restoreFocus = true } = {}) {
   }
   if (!activeModal) {
     document.body.classList.remove("modal-open");
-    document.documentElement.style.setProperty("--modal-scrollbar-gap", "0px");
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    if (modalScrollLock) {
+      window.scrollTo(modalScrollLock.x, modalScrollLock.y);
+      modalScrollLock = null;
+    }
   }
   if (!restoreFocus) return;
   const restoreEl = modal._restoreFocusEl;
@@ -576,6 +581,16 @@ function closeModal(modal, { restoreFocus = true } = {}) {
       restoreEl.focus();
     }
   }
+}
+
+function openAchievementsModal() {
+  if (!achievementsModal) return;
+  renderBadges();
+  openModal(achievementsModal, achievementsClose);
+}
+
+function closeAchievementsModal() {
+  closeModal(achievementsModal);
 }
 
 function flashElement(el, className, timeout = 700) {
@@ -1817,7 +1832,16 @@ function getCompletedGroupEntries(indexMap) {
 
 function renderBadges() {
   if (!badgeList) return;
-  if (!state.groupMetadataReady) return;
+  if (!state.groupMetadataReady) {
+    const loading = document.createElement("p");
+    loading.className = "badge-list__state";
+    loading.textContent = "Loading achievements...";
+    badgeList.replaceChildren(loading);
+    if (badgeHeading) {
+      badgeHeading.textContent = "Achievements";
+    }
+    return;
+  }
   const context = getBadgeContext();
   const fragment = document.createDocumentFragment();
   let unlockedCount = 0;
@@ -3315,6 +3339,17 @@ if (filtersToggle) {
   if (filtersToggleCompact) filtersToggleCompact.addEventListener("click", toggleSettings);
 }
 
+if (achievementsOpenBtn) achievementsOpenBtn.addEventListener("click", openAchievementsModal);
+if (achievementsOpenCompactBtn) {
+  achievementsOpenCompactBtn.addEventListener("click", openAchievementsModal);
+}
+if (achievementsClose) achievementsClose.addEventListener("click", closeAchievementsModal);
+if (achievementsModal) {
+  achievementsModal.addEventListener("click", (event) => {
+    if (event.target === achievementsModal) closeAchievementsModal();
+  });
+}
+
 if (settingsClose) {
   settingsClose.addEventListener("click", () => {
     document.body.classList.add("sidebar-collapsed");
@@ -3454,6 +3489,10 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     if (confirmResolver) {
       closeConfirmModal(false);
+      return;
+    }
+    if (achievementsModal && !achievementsModal.classList.contains("hidden")) {
+      closeAchievementsModal();
       return;
     }
     if (changelogModal && !changelogModal.classList.contains("hidden")) {
