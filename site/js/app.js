@@ -134,6 +134,46 @@ const pokedex = new Pokedex.Pokedex({
   timeout: 10000,
   cacheImages: false
 });
+const TYPE_ID_MAP = {
+  Normal: 1,
+  Fighting: 2,
+  Flying: 3,
+  Poison: 4,
+  Ground: 5,
+  Rock: 6,
+  Bug: 7,
+  Ghost: 8,
+  Steel: 9,
+  Fire: 10,
+  Water: 11,
+  Grass: 12,
+  Electric: 13,
+  Psychic: 14,
+  Ice: 15,
+  Dragon: 16,
+  Dark: 17,
+  Fairy: 18
+};
+const STUDY_SCENE_PALETTE_BY_TYPE = {
+  Normal: { sky: "#c9d6df", sky2: "#8fa4b3", ground: "#b28f65", ground2: "#6e5438", shadow: "rgba(72, 50, 28, 0.34)" },
+  Fire: { sky: "#ffb15c", sky2: "#ff6b2c", ground: "#bf4a24", ground2: "#5f160e", shadow: "rgba(96, 22, 8, 0.4)" },
+  Water: { sky: "#88ddff", sky2: "#2d90ff", ground: "#2879b8", ground2: "#173e75", shadow: "rgba(13, 46, 88, 0.38)" },
+  Electric: { sky: "#fff06b", sky2: "#ffbf00", ground: "#d28d00", ground2: "#6e4e00", shadow: "rgba(97, 74, 0, 0.34)" },
+  Grass: { sky: "#baf06b", sky2: "#61b84a", ground: "#4d9a3f", ground2: "#234d1c", shadow: "rgba(27, 67, 21, 0.34)" },
+  Ice: { sky: "#d7fcff", sky2: "#78dbff", ground: "#7cb6d8", ground2: "#3d6f97", shadow: "rgba(43, 78, 101, 0.3)" },
+  Fighting: { sky: "#dc9b8f", sky2: "#bb4938", ground: "#8d3128", ground2: "#41120f", shadow: "rgba(65, 18, 15, 0.4)" },
+  Poison: { sky: "#d49df2", sky2: "#8f3cc8", ground: "#6e3198", ground2: "#34114e", shadow: "rgba(49, 14, 73, 0.4)" },
+  Ground: { sky: "#e5c26b", sky2: "#b9873f", ground: "#8c6330", ground2: "#4b3315", shadow: "rgba(65, 43, 16, 0.36)" },
+  Flying: { sky: "#d9e5ff", sky2: "#7ea2ff", ground: "#7b96cf", ground2: "#40548d", shadow: "rgba(47, 66, 110, 0.3)" },
+  Psychic: { sky: "#ffb4d3", sky2: "#ff4f97", ground: "#d04d82", ground2: "#6e1f42", shadow: "rgba(95, 18, 51, 0.36)" },
+  Bug: { sky: "#d6ee7a", sky2: "#95bc2d", ground: "#758f24", ground2: "#384510", shadow: "rgba(42, 52, 12, 0.36)" },
+  Rock: { sky: "#d7c1a1", sky2: "#9a7a4c", ground: "#7c613f", ground2: "#43321f", shadow: "rgba(50, 37, 22, 0.34)" },
+  Ghost: { sky: "#b3a5e7", sky2: "#6a56b8", ground: "#574190", ground2: "#261943", shadow: "rgba(28, 18, 53, 0.42)" },
+  Dragon: { sky: "#b2a0ff", sky2: "#5f37ff", ground: "#4b39bf", ground2: "#1f1368", shadow: "rgba(25, 17, 76, 0.42)" },
+  Dark: { sky: "#988f89", sky2: "#564a42", ground: "#443934", ground2: "#1a1412", shadow: "rgba(16, 12, 10, 0.44)" },
+  Steel: { sky: "#d4dee7", sky2: "#8fa2b7", ground: "#74879c", ground2: "#394857", shadow: "rgba(40, 51, 63, 0.32)" },
+  Fairy: { sky: "#ffc7df", sky2: "#ff8fbe", ground: "#d978a1", ground2: "#70344f", shadow: "rgba(92, 36, 61, 0.34)" }
+};
 const typeIconBase =
   "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-ix/scarlet-violet/small/";
 const themeConfigEl = document.getElementById("theme-config");
@@ -548,10 +588,6 @@ function openModal(modal, initialFocus = null) {
   });
 }
 
-function openInfoModalOverlay(modal, initialFocus = null) {
-  openModal(modal, initialFocus);
-}
-
 function closeModal(modal, { restoreFocus = true } = {}) {
   if (!modal) return;
   modal.classList.add("hidden");
@@ -604,7 +640,7 @@ function flashElement(el, className, timeout = 700) {
 
 function flashProgressChange() {
   flashElement(progressBar, "progress-bar--state-change", 1000);
-  [foundCount, compactFoundCount, remainingCount, compactRemainingCount]
+  [foundCount, compactFoundCount]
     .map((el) => el && el.closest(".stat"))
     .filter(Boolean)
     .forEach((stat) => flashElement(stat, "stat--state-change", 900));
@@ -816,30 +852,12 @@ function closeChangelogModal() {
 
 function renderConfirmStats(items) {
   if (!confirmStats) return;
-  confirmStats.innerHTML = "";
-  if (!items || !items.length) {
-    confirmStats.classList.add("hidden");
-    return;
-  }
-
-  items.forEach((item) => {
-    const card = document.createElement("div");
-    card.className = "confirm-stat";
-
-    const label = document.createElement("span");
-    label.className = "confirm-stat__label";
-    label.textContent = item.label;
-
-    const value = document.createElement("strong");
-    value.className = "confirm-stat__value";
-    value.textContent = item.value;
-
-    card.appendChild(label);
-    card.appendChild(value);
-    confirmStats.appendChild(card);
+  renderLabeledCards(confirmStats, items, {
+    cardClass: "confirm-stat",
+    labelClass: "confirm-stat__label",
+    valueClass: "confirm-stat__value",
+    hideWhenEmpty: true
   });
-
-  confirmStats.classList.remove("hidden");
 }
 
 function requestConfirmation(message, { title = "Confirm Action", confirmLabel = "Confirm", stats = [] } = {}) {
@@ -1075,6 +1093,76 @@ function getSpriteForEntry(entry) {
     return `${spriteShinyBase}${entry.dexId}.png`;
   }
   return entry.sprite || spriteFallback;
+}
+
+function renderTextChips(container, values = [], className) {
+  if (!container) return;
+  container.innerHTML = "";
+  values.forEach((value) => {
+    const chip = document.createElement("span");
+    chip.className = className;
+    chip.textContent = value;
+    container.appendChild(chip);
+  });
+}
+
+function renderTypeChips(container, typeNames = []) {
+  if (!container) return;
+  container.innerHTML = "";
+  (typeNames || []).forEach((typeName) => {
+    const chip = document.createElement("span");
+    chip.className = "info-type-chip";
+    const icon = document.createElement("img");
+    icon.alt = `${typeName} type`;
+    icon.src = `${typeIconBase}${getTypeId(typeName)}.png`;
+    const text = document.createElement("span");
+    text.textContent = typeName;
+    chip.appendChild(icon);
+    chip.appendChild(text);
+    container.appendChild(chip);
+  });
+}
+
+function renderLabeledCards(
+  container,
+  items,
+  {
+    cardClass,
+    labelClass,
+    valueClass,
+    emptyMessage = "",
+    hideWhenEmpty = false
+  } = {}
+) {
+  if (!container) return;
+  container.innerHTML = "";
+  const list = items || [];
+  if (!list.length) {
+    if (hideWhenEmpty) {
+      container.classList.add("hidden");
+    } else if (emptyMessage) {
+      container.textContent = emptyMessage;
+    }
+    return;
+  }
+
+  container.classList.remove("hidden");
+  list.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = cardClass;
+
+    const label = document.createElement("span");
+    label.className = labelClass;
+    label.textContent = item.label;
+
+    const value = document.createElement("strong");
+    value.className = valueClass;
+    value.textContent = item.value;
+
+    card.appendChild(label);
+    card.appendChild(value);
+    container.appendChild(card);
+  });
 }
 
 function setTimerText(value) {
@@ -1357,69 +1445,25 @@ function sampleRandomNames(source, count) {
 
 function renderStudyMeta(entry) {
   if (!studyMeta) return;
-  studyMeta.innerHTML = "";
-  if (!entry) return;
-
   const values = [];
-  if (entry.dexId) {
+  if (entry?.dexId) {
     values.push(`#${String(entry.dexId).padStart(4, "0")}`);
   }
-  if (entry.generation) {
+  if (entry?.generation) {
     values.push(entry.generation);
   }
-
-  values.forEach((value) => {
-    const chip = document.createElement("span");
-    chip.className = "study-card__meta-chip";
-    chip.textContent = value;
-    studyMeta.appendChild(chip);
-  });
+  renderTextChips(studyMeta, values, "study-card__meta-chip");
 }
 
 function renderStudyTypes(entry) {
   if (!studyTypes) return;
-  studyTypes.innerHTML = "";
-  if (!entry || !entry.types) return;
-
-  entry.types.forEach((typeName) => {
-    const chip = document.createElement("span");
-    chip.className = "info-type-chip";
-    const icon = document.createElement("img");
-    icon.alt = `${typeName} type`;
-    icon.src = `${typeIconBase}${getTypeId(typeName)}.png`;
-    const text = document.createElement("span");
-    text.textContent = typeName;
-    chip.appendChild(icon);
-    chip.appendChild(text);
-    studyTypes.appendChild(chip);
-  });
+  renderTypeChips(studyTypes, entry?.types);
 }
 
 function getStudyScenePalette(entry) {
-  const sceneByType = {
-    Normal: { sky: "#c9d6df", sky2: "#8fa4b3", ground: "#b28f65", ground2: "#6e5438", shadow: "rgba(72, 50, 28, 0.34)" },
-    Fire: { sky: "#ffb15c", sky2: "#ff6b2c", ground: "#bf4a24", ground2: "#5f160e", shadow: "rgba(96, 22, 8, 0.4)" },
-    Water: { sky: "#88ddff", sky2: "#2d90ff", ground: "#2879b8", ground2: "#173e75", shadow: "rgba(13, 46, 88, 0.38)" },
-    Electric: { sky: "#fff06b", sky2: "#ffbf00", ground: "#d28d00", ground2: "#6e4e00", shadow: "rgba(97, 74, 0, 0.34)" },
-    Grass: { sky: "#baf06b", sky2: "#61b84a", ground: "#4d9a3f", ground2: "#234d1c", shadow: "rgba(27, 67, 21, 0.34)" },
-    Ice: { sky: "#d7fcff", sky2: "#78dbff", ground: "#7cb6d8", ground2: "#3d6f97", shadow: "rgba(43, 78, 101, 0.3)" },
-    Fighting: { sky: "#dc9b8f", sky2: "#bb4938", ground: "#8d3128", ground2: "#41120f", shadow: "rgba(65, 18, 15, 0.4)" },
-    Poison: { sky: "#d49df2", sky2: "#8f3cc8", ground: "#6e3198", ground2: "#34114e", shadow: "rgba(49, 14, 73, 0.4)" },
-    Ground: { sky: "#e5c26b", sky2: "#b9873f", ground: "#8c6330", ground2: "#4b3315", shadow: "rgba(65, 43, 16, 0.36)" },
-    Flying: { sky: "#d9e5ff", sky2: "#7ea2ff", ground: "#7b96cf", ground2: "#40548d", shadow: "rgba(47, 66, 110, 0.3)" },
-    Psychic: { sky: "#ffb4d3", sky2: "#ff4f97", ground: "#d04d82", ground2: "#6e1f42", shadow: "rgba(95, 18, 51, 0.36)" },
-    Bug: { sky: "#d6ee7a", sky2: "#95bc2d", ground: "#758f24", ground2: "#384510", shadow: "rgba(42, 52, 12, 0.36)" },
-    Rock: { sky: "#d7c1a1", sky2: "#9a7a4c", ground: "#7c613f", ground2: "#43321f", shadow: "rgba(50, 37, 22, 0.34)" },
-    Ghost: { sky: "#b3a5e7", sky2: "#6a56b8", ground: "#574190", ground2: "#261943", shadow: "rgba(28, 18, 53, 0.42)" },
-    Dragon: { sky: "#b2a0ff", sky2: "#5f37ff", ground: "#4b39bf", ground2: "#1f1368", shadow: "rgba(25, 17, 76, 0.42)" },
-    Dark: { sky: "#988f89", sky2: "#564a42", ground: "#443934", ground2: "#1a1412", shadow: "rgba(16, 12, 10, 0.44)" },
-    Steel: { sky: "#d4dee7", sky2: "#8fa2b7", ground: "#74879c", ground2: "#394857", shadow: "rgba(40, 51, 63, 0.32)" },
-    Fairy: { sky: "#ffc7df", sky2: "#ff8fbe", ground: "#d978a1", ground2: "#70344f", shadow: "rgba(92, 36, 61, 0.34)" }
-  };
-
   const types = entry?.types || [];
-  const primary = sceneByType[types[0]] || sceneByType.Normal;
-  const secondary = sceneByType[types[1]] || primary;
+  const primary = STUDY_SCENE_PALETTE_BY_TYPE[types[0]] || STUDY_SCENE_PALETTE_BY_TYPE.Normal;
+  const secondary = STUDY_SCENE_PALETTE_BY_TYPE[types[1]] || primary;
 
   return {
     sky: primary.sky,
@@ -2143,13 +2187,13 @@ async function openInfoModal(entry) {
     infoSprite.alt = entry.label;
   }
   renderInfoMeta(entry);
-  if (infoTypes) infoTypes.textContent = "";
+  renderTypeChips(infoTypes);
   if (infoGenus) infoGenus.textContent = "Loading details...";
   if (infoStats) infoStats.innerHTML = "";
   if (infoAbilities) infoAbilities.innerHTML = "";
   if (infoFacts) infoFacts.innerHTML = "";
   state.activeEntry = entry;
-  openInfoModalOverlay(infoModal, infoClose);
+  openModal(infoModal, infoClose);
   playCry(entry.normalized || normalizeName(entry.label || ""));
 
   try {
@@ -2159,7 +2203,7 @@ async function openInfoModal(entry) {
     renderInfoStats(details);
     renderInfoAbilities(details);
     renderInfoFacts(details);
-    renderTypeSprites(entry);
+    renderTypeChips(infoTypes, entry.types || []);
   } catch (err) {
     if (infoGenus) infoGenus.textContent = "Could not load details.";
   }
@@ -2171,64 +2215,30 @@ function closeInfoModal() {
   state.activeEntry = null;
 }
 
-function renderTypeSprites(entry) {
-  if (!infoTypes) return;
-  infoTypes.innerHTML = "";
-  const types = entry.types || [];
-  types.forEach((typeName) => {
-    const typeId = getTypeId(typeName);
-    const chip = document.createElement("span");
-    chip.className = "info-type-chip";
-    const icon = document.createElement("img");
-    icon.alt = `${typeName} type`;
-    icon.src = `${typeIconBase}${typeId}.png`;
-    const text = document.createElement("span");
-    text.textContent = typeName;
-    chip.appendChild(icon);
-    chip.appendChild(text);
-    infoTypes.appendChild(chip);
-  });
-}
-
 function renderInfoMeta(entry) {
   if (!infoMeta) return;
-  infoMeta.innerHTML = "";
   const items = [];
-  if (entry.dexId) {
+  if (entry?.dexId) {
     items.push(`#${String(entry.dexId).padStart(4, "0")}`);
   }
-  if (entry.generation) {
+  if (entry?.generation) {
     items.push(entry.generation);
   }
-  items.forEach((value) => {
-    const chip = document.createElement("span");
-    chip.className = "info-meta-chip";
-    chip.textContent = value;
-    infoMeta.appendChild(chip);
-  });
+  renderTextChips(infoMeta, items, "info-meta-chip");
 }
 
 function renderInfoStats(details) {
   if (!infoStats) return;
-  infoStats.innerHTML = "";
   const stats = [
     { label: "Height", value: details.height || "-" },
     { label: "Weight", value: details.weight || "-" },
     { label: "Base Exp", value: details.baseExperience || "-" },
     { label: "Abilities", value: String((details.abilities || []).length) }
   ];
-  stats.forEach((stat) => {
-    const card = document.createElement("div");
-    card.className = "info-stat-card";
-    const label = document.createElement("span");
-    label.className = "info-stat-card__label";
-    label.textContent = stat.label;
-    const value = document.createElement("strong");
-    value.className = "info-stat-card__value";
-    value.textContent = stat.value;
-    card.appendChild(label);
-    card.appendChild(value);
-    infoStats.appendChild(card);
+  renderLabeledCards(infoStats, stats, {
+    cardClass: "info-stat-card",
+    labelClass: "info-stat-card__label",
+    valueClass: "info-stat-card__value"
   });
 }
 
@@ -2250,7 +2260,6 @@ function renderInfoAbilities(details) {
 
 function renderInfoFacts(details) {
   if (!infoFacts) return;
-  infoFacts.innerHTML = "";
   const facts = [
     { label: "Color", value: details.color },
     { label: "Habitat", value: details.habitat },
@@ -2259,49 +2268,16 @@ function renderInfoFacts(details) {
     { label: "Capture Rate", value: details.captureRate },
     { label: "Base Happiness", value: details.baseHappiness }
   ].filter((fact) => fact.value);
-
-  if (!facts.length) {
-    infoFacts.textContent = "No additional data available.";
-    return;
-  }
-
-  facts.forEach((fact) => {
-    const row = document.createElement("div");
-    row.className = "info-fact";
-    const label = document.createElement("span");
-    label.className = "info-fact__label";
-    label.textContent = fact.label;
-    const value = document.createElement("strong");
-    value.className = "info-fact__value";
-    value.textContent = fact.value;
-    row.appendChild(label);
-    row.appendChild(value);
-    infoFacts.appendChild(row);
+  renderLabeledCards(infoFacts, facts, {
+    cardClass: "info-fact",
+    labelClass: "info-fact__label",
+    valueClass: "info-fact__value",
+    emptyMessage: "No additional data available."
   });
 }
 
 function getTypeId(typeName) {
-  const map = {
-    Normal: 1,
-    Fighting: 2,
-    Flying: 3,
-    Poison: 4,
-    Ground: 5,
-    Rock: 6,
-    Bug: 7,
-    Ghost: 8,
-    Steel: 9,
-    Fire: 10,
-    Water: 11,
-    Grass: 12,
-    Electric: 13,
-    Psychic: 14,
-    Ice: 15,
-    Dragon: 16,
-    Dark: 17,
-    Fairy: 18
-  };
-  return map[typeName] || 1;
+  return TYPE_ID_MAP[typeName] || 1;
 }
 
 async function getPokedexInfo(entry) {
