@@ -26,16 +26,11 @@ import { decodeProgressPayload, encodeProgressPayload } from "./progress.js";
 import {
   buildGuessIndex as buildGuessIndexModule,
   findTypoMatch as findTypoMatchModule,
-  getMaxTypoDistance as getMaxTypoDistanceModule,
-  getTypoCandidates as getTypoCandidatesModule,
-  levenshteinWithin as levenshteinWithinModule
 } from "./guess.js";
 import {
   applyMetadataIndexes as applyMetadataIndexesModule,
   fetchResourcesInBatches as fetchResourcesInBatchesModule,
-  hydrateLocalizedNames as hydrateLocalizedNamesModule,
   loadGenerations as loadGenerationsModule,
-  loadSpeciesList as loadSpeciesListModule,
   loadTypes as loadTypesModule,
   scheduleLocalizedNameHydration as scheduleLocalizedNameHydrationModule
 } from "./data.js";
@@ -2182,7 +2177,7 @@ async function confirmReset() {
   resetQuiz();
 }
 
-async function openInfoModal(entry) {
+function renderInfoModalContent(entry, { loading = false } = {}) {
   if (!entry || !infoModal) return;
   if (infoTitle) infoTitle.textContent = entry.label;
   if (infoSprite) {
@@ -2191,14 +2186,14 @@ async function openInfoModal(entry) {
   }
   renderInfoMeta(entry);
   renderTypeChips(infoTypes);
-  if (infoGenus) infoGenus.textContent = "Loading details...";
+  if (infoGenus) infoGenus.textContent = loading ? "Loading details..." : "";
   if (infoStats) infoStats.innerHTML = "";
   if (infoAbilities) infoAbilities.innerHTML = "";
   if (infoFacts) infoFacts.innerHTML = "";
-  state.activeEntry = entry;
-  openModal(infoModal, infoClose);
-  playCry(entry.normalized || normalizeName(entry.label || ""));
+}
 
+async function loadInfoModalDetails(entry) {
+  if (!entry || !infoModal) return;
   try {
     const details = await getPokedexInfo(entry);
     if (!details) return;
@@ -2210,6 +2205,15 @@ async function openInfoModal(entry) {
   } catch (err) {
     if (infoGenus) infoGenus.textContent = "Could not load details.";
   }
+}
+
+async function openInfoModal(entry) {
+  if (!entry || !infoModal) return;
+  renderInfoModalContent(entry, { loading: true });
+  state.activeEntry = entry;
+  openModal(infoModal, infoClose);
+  playCry(entry.normalized || normalizeName(entry.label || ""));
+  await loadInfoModalDetails(entry);
 }
 
 function closeInfoModal() {
@@ -2325,21 +2329,9 @@ function getHiddenLabel(entry) {
   return "???";
 }
 
-function levenshteinWithin(a, b, max) {
-  return levenshteinWithinModule(a, b, max);
-}
-
 function findTypoMatch(normalized) {
   return findTypoMatchModule(
     state,
-    normalized,
-    typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
-    DEFAULT_TYPO_MODE
-  );
-}
-
-function getMaxTypoDistance(normalized) {
-  return getMaxTypoDistanceModule(
     normalized,
     typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
     DEFAULT_TYPO_MODE
@@ -2353,10 +2345,6 @@ function syncTypoSettings() {
   autocorrectToggle
     .closest(".toggle")
     ?.classList.toggle("toggle--disabled", isStrict);
-}
-
-function getTypoCandidates(normalized, maxDist) {
-  return getTypoCandidatesModule(state, normalized, maxDist);
 }
 
 function findExactMatchAcrossAllPokemon(normalized) {
@@ -2378,10 +2366,19 @@ function findExactMatchAcrossAllPokemon(normalized) {
   return null;
 }
 
-function getGuessRejectionMessage(value, normalized) {
+function getExactGuessMatchState(normalized) {
   const exactMatch = findExactMatchAcrossAllPokemon(normalized);
+  if (!exactMatch) return null;
+  return {
+    ...exactMatch,
+    isActive: state.activeNames.has(exactMatch.canonical)
+  };
+}
+
+function getGuessRejectionMessage(value, normalized) {
+  const exactMatch = getExactGuessMatchState(normalized);
   if (exactMatch) {
-    return state.activeNames.has(exactMatch.canonical)
+    return exactMatch.isActive
       ? "That Pokemon is already found."
       : "That Pokemon is filtered out by the current filters.";
   }
@@ -2420,10 +2417,10 @@ function handleGuess(value) {
       showStatusHint(`Corrected to ${label}.`);
       return;
     }
-    const exactMatch = findExactMatchAcrossAllPokemon(normalized);
+    const exactMatch = getExactGuessMatchState(normalized);
     if (exactMatch) {
       showStatusHint(
-        state.activeNames.has(exactMatch.canonical)
+        exactMatch.isActive
           ? "That Pokemon is not this practice card."
           : "That Pokemon is filtered out by the current filters."
       );
@@ -2640,32 +2637,17 @@ function handleKeydown(e) {
 
 function refreshActiveDetailViews() {
   if (state.activeEntry && infoModal && !infoModal.classList.contains("hidden")) {
-    openInfoModal(state.activeEntry);
+    renderInfoModalContent(state.activeEntry, { loading: true });
+    void loadInfoModalDetails(state.activeEntry);
   }
   renderStudyPanel();
-}
-
-function applyMetadataIndexes(generationData, typeData) {
-  return applyMetadataIndexesModule(state, generationData, typeData, formatGenerationLabel);
-}
-
-async function loadGenerations() {
-  return loadGenerationsModule(pokedex);
-}
-
-async function loadTypes() {
-  return loadTypesModule(pokedex);
-}
-
-async function loadSpeciesList() {
-  return loadSpeciesListModule(pokedex, slowPokedex);
 }
 
 function scheduleFilterMetadataHydration(generationPromise, typePromise) {
   const hydrate = async () => {
     try {
       const [generationData, typeData] = await Promise.all([generationPromise, typePromise]);
-      applyMetadataIndexes(generationData, typeData);
+      applyMetadataIndexesModule(state, generationData, typeData, formatGenerationLabel);
       refreshWeeklyChallengeCatalog();
       populateGenChips(generationData.entries);
       populateTypeChips(typeData.entries);
@@ -2897,23 +2879,8 @@ function applyFilters() {
     const selectedGens = getSelectedGenerations();
     const selectedTypes = getSelectedTypes();
 
-    if (selectedGens.length) {
-      const genUnion = new Set();
-      selectedGens.forEach((gen) => {
-        const genSet = state.generationIndex.get(gen) || new Set();
-        genSet.forEach((name) => genUnion.add(name));
-      });
-      filtered = filtered.filter((name) => genUnion.has(name));
-    }
-
-    if (selectedTypes.length) {
-      const typeUnion = new Set();
-      selectedTypes.forEach((type) => {
-        const typeSet = state.typeIndex.get(type) || new Set();
-        typeSet.forEach((name) => typeUnion.add(name));
-      });
-      filtered = filtered.filter((name) => typeUnion.has(name));
-    }
+    filtered = filterNamesBySelectedIndex(filtered, selectedGens, state.generationIndex);
+    filtered = filterNamesBySelectedIndex(filtered, selectedTypes, state.typeIndex);
   }
 
   state.names = filtered;
@@ -2922,7 +2889,7 @@ function applyFilters() {
   state.progressMilestonesPrimed = false;
   updateStats();
   renderSprites();
-  buildGuessIndex();
+  buildGuessIndexModule(state, normalizeGuess, prettifyName);
   renderStudyPanel();
   syncChipGroup(typeFilter);
   syncChipGroup(genFilter);
@@ -2931,33 +2898,22 @@ function applyFilters() {
   saveState();
 }
 
-function buildGuessIndex() {
-  return buildGuessIndexModule(state, normalizeGuess, prettifyName);
-}
-
-async function fetchResourcesInBatches(urls, batchSize = 40) {
-  return fetchResourcesInBatchesModule(pokedex, urls, batchSize);
-}
-
-function hydrateLocalizedNames(speciesDetails) {
-  return hydrateLocalizedNamesModule(state, speciesDetails);
-}
-
-function scheduleLocalizedNameHydration(detailUrls) {
-  return scheduleLocalizedNameHydrationModule({
-    state,
-    pokedex,
-    detailUrls,
-    fetchResourcesInBatches: fetchResourcesInBatchesModule
+function filterNamesBySelectedIndex(names, selectedValues, indexMap) {
+  if (!selectedValues.length) return names;
+  const union = new Set();
+  selectedValues.forEach((value) => {
+    const entrySet = indexMap.get(value) || new Set();
+    entrySet.forEach((name) => union.add(name));
   });
+  return names.filter((name) => union.has(name));
 }
 
 async function loadPokemon() {
   setInputStatus("Loading Pokemon list...");
   if (retryBtn) retryBtn.hidden = true;
   try {
-    const generationPromise = loadGenerations();
-    const typePromise = loadTypes();
+    const generationPromise = loadGenerationsModule(pokedex);
+    const typePromise = loadTypesModule(pokedex);
     const speciesData = await pokedex.getPokemonSpeciesList({ limit: 2000 });
     const speciesEntries = speciesData && speciesData.results ? speciesData.results : [];
     const names = [];
@@ -3010,12 +2966,13 @@ async function loadPokemon() {
     restoreSettings();
     restoreState();
     applyFilters();
-    scheduleLocalizedNameHydration({
+    scheduleLocalizedNameHydrationModule({
       state,
       pokedex,
       detailUrls,
       fetchResourcesInBatches: fetchResourcesInBatchesModule,
       onComplete: () => {
+        buildGuessIndexModule(state, normalizeGuess, prettifyName);
         if (isWeeklyChallengeMode()) {
           applyFilters();
         }
@@ -3110,50 +3067,38 @@ function unlockPokemonByCanonical(canonical, { refresh = true } = {}) {
   return isNew;
 }
 
-function unlockGeneration(value) {
-  const slug = getGenerationSlugByInput(value);
-  if (!slug) return false;
-  const names = [...(state.generationIndex.get(slug) || [])];
-  if (!names.length) return false;
-
+function unlockPokemonList(names) {
+  let unlocked = false;
   names.forEach((canonical) => {
-    unlockPokemonByCanonical(canonical, { refresh: false });
+    if (unlockPokemonByCanonical(canonical, { refresh: false })) {
+      unlocked = true;
+    }
   });
-
+  if (!unlocked) return false;
   updateStats();
   renderSprites();
   renderStudyPanel();
   saveState();
   return true;
+}
+
+function unlockGeneration(value) {
+  const slug = getGenerationSlugByInput(value);
+  if (!slug) return false;
+  const names = [...(state.generationIndex.get(slug) || [])];
+  return names.length ? unlockPokemonList(names) : false;
 }
 
 function unlockType(value) {
   const slug = getTypeSlugByInput(value);
   if (!slug) return false;
   const names = [...(state.typeIndex.get(slug) || [])];
-  if (!names.length) return false;
-
-  names.forEach((canonical) => {
-    unlockPokemonByCanonical(canonical, { refresh: false });
-  });
-
-  updateStats();
-  renderSprites();
-  renderStudyPanel();
-  saveState();
-  return true;
+  return names.length ? unlockPokemonList(names) : false;
 }
 
 function unlockAllPokemon() {
   if (!state.allNames.length) return false;
-  state.allNames.forEach((canonical) => {
-    unlockPokemonByCanonical(canonical, { refresh: false });
-  });
-  updateStats();
-  renderSprites();
-  renderStudyPanel();
-  saveState();
-  return true;
+  return unlockPokemonList(state.allNames);
 }
 
 function listDebugGenerations() {
