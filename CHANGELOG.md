@@ -1,3 +1,10 @@
+## [1.3.3](https://github.com/stephanrenggli/dexsprint/compare/v1.3.2...v1.3.3) (2026-04-04)
+
+
+### Bug Fixes
+
+* keep scrollbar visible in info modal ([1b0ba32](https://github.com/stephanrenggli/dexsprint/commit/1b0ba32304f57360013f504ad90f2fefe2df4293))
+
 ## [1.3.2](https://github.com/stephanrenggli/dexsprint/compare/v1.3.1...v1.3.2) (2026-04-02)
 
 
