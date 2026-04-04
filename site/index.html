@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="normal">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -23,7 +23,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="assets/32.png" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="apple-touch-icon" sizes="180x180" href="assets/180.png" />
-  <script id="theme-config" type="application/json">{"defaultTheme":"normal","themes":[{"id":"normal","name":"Normal","color":"#A8A878","accent2":"#8A8A58"},{"id":"fire","name":"Fire","color":"#F08030","accent2":"#E0621A"},{"id":"water","name":"Water","color":"#6890F0","accent2":"#4E7CE8"},{"id":"electric","name":"Electric","color":"#F8D030","accent2":"#E6B800"},{"id":"grass","name":"Grass","color":"#78C850","accent2":"#5FA63A"},{"id":"ice","name":"Ice","color":"#98D8D8","accent2":"#7FC6C6"},{"id":"fighting","name":"Fighting","color":"#C03028","accent2":"#A61F1A"},{"id":"poison","name":"Poison","color":"#A040A0","accent2":"#7F2E7F"},{"id":"ground","name":"Ground","color":"#E0C068","accent2":"#C9A84A"},{"id":"flying","name":"Flying","color":"#A890F0","accent2":"#8E72E6"},{"id":"psychic","name":"Psychic","color":"#F85888","accent2":"#E04070"},{"id":"bug","name":"Bug","color":"#A8B820","accent2":"#8C9A12"},{"id":"rock","name":"Rock","color":"#B8A038","accent2":"#9E8524"},{"id":"ghost","name":"Ghost","color":"#705898","accent2":"#5A457E"},{"id":"dragon","name":"Dragon","color":"#7038F8","accent2":"#5A22E6"},{"id":"dark","name":"Dark","color":"#705848","accent2":"#5A463A"},{"id":"steel","name":"Steel","color":"#B8B8D0","accent2":"#9FA0B7"},{"id":"fairy","name":"Fairy","color":"#EE99AC","accent2":"#DB8097"}]}</script>
+  <script id="theme-config" type="application/json">{"defaultTheme":"normal","themes":[{"id":"normal","name":"Normal"},{"id":"fire","name":"Fire"},{"id":"water","name":"Water"},{"id":"electric","name":"Electric"},{"id":"grass","name":"Grass"},{"id":"ice","name":"Ice"},{"id":"fighting","name":"Fighting"},{"id":"poison","name":"Poison"},{"id":"ground","name":"Ground"},{"id":"flying","name":"Flying"},{"id":"psychic","name":"Psychic"},{"id":"bug","name":"Bug"},{"id":"rock","name":"Rock"},{"id":"ghost","name":"Ghost"},{"id":"dragon","name":"Dragon"},{"id":"dark","name":"Dark"},{"id":"steel","name":"Steel"},{"id":"fairy","name":"Fairy"}]}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -36,17 +36,7 @@
       const themeConfigEl = document.getElementById("theme-config");
       const themeConfig = themeConfigEl ? JSON.parse(themeConfigEl.textContent) : { defaultTheme: "normal", themes: [] };
       const DEFAULT_THEME = themeConfig.defaultTheme || "normal";
-      const THEMES = Object.fromEntries((themeConfig.themes || []).map((theme) => [theme.id, theme]));
-
-      function tint(hex, amount) {
-        const clean = hex.replace("#", "");
-        const num = parseInt(clean, 16);
-        const r = (num >> 16) & 255;
-        const g = (num >> 8) & 255;
-        const b = num & 255;
-        const mix = (channel) => Math.round(channel + (255 - channel) * (1 - amount));
-        return "rgb(" + mix(r) + ", " + mix(g) + ", " + mix(b) + ")";
-      }
+      const VALID_THEMES = new Set((themeConfig.themes || []).map((theme) => theme.id));
 
       try {
         const raw = localStorage.getItem(SETTINGS_KEY);
@@ -54,26 +44,14 @@
         const data = JSON.parse(raw);
         const body = document.body;
         const root = document.documentElement;
-        const theme = THEMES[data.theme] || THEMES[DEFAULT_THEME];
 
         if (data.compact) body.classList.add("compact-mode");
         if (data.outlinesOff) body.classList.add("outlines-off");
         if (data.sidebarCollapsed) body.classList.add("sidebar-collapsed");
-        if (data.dark) body.classList.add("dark-mode");
+        root.classList.toggle("dark-mode", Boolean(data.dark));
 
-        body.dataset.theme = data.theme || DEFAULT_THEME;
-        root.style.setProperty("--accent", theme.color);
-        root.style.setProperty("--accent-2", theme.accent2);
-        root.style.setProperty("--bg-1", tint(theme.color, 0.92));
-        root.style.setProperty("--bg-2", tint(theme.color, 0.85));
-        root.style.setProperty("--bg-3", tint(theme.color, 0.72));
-        const browserBg = data.dark ? "#14110e" : tint(theme.color, 0.85);
-        root.style.backgroundColor = browserBg;
-        body.style.backgroundColor = browserBg;
-        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeColorMeta) {
-          themeColorMeta.setAttribute("content", browserBg);
-        }
+        const themeId = VALID_THEMES.has(data.theme) ? data.theme : DEFAULT_THEME;
+        root.dataset.theme = themeId;
       } catch (err) {
       }
     })();

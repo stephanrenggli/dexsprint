@@ -26,6 +26,7 @@ It is intentionally separate from the README so the README stays focused on the 
 - Added optional suggestions instead of always auto-accepting close matches
 - Added achievement badges with unlock notifications
 - Improved the detail modal with richer presentation for type, size, abilities, and related data
+- Moved theme definitions into CSS custom-property themes so early theme restore only sets theme ids and classes
 
 ## Nice to Have
 
@@ -48,7 +49,6 @@ It is intentionally separate from the README so the README stays focused on the 
 
 ### Technical / Refactor
 
-- Move theme definitions fully into CSS custom-property themes so early theme restore only sets theme ids and classes
 - Add lightweight automated tests for normalization, typo matching, persistence restore, and filter/group behavior
 - Introduce a clearer data abstraction layer for Pokemon metadata, localized names, forms, and derived groupings
 

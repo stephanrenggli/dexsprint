@@ -461,8 +461,8 @@ function getSettingsPayload() {
     autocorrect: autocorrectToggle ? autocorrectToggle.checked : true,
     sidebarCollapsed: document.body.classList.contains("sidebar-collapsed"),
     filtersPanelExpanded: Boolean(filtersPanel && !filtersPanel.hidden),
-    dark: document.body.classList.contains("dark-mode"),
-    theme: document.body.dataset.theme || DEFAULT_THEME
+    dark: document.documentElement.classList.contains("dark-mode"),
+    theme: document.documentElement.dataset.theme || DEFAULT_THEME
   };
 }
 
@@ -508,7 +508,7 @@ function applySettingsPayload(data, { persist = true } = {}) {
     setFiltersPanelExpanded(false, { persist: false });
   }
 
-  document.body.classList.toggle("dark-mode", Boolean(data.dark));
+  document.documentElement.classList.toggle("dark-mode", Boolean(data.dark));
   if (darkToggle) darkToggle.checked = Boolean(data.dark);
 
   setTheme(data.theme || DEFAULT_THEME, false);
@@ -1339,10 +1339,8 @@ function updateThemeColorMeta(color) {
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const resolvedColor =
     color ||
-    getComputedStyle(document.body).getPropertyValue("--bg-2").trim() ||
+    getComputedStyle(document.documentElement).getPropertyValue("--bg-2").trim() ||
     "#f7f1e5";
-  document.documentElement.style.backgroundColor = resolvedColor;
-  document.body.style.backgroundColor = resolvedColor;
   if (themeColorMeta) themeColorMeta.setAttribute("content", resolvedColor);
 }
 
@@ -1362,7 +1360,7 @@ function resetSettings() {
   localStorage.removeItem(`${STORAGE_KEY}:settings`);
   if (gameModeSelect) gameModeSelect.value = DEFAULT_GAME_MODE;
   document.body.classList.remove("compact-mode");
-  document.body.classList.remove("dark-mode");
+  document.documentElement.classList.remove("dark-mode");
   document.body.classList.add("outlines-off");
   document.body.classList.add("sidebar-collapsed");
   if (compactToggle) compactToggle.textContent = "Compact Mode";
@@ -1683,16 +1681,12 @@ async function confirmResetSettings() {
 }
 
 function setTheme(themeId, persist = true) {
-  const theme = THEMES.find((t) => t.id === themeId) || THEMES[0];
-  document.body.dataset.theme = theme.id;
-  document.documentElement.style.setProperty("--accent", theme.color);
-  document.documentElement.style.setProperty("--accent-2", theme.accent2);
-  const bg1 = tint(theme.color, 0.92);
-  const bg2 = tint(theme.color, 0.85);
-  const bg3 = tint(theme.color, 0.72);
-  document.documentElement.style.setProperty("--bg-1", bg1);
-  document.documentElement.style.setProperty("--bg-2", bg2);
-  document.documentElement.style.setProperty("--bg-3", bg3);
+  const theme =
+    THEMES.find((t) => t.id === themeId) ||
+    THEMES.find((t) => t.id === DEFAULT_THEME) ||
+    THEMES[0] ||
+    { id: DEFAULT_THEME };
+  document.documentElement.dataset.theme = theme.id;
   updateThemeColorMeta();
   if (themeChooser) {
     const chips = [...themeChooser.querySelectorAll(".theme-chip")];
@@ -1713,7 +1707,6 @@ function initThemes() {
     chip.dataset.theme = theme.id;
     const swatch = document.createElement("span");
     swatch.className = "theme-swatch";
-    swatch.style.background = theme.color;
     const text = document.createElement("span");
     text.textContent = theme.name;
     chip.appendChild(swatch);
@@ -1722,19 +1715,6 @@ function initThemes() {
     themeChooser.appendChild(chip);
   });
   setTheme(DEFAULT_THEME, false);
-}
-
-function tint(hex, amount) {
-  const clean = hex.replace("#", "");
-  const num = parseInt(clean, 16);
-  const r = (num >> 16) & 255;
-  const g = (num >> 8) & 255;
-  const b = num & 255;
-  const mix = (channel) => Math.round(channel + (255 - channel) * (1 - amount));
-  const r2 = mix(r);
-  const g2 = mix(g);
-  const b2 = mix(b);
-  return `rgb(${r2}, ${g2}, ${b2})`;
 }
 
 function updateStats() {
@@ -3241,7 +3221,7 @@ if (autocorrectToggle) {
 
 if (darkToggle) {
   darkToggle.addEventListener("change", () => {
-    document.body.classList.toggle("dark-mode", darkToggle.checked);
+    document.documentElement.classList.toggle("dark-mode", darkToggle.checked);
     updateThemeColorMeta();
     saveSettings();
   });

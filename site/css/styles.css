@@ -1,13 +1,13 @@
 ﻿:root {
   --bg: #f7f1e5;
-  --bg-1: #fff6e5;
-  --bg-2: #f7f1e5;
-  --bg-3: #efe2cb;
+  --bg-1: #afaf83;
+  --bg-2: #b5b58c;
+  --bg-3: #c0c09e;
   --ink: #1c1b19;
   --outline-filter: grayscale(1) saturate(0) brightness(0);
   --outline-opacity: 0.2;
-  --accent: #ff4b4b;
-  --accent-2: #2b6fef;
+  --accent: #a8a878;
+  --accent-2: #8a8a58;
   --accent-3: #f6c445;
   --card: #fff9ef;
   --muted: #7a6f63;
@@ -25,6 +25,150 @@
   --scrollbar-track: color-mix(in srgb, var(--surface-3) 78%, var(--surface) 22%);
   --scrollbar-thumb: color-mix(in srgb, var(--accent) 30%, var(--surface-4) 70%);
   --scrollbar-thumb-hover: color-mix(in srgb, var(--accent) 48%, var(--surface-4) 52%);
+}
+
+:root[data-theme="normal"] {
+  --accent: #a8a878;
+  --accent-2: #8a8a58;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="fire"] {
+  --accent: #f08030;
+  --accent-2: #e0621a;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="water"] {
+  --accent: #6890f0;
+  --accent-2: #4e7ce8;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="electric"] {
+  --accent: #f8d030;
+  --accent-2: #e6b800;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="grass"] {
+  --accent: #78c850;
+  --accent-2: #5fa63a;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="ice"] {
+  --accent: #98d8d8;
+  --accent-2: #7fc6c6;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="fighting"] {
+  --accent: #c03028;
+  --accent-2: #a61f1a;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="poison"] {
+  --accent: #a040a0;
+  --accent-2: #7f2e7f;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="ground"] {
+  --accent: #e0c068;
+  --accent-2: #c9a84a;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="flying"] {
+  --accent: #a890f0;
+  --accent-2: #8e72e6;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="psychic"] {
+  --accent: #f85888;
+  --accent-2: #e04070;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="bug"] {
+  --accent: #a8b820;
+  --accent-2: #8c9a12;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="rock"] {
+  --accent: #b8a038;
+  --accent-2: #9e8524;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="ghost"] {
+  --accent: #705898;
+  --accent-2: #5a457e;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="dragon"] {
+  --accent: #7038f8;
+  --accent-2: #5a22e6;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="dark"] {
+  --accent: #705848;
+  --accent-2: #5a463a;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="steel"] {
+  --accent: #b8b8d0;
+  --accent-2: #9fa0b7;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
+}
+
+:root[data-theme="fairy"] {
+  --accent: #ee99ac;
+  --accent-2: #db8097;
+  --bg-1: color-mix(in srgb, var(--accent) 92%, white 8%);
+  --bg-2: color-mix(in srgb, var(--accent) 85%, white 15%);
+  --bg-3: color-mix(in srgb, var(--accent) 72%, white 28%);
 }
 
 * {
@@ -101,7 +245,7 @@ textarea {
   font: inherit;
 }
 
-body.dark-mode {
+:root.dark-mode {
   --bg: #151310;
   --bg-1: #1e1a16;
   --bg-2: #14110e;
@@ -126,6 +270,82 @@ body.dark-mode {
   --outline-opacity: 0.7;
   --pokeball: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='26' fill='%233b342c'/><path d='M6 32h52' stroke='%2350463c' stroke-width='6'/><circle cx='32' cy='32' r='8' fill='%23241f19' stroke='%2350463c' stroke-width='4'/></svg>");
   background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
+}
+
+.theme-chip[data-theme="normal"] {
+  --theme-swatch: #a8a878;
+}
+
+.theme-chip[data-theme="fire"] {
+  --theme-swatch: #f08030;
+}
+
+.theme-chip[data-theme="water"] {
+  --theme-swatch: #6890f0;
+}
+
+.theme-chip[data-theme="electric"] {
+  --theme-swatch: #f8d030;
+}
+
+.theme-chip[data-theme="grass"] {
+  --theme-swatch: #78c850;
+}
+
+.theme-chip[data-theme="ice"] {
+  --theme-swatch: #98d8d8;
+}
+
+.theme-chip[data-theme="fighting"] {
+  --theme-swatch: #c03028;
+}
+
+.theme-chip[data-theme="poison"] {
+  --theme-swatch: #a040a0;
+}
+
+.theme-chip[data-theme="ground"] {
+  --theme-swatch: #e0c068;
+}
+
+.theme-chip[data-theme="flying"] {
+  --theme-swatch: #a890f0;
+}
+
+.theme-chip[data-theme="psychic"] {
+  --theme-swatch: #f85888;
+}
+
+.theme-chip[data-theme="bug"] {
+  --theme-swatch: #a8b820;
+}
+
+.theme-chip[data-theme="rock"] {
+  --theme-swatch: #b8a038;
+}
+
+.theme-chip[data-theme="ghost"] {
+  --theme-swatch: #705898;
+}
+
+.theme-chip[data-theme="dragon"] {
+  --theme-swatch: #7038f8;
+}
+
+.theme-chip[data-theme="dark"] {
+  --theme-swatch: #705848;
+}
+
+.theme-chip[data-theme="steel"] {
+  --theme-swatch: #b8b8d0;
+}
+
+.theme-chip[data-theme="fairy"] {
+  --theme-swatch: #ee99ac;
+}
+
+.theme-swatch {
+  background: var(--theme-swatch, var(--accent));
 }
 
 .bg-scene {
@@ -1672,7 +1892,7 @@ body.dark-mode {
   color: rgba(28, 27, 25, 0.4);
 }
 
-body.dark-mode .sprite-card--hidden {
+:root.dark-mode .sprite-card--hidden {
   color: var(--ink);
 }
 
