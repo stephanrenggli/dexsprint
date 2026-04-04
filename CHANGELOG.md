@@ -1,3 +1,25 @@
+# [1.4.0](https://github.com/stephanrenggli/dexsprint/compare/v1.3.4...v1.4.0) (2026-04-04)
+
+
+### Bug Fixes
+
+* correct filter label semantics ([b2b4513](https://github.com/stephanrenggli/dexsprint/commit/b2b4513f213106645faf46d96b870beb6ffe32ca))
+* improve guess rejection feedback ([6038498](https://github.com/stephanrenggli/dexsprint/commit/60384984e2c034ac3a67b309ae1e849eb9db107a))
+* remove custom install prompt ([4927e52](https://github.com/stephanrenggli/dexsprint/commit/4927e526bd6d4a17c7721c5a4ea3a9af13f1872a))
+* restore localized guesses and simplify render paths ([44fbb62](https://github.com/stephanrenggli/dexsprint/commit/44fbb62c4220d66242124c5a6de6bfff2f664b34))
+* stop timer on full completion ([232fda4](https://github.com/stephanrenggli/dexsprint/commit/232fda46319a69484f20cf96e54d3f1e3ba3adcc))
+* streamline header action layout ([5191ee1](https://github.com/stephanrenggli/dexsprint/commit/5191ee1b917cf4d73c234346f91b3be03b290c17))
+
+
+### Features
+
+* add debug helpers and unlock cues ([9a47734](https://github.com/stephanrenggli/dexsprint/commit/9a47734be06a96a437ebdeb3b57de1c4b4459969))
+* add dynamic weekly challenge mode ([b86a0d9](https://github.com/stephanrenggli/dexsprint/commit/b86a0d90277c3029c547d49fb95f9aa7e33f53ca))
+* add visible progress milestones ([403d252](https://github.com/stephanrenggli/dexsprint/commit/403d252ee99fc988ce870243d453198aba112553))
+* convert settings to modal and live progress link ([1dd2fc2](https://github.com/stephanrenggli/dexsprint/commit/1dd2fc2d6f6e105984c6e8cf0143ddb29815e2be))
+* move achievements into a modal ([fa15cf7](https://github.com/stephanrenggli/dexsprint/commit/fa15cf77aa003aed357b1064350c7775af72d072))
+* rename study mode to practice ([5041aac](https://github.com/stephanrenggli/dexsprint/commit/5041aace5988563c5546cc97ac84d6ad940059e6))
+
 ## [1.3.4](https://github.com/stephanrenggli/dexsprint/compare/v1.3.3...v1.3.4) (2026-04-04)
 
 
