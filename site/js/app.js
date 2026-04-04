@@ -1544,6 +1544,10 @@ function updateStats() {
   if (progressValue) progressValue.textContent = `${Math.round(progress)}%`;
   const isComplete = total > 0 && found === total;
   if (isComplete && !state.hasCelebratedCompletion) {
+    if (state.timerId) {
+      stopTimer();
+      saveState({ immediate: true });
+    }
     triggerCompletionCelebration();
     state.hasCelebratedCompletion = true;
   } else if (!isComplete) {
