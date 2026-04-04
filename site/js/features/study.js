@@ -1,3 +1,4 @@
+import { TYPE_ID_MAP } from "../core/app-config.js";
 import { DEFAULT_STATUS } from "../core/app-state.js";
 import { renderTextChips, renderTypeChips } from "../ui/chips.js";
 
@@ -77,7 +78,11 @@ export function createStudyController({
 
   function renderStudyTypes(entry) {
     if (!studyTypes) return;
-    renderTypeChips(studyTypes, entry?.types);
+    renderTypeChips(studyTypes, entry?.types, getTypeId);
+  }
+
+  function getTypeId(typeName) {
+    return TYPE_ID_MAP[typeName] || 1;
   }
 
   function getStudyScenePalette(entry) {
