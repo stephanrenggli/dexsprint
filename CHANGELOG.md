@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/stephanrenggli/dexsprint/compare/v1.4.0...v1.5.0) (2026-04-04)
+
+
+### Features
+
+* add settings tooltips and externalize svg assets ([ffa03e8](https://github.com/stephanrenggli/dexsprint/commit/ffa03e84e227d8548dbcf9e72a0fbcc20e88b71d))
+
 # [1.4.0](https://github.com/stephanrenggli/dexsprint/compare/v1.3.4...v1.4.0) (2026-04-04)
 
 
