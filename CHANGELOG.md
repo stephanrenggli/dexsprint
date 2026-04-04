@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/stephanrenggli/dexsprint/compare/v1.6.0...v1.6.1) (2026-04-04)
+
+
+### Bug Fixes
+
+* serve qr vendor as js ([076809b](https://github.com/stephanrenggli/dexsprint/commit/076809bf6e5535024a3d9aacbaa0a76cef6ce07c))
+
 # [1.6.0](https://github.com/stephanrenggli/dexsprint/compare/v1.5.0...v1.6.0) (2026-04-04)
 
 
