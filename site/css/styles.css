@@ -1180,6 +1180,18 @@ textarea {
   }
 }
 
+@keyframes progress-milestone-pulse {
+  0% {
+    filter: brightness(1);
+  }
+  35% {
+    filter: brightness(1.05);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
 @keyframes stat-pop {
   0% {
     transform: translateY(0);
@@ -1358,6 +1370,7 @@ textarea {
   border-radius: 999px;
   overflow: hidden;
   position: relative;
+  isolation: isolate;
 }
 
 .progress--inline {
@@ -1365,14 +1378,81 @@ textarea {
 }
 
 .progress-bar {
+  position: absolute;
+  inset: 0 auto 0 0;
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   transition: width 0.3s ease;
+  z-index: 1;
+}
+
+.progress-milestones {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.progress-milestone {
+  position: absolute;
+  top: 50%;
+  left: var(--milestone-left, 0%);
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%) scale(0.82);
+  border-radius: 999px;
+  border: 2px solid var(--surface-4);
+  background: var(--surface-4);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 10%, transparent);
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.progress-milestone::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  border-radius: 999px;
+}
+
+.progress-milestone--hit {
+  background: var(--accent-2);
+  border-color: color-mix(in srgb, var(--accent) 60%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.progress-milestone--hit::before {
+  background: color-mix(in srgb, var(--accent) 72%, white);
+}
+
+.progress-milestone--pulse {
+  animation: progress-milestone-bump 900ms ease-out;
+}
+
+@keyframes progress-milestone-bump {
+  0% {
+    transform: translate(-50%, -50%) scale(0.82);
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1.28);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .progress-bar--state-change {
   animation: progress-state-pulse 1000ms ease-out;
+}
+
+.progress-bar--milestone {
+  animation: progress-milestone-pulse 800ms ease-out;
 }
 
 .progress-bar--complete {
@@ -1404,6 +1484,7 @@ textarea {
   font-weight: 600;
   color: var(--ink);
   pointer-events: none;
+  z-index: 3;
 }
 
 .modal {

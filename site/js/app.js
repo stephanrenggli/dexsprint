@@ -62,6 +62,7 @@ const filtersPanelToggle = document.getElementById("filters-panel-toggle");
 const filterSummary = document.getElementById("filter-summary");
 const spriteGrid = document.getElementById("sprite-grid");
 const progressBar = document.getElementById("progress-bar");
+const progressMilestonesEl = document.getElementById("progress-milestones");
 const progressValue = document.getElementById("progress-value");
 const resetBtn = document.getElementById("reset-btn");
 const resetBtnCompact = document.getElementById("reset-btn-compact");
@@ -153,6 +154,7 @@ const criesLatestBase =
 const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 const WEEKLY_CHALLENGE_MS = 604800000;
+const PROGRESS_MILESTONE_FRACTIONS = [0.25, 0.5, 0.75];
 
 async function registerAppServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -593,6 +595,44 @@ function flashProgressChange() {
     .map((el) => el && el.closest(".stat"))
     .filter(Boolean)
     .forEach((stat) => flashElement(stat, "stat--state-change", 900));
+}
+
+function flashMilestoneChange() {
+  flashElement(progressBar, "progress-bar--milestone", 800);
+}
+
+function flashProgressMilestone(count) {
+  if (!progressMilestonesEl) return;
+  const marker = progressMilestonesEl.querySelector(`[data-count="${count}"]`);
+  if (marker) flashElement(marker, "progress-milestone--pulse", 900);
+}
+
+function renderProgressMilestones(total, found = state.activeFoundCount) {
+  if (!progressMilestonesEl) return;
+  const milestones = getProgressMilestoneEntries(total);
+  const signature = milestones.map((entry) => entry.count).join("|");
+  const shouldRebuild =
+    progressMilestonesEl.dataset.signature !== signature ||
+    progressMilestonesEl.children.length !== milestones.length;
+
+  if (shouldRebuild) {
+    progressMilestonesEl.innerHTML = "";
+    milestones.forEach((entry) => {
+      const marker = document.createElement("span");
+      marker.className = "progress-milestone";
+      marker.dataset.count = String(entry.count);
+      marker.style.setProperty("--milestone-left", `${entry.percent}%`);
+      marker.title = `${entry.percent}% complete`;
+      marker.setAttribute("aria-hidden", "true");
+      progressMilestonesEl.appendChild(marker);
+    });
+    progressMilestonesEl.dataset.signature = signature;
+  }
+
+  [...progressMilestonesEl.querySelectorAll(".progress-milestone")].forEach((marker) => {
+    const count = Number.parseInt(marker.dataset.count || "0", 10);
+    marker.classList.toggle("progress-milestone--hit", Number.isFinite(count) && found >= count);
+  });
 }
 
 function showStateToast({ meta, title, icon }) {
@@ -1613,6 +1653,7 @@ function updateStats() {
   const progress = total === 0 ? 0 : (found / total) * 100;
   progressBar.style.width = `${progress.toFixed(1)}%`;
   if (progressValue) progressValue.textContent = `${Math.round(progress)}%`;
+  renderProgressMilestones(total, found);
   const isComplete = total > 0 && found === total;
   if (isComplete && !state.hasCelebratedCompletion) {
     if (state.timerId) {
@@ -1626,6 +1667,7 @@ function updateStats() {
     clearCompletionCelebration();
   }
   syncProgressUnlockCues();
+  syncProgressMilestoneCues();
   if (state.renderedBadgeRevision !== state.badgeRevision) {
     try {
       renderBadges();
@@ -1650,6 +1692,65 @@ function getProgressUnlockContext() {
     completedGenerations: getCompletedGroupEntries(state.generationIndex),
     completedTypes: getCompletedGroupEntries(state.typeIndex)
   };
+}
+
+function getProgressMilestoneEntries(total) {
+  if (!Number.isFinite(total) || total <= 0) return [];
+  const entries = PROGRESS_MILESTONE_FRACTIONS.map((fraction) => {
+    const percent = Math.round(fraction * 100);
+    const count = Math.ceil(total * fraction);
+    return { fraction, percent, count };
+  }).filter((entry) => entry.count > 0 && entry.count < total);
+
+  const seenCounts = new Set();
+  return entries.filter((entry) => {
+    if (seenCounts.has(entry.count)) return false;
+    seenCounts.add(entry.count);
+    return true;
+  });
+}
+
+function primeProgressMilestones() {
+  const milestones = getProgressMilestoneEntries(state.names.length);
+  state.seenProgressMilestones = new Set(
+    milestones.filter((entry) => state.activeFoundCount >= entry.count).map((entry) => entry.fraction)
+  );
+  state.progressMilestonesPrimed = true;
+}
+
+function syncProgressMilestoneCues() {
+  if (!state.groupMetadataReady) return;
+  if (state.isRestoring) return;
+
+  const total = state.names.length;
+  const found = state.activeFoundCount;
+  const isComplete = total > 0 && found === total;
+  const milestones = getProgressMilestoneEntries(total);
+  const achieved = milestones.filter((entry) => found >= entry.count);
+
+  if (!state.progressMilestonesPrimed) {
+    primeProgressMilestones();
+    return;
+  }
+
+  if (isComplete) {
+    state.seenProgressMilestones = new Set(milestones.map((entry) => entry.fraction));
+    return;
+  }
+
+  const newMilestones = achieved.filter((entry) => !state.seenProgressMilestones.has(entry.fraction));
+  if (!newMilestones.length) return;
+
+  newMilestones.forEach((entry) => state.seenProgressMilestones.add(entry.fraction));
+  newMilestones.forEach((entry) => {
+    showStateToast({
+      meta: "Milestone",
+      title: `${entry.percent}% complete`,
+      icon: `${entry.percent}%`
+    });
+    flashProgressMilestone(entry.count);
+  });
+  flashMilestoneChange();
 }
 
 function syncProgressUnlockCues() {
@@ -1972,11 +2073,13 @@ function resetQuiz() {
   state.seenBadges.clear();
   state.seenCompletedGenerations.clear();
   state.seenCompletedTypes.clear();
+  state.seenProgressMilestones.clear();
   state.pendingProgressUnlocks = {
     generations: new Set(),
     types: new Set()
   };
   state.progressPrimed = false;
+  state.progressMilestonesPrimed = false;
   state.badgeRevision += 1;
   state.badgesPrimed = true;
   state.savedElapsed = 0;
@@ -2821,6 +2924,7 @@ function applyFilters() {
   state.names = filtered;
   state.activeNames = new Set(filtered);
   recalculateActiveFoundCount();
+  state.progressMilestonesPrimed = false;
   updateStats();
   renderSprites();
   buildGuessIndex();

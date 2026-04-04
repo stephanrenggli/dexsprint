@@ -39,7 +39,6 @@ It is intentionally separate from the README so the README stays focused on the 
 
 ### UI / UX
 
-- Add more subtle milestone celebrations for progress checkpoints beyond generation/type/full completion
 - Add more visible session feedback such as inline confirmations, recent guess history, and progress-to-next-milestone indicators
 - Add keyboard shortcuts for frequent actions like revealing the next Pokemon, toggling hints, opening settings, or skipping
 - Keep input focus more aggressively after correct guesses and after closing modals
