@@ -1223,7 +1223,8 @@ textarea {
   min-height: 0;
 }
 
-.filter label {
+.filter label,
+.filter-heading {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 2px;
