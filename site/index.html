@@ -280,11 +280,11 @@
           </div>
         </div>
       </div>
-      <div class="input-wrap">
+      <form class="input-wrap" id="guess-form">
         <label class="input-label" for="name-input">Name a Pokemon</label>
         <div class="input-shell">
           <p id="status" class="status status--inline" aria-live="polite" hidden>Loading Pokemon list...</p>
-          <input id="name-input" type="text" autocomplete="off" placeholder="Charizard" />
+          <input id="name-input" type="text" autocomplete="off" placeholder="Charizard" enterkeyhint="go" />
           <div id="reveal-pill" class="reveal-pill" aria-live="polite" hidden>
             <img id="reveal-pill-img" alt="" />
             <span class="reveal-pill__copy">
@@ -299,7 +299,7 @@
           <div id="progress-milestones" class="progress-milestones" aria-hidden="true"></div>
           <span id="progress-value" class="progress-value">0%</span>
         </div>
-      </div>
+      </form>
 
       <section id="study-panel" class="study-panel" hidden aria-live="polite">
         <div class="study-panel__header">

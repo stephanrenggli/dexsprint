@@ -171,6 +171,7 @@ const qrImage = document.getElementById("qr-image");
 const qrLink = document.getElementById("qr-link");
 const qrCopyBtn = document.getElementById("qr-copy");
 const settingsPanelCard = settingsModal ? settingsModal.querySelector(".settings-panel") : null;
+const guessForm = document.getElementById("guess-form");
 const studyPanel = document.getElementById("study-panel");
 const studySubtitle = document.getElementById("study-subtitle");
 const studyCounter = document.getElementById("study-counter");
@@ -543,6 +544,7 @@ quizController = createQuizController({
   highlightPokemon,
   syncInlineStatusVisibility
 });
+const handleSubmit = quizController.handleSubmit;
 
 function getGameMode() {
   return gameModeSelect ? gameModeSelect.value : DEFAULT_GAME_MODE;
@@ -1485,8 +1487,10 @@ function installDebugCommands() {
   return debugController?.installDebugCommands();
 }
 
+if (guessForm) {
+  guessForm.addEventListener("submit", handleSubmit);
+}
 inputEl.addEventListener("input", handleInputEvent);
-inputEl.addEventListener("keydown", handleKeydown);
 inputEl.addEventListener("input", handleLiveMatch);
 resetBtn.addEventListener("click", confirmReset);
 if (resetBtnCompact) resetBtnCompact.addEventListener("click", confirmReset);

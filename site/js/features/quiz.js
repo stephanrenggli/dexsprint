@@ -182,11 +182,22 @@ export function createQuizController({
   }
 
   function handleKeydown(e) {
-    if (e.key !== "Enter") return;
+    if (e.key !== "Enter" && e.key !== "Go" && e.key !== "Done" && e.key !== "Return") return;
+    if (e.isComposing) return;
     startTimer();
     const value = e.target.value;
     handleGuess(value);
     e.target.value = "";
+    syncInlineStatusVisibility();
+  }
+
+  function handleSubmit(e) {
+    if (e) e.preventDefault();
+    if (!inputEl) return;
+    startTimer();
+    const value = inputEl.value;
+    handleGuess(value);
+    inputEl.value = "";
     syncInlineStatusVisibility();
   }
 
@@ -196,6 +207,7 @@ export function createQuizController({
     handleInputEvent,
     handleLiveMatch,
     handleKeydown,
+    handleSubmit,
     getGuessRejectionMessage,
     getExactGuessMatchState
   };
