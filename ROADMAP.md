@@ -62,11 +62,18 @@ It is intentionally separate from the README so the README stays focused on the 
 - Add per-setting reset controls instead of requiring a full settings reset
 - Add per-setting tooltips or short explanations for settings and modes
 - Add a way to remember the last-used mode, filter, and theme more aggressively
+- Make modal layering and z-index handling easier to extend when new dialogs are added
+- Keep special-case guessability rules explicit so future display-only entries do not accidentally become guess targets
 
 ### Technical / Refactor
 
 - Add lightweight automated tests for filter/group behavior and related UI state transitions
 - Introduce a clearer data abstraction layer for Pokemon metadata, localized names, forms, and derived groupings
+- Harden progress import parsing and validation so malformed payloads fail with a controlled message
+- Improve cry playback so rapid successive guesses do not leave audio playback in a stale or inconsistent state
+- Add tests for normalization, guess indexing, progress encoding and decoding, and modal focus handling
+- Split `site/js/core/app-state.js` further into smaller constants and initial-state modules if it keeps growing
+- Consider narrowing the public surface of the remaining `site/js/*` entry files even further if new code paths need it
 
 ## Notes
 

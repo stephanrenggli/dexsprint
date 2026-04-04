@@ -144,9 +144,7 @@ export function decodeProgressPayload(serialized) {
     if (settingsEnd > payload.length) {
       throw new Error("Invalid progress payload");
     }
-    settings = JSON.parse(
-      decodeUtf8(payload.slice(offsetRef.index, settingsEnd))
-    );
+    settings = JSON.parse(decodeUtf8(payload.slice(offsetRef.index, settingsEnd)));
     offsetRef.index = settingsEnd;
   }
 

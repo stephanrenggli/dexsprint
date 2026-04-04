@@ -1,9 +1,9 @@
+import { criesLegacyBase, criesLatestBase } from "../core/app-config.js";
+
 export async function playCry(canonical, {
   state,
   criesToggle,
-  legacyCriesToggle,
-  criesLatestBase,
-  criesLegacyBase
+  legacyCriesToggle
 }) {
   if (!canonical) return;
   const entry = state.meta.get(canonical);

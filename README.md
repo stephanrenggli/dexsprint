@@ -6,6 +6,8 @@ Disclaimer: This project was full vibe-coded with Codex. It is an unofficial fan
 
 You type Pokemon names and reveal their sprites as you find them. The app supports multiple layouts, persistent progress, configurable settings in a modal, multilingual guessing, themed UI modes, and detail popups backed by PokeAPI data.
 
+The browser code is organized as ESM modules under `site/js/`, with `site/js/app.js` acting as the bootstrap entrypoint.
+
 See [ROADMAP.md](ROADMAP.md) for future improvements.
 
 ## Features
@@ -27,16 +29,17 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 
 ## Tech
 
-- Plain HTML, CSS, and JavaScript
+- Plain HTML, CSS, and ESM JavaScript
 - [PokeAPI](https://pokeapi.co/) data via a vendored copy of [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper), with sprite assets from the [PokeAPI sprites](https://github.com/PokeAPI/sprites) repository and cry assets from the [PokeAPI cries](https://github.com/PokeAPI/cries) repository
 - `pokeapi-js-wrapper-sw.js` for service-worker-based caching support
 - Public Pokemon sprite assets from the [PokeAPI sprites repository](https://github.com/PokeAPI/sprites) and cry assets from the [PokeAPI cries repository](https://github.com/PokeAPI/cries)
+- Runtime modules are split by responsibility under `site/js/core/`, `site/js/domain/`, `site/js/features/`, `site/js/services/`, and `site/js/ui/`
 
 ## Running Locally
 
 There is no build step.
 
-Because the app uses a service worker, you should run it through a local web server instead of opening `index.html` directly.
+Because the app uses a service worker and ESM modules, you should run it through a local web server instead of opening `index.html` directly.
 
 The deployable app lives in `site/`.
 
@@ -61,7 +64,7 @@ For Dokploy, set the static publish directory to `site`.
 Make sure:
 
 - the contents of `site/` are served over HTTP(S), not opened as local files
-- `site/index.html`, `site/js/app.js`, `site/css/styles.css`, `site/assets/favicon.svg`, and `site/pokeapi-js-wrapper-sw.js` are all published together at the same path
+- `site/index.html`, `site/js/app.js`, `site/css/styles.css`, `site/assets/favicon.svg`, and `site/js/vendor/pokeapi-js-wrapper-sw.js` are all published together at the same path
 - `site/js/vendor/pokeapi-js-wrapper.js` is published with the rest of the static assets
 - the service worker file remains reachable from the same scope as the app
 
