@@ -35,6 +35,7 @@ This repository is a static Pokémon quiz app with the deployable site in `site/
 
 - Use conventional commits such as `feat:`, `fix:`, `chore:`, and `docs:`.
 - Keep commits focused on a single concern whenever possible.
+- When writing or updating a commit message, review the whole diff, not only the most recent change.
 - Do not rewrite or amend existing commits unless the user explicitly asks.
 - Avoid force-pushing or destructive history changes unless explicitly requested.
 - If the worktree already contains unrelated changes, leave them alone and work around them.
