@@ -64,7 +64,6 @@ const spriteGrid = document.getElementById("sprite-grid");
 const progressBar = document.getElementById("progress-bar");
 const progressValue = document.getElementById("progress-value");
 const resetBtn = document.getElementById("reset-btn");
-const installBtn = document.getElementById("install-btn");
 const resetBtnCompact = document.getElementById("reset-btn-compact");
 const filtersToggleCompact = document.getElementById("filters-toggle-compact");
 const outlineToggle = document.getElementById("outline-toggle");
@@ -154,18 +153,6 @@ const criesLatestBase =
 const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 
-let deferredInstallPrompt = null;
-
-function isStandaloneMode() {
-  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-}
-
-function syncInstallButton() {
-  if (!installBtn) return;
-  const canInstall = Boolean(deferredInstallPrompt) && !isStandaloneMode();
-  installBtn.hidden = !canInstall;
-}
-
 async function registerAppServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
@@ -174,37 +161,6 @@ async function registerAppServiceWorker() {
   } catch (error) {
     console.warn("Service worker registration failed", error);
   }
-}
-
-function setupInstallPrompt() {
-  if (!installBtn) return;
-
-  syncInstallButton();
-
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    syncInstallButton();
-  });
-
-  window.addEventListener("appinstalled", () => {
-    deferredInstallPrompt = null;
-    syncInstallButton();
-    setStatus("DexSprint installed.");
-  });
-
-  installBtn.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) return;
-
-    deferredInstallPrompt.prompt();
-    try {
-      await deferredInstallPrompt.userChoice;
-    } catch (error) {
-      console.warn("Install prompt failed", error);
-    }
-    deferredInstallPrompt = null;
-    syncInstallButton();
-  });
 }
 
 function getStableProgressIds() {
@@ -3219,7 +3175,6 @@ document.addEventListener("visibilitychange", () => {
 });
 
 syncTypoSettings();
-setupInstallPrompt();
 registerAppServiceWorker();
 installDebugCommands();
 loadPokemon();
