@@ -552,6 +552,12 @@ textarea {
   background: color-mix(in srgb, var(--surface-2) 80%, var(--surface));
 }
 
+.badge--just-unlocked {
+  animation: badge-unlocked-pop 900ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 34%, transparent),
+    0 16px 28px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
 .badge--locked {
   opacity: 0.72;
 }
@@ -726,6 +732,10 @@ textarea {
   justify-content: space-between;
   align-items: baseline;
   font-size: 1rem;
+}
+
+.stat--state-change {
+  animation: stat-pop 900ms cubic-bezier(0.16, 0.84, 0.24, 1);
 }
 
 .stat .label {
@@ -1130,6 +1140,60 @@ textarea {
   }
 }
 
+@keyframes badge-unlocked-pop {
+  0% {
+    transform: scale(0.98);
+    filter: saturate(0.95);
+  }
+  40% {
+    transform: scale(1.015);
+    filter: saturate(1.08);
+  }
+  100% {
+    transform: scale(1);
+    filter: saturate(1);
+  }
+}
+
+@keyframes progress-state-pulse {
+  0% {
+    filter: brightness(1);
+  }
+  35% {
+    filter: brightness(1.08);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+@keyframes stat-pop {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes group-complete-pop {
+  0% {
+    transform: scale(0.99);
+    box-shadow: var(--shadow);
+  }
+  45% {
+    transform: scale(1.01);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent), var(--shadow);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent), var(--shadow);
+  }
+}
+
 .study-actions .btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -1291,6 +1355,10 @@ textarea {
   width: 0%;
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   transition: width 0.3s ease;
+}
+
+.progress-bar--state-change {
+  animation: progress-state-pulse 1000ms ease-out;
 }
 
 .progress-bar--complete {
@@ -1829,12 +1897,25 @@ textarea {
   width: 100%;
 }
 
+.group-card--complete {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent), var(--shadow);
+}
+
+.group-card--just-complete {
+  animation: group-complete-pop 950ms cubic-bezier(0.16, 0.84, 0.24, 1);
+}
+
 .group-title {
   margin: 0;
   font-size: 0.95rem;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.group-title--complete {
+  color: var(--ink);
 }
 
 .sprite-card {

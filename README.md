@@ -17,8 +17,8 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 - Optional outlines, shiny sprites, Pokedex ID display, dark mode, and type-based themes
 - Pokemon cries with optional legacy cries
 - Persistent game state and settings via `localStorage`
-- Achievement badges with unlock notifications
-- Rich Pokemon detail modal with sprite, types, genus, stat cards, abilities, and related species data
+- Achievement badges with unlock notifications and progress cues
+- Rich Pokemon detail modal with previous/next navigation, copy actions, replayable cries, sprite, types, genus, stat cards, abilities, and related species data
 - Mobile-friendly single-page UI
 
 ## Tech
@@ -83,6 +83,17 @@ Notes:
 - Progress and settings persist in the browser until reset
 - The app fetches live Pokemon data from PokeAPI on load
 - If PokeAPI is unavailable, the app shows a retry action
+- A `window.dexsprintDebug` console API is available for local testing, including helpers to unlock Pokemon, types, generations, or clear save data
+
+Example console commands:
+
+```javascript
+dexsprintDebug.unlockGeneration("kanto")
+dexsprintDebug.unlockType("fire")
+dexsprintDebug.unlockPokemon("pikachu")
+dexsprintDebug.unlockAll()
+dexsprintDebug.clearSave()
+```
 
 ## Credits
 

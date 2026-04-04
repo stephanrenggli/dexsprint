@@ -80,7 +80,14 @@ export function applyMetadataIndexes(state, generationData, typeData, formatGene
   });
 
   typeData.entries.forEach((entry) => {
-    state.typeIndex.set(entry.name, new Set(entry.names.map(normalizeName)));
+    state.typeIndex.set(
+      entry.name,
+      new Set(
+        entry.names
+          .map(normalizeName)
+          .filter((name) => name && state.meta.has(name))
+      )
+    );
   });
 
   state.meta.forEach((entry, normalized) => {
@@ -91,6 +98,8 @@ export function applyMetadataIndexes(state, generationData, typeData, formatGene
       ? [...typeData.typeMap.get(normalized)].sort().map(prettifyName)
       : [];
   });
+
+  state.groupMetadataReady = true;
 }
 
 export function hydrateLocalizedNames(state, speciesDetails) {
