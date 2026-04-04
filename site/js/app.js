@@ -34,6 +34,15 @@ import {
   loadTypes as loadTypesModule,
   scheduleLocalizedNameHydration as scheduleLocalizedNameHydrationModule
 } from "./data.js";
+import {
+  enhanceSettingsInfoTips as enhanceSettingsInfoTipsUI,
+  positionSettingsInfoTips as positionSettingsInfoTipsUI,
+  trapModalFocus as trapModalFocusUI,
+  getModalFocusableElements as getModalFocusableElementsUI,
+  getModalBaseLayer as getModalBaseLayerUI,
+  flashElement as flashElementUI,
+  showStateToast as showStateToastUI
+} from "./ui.js";
 
 const totalCount = document.getElementById("total-count");
 const foundCount = document.getElementById("found-count");
@@ -193,6 +202,7 @@ const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
 const WEEKLY_CHALLENGE_MS = 604800000;
 const PROGRESS_MILESTONE_FRACTIONS = [0.25, 0.5, 0.75];
+const stateToastState = { queue: [], active: false };
 
 async function registerAppServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -213,68 +223,13 @@ function getStableProgressIds() {
     .sort((a, b) => a - b);
 }
 
-function createInfoTipContent(tip) {
-  const label = tip.dataset.tipLabel || "Help";
-  const text = tip.dataset.tip || "";
-  const tipId = tip.dataset.tipId || "";
-  tip.replaceChildren();
-
-  const button = document.createElement("button");
-  button.className = "info-tip__button";
-  button.type = "button";
-  button.setAttribute("aria-label", `${label} help`);
-  if (tipId) button.setAttribute("aria-describedby", tipId);
-
-  const bubble = document.createElement("span");
-  if (tipId) bubble.id = tipId;
-  bubble.className = "info-tip__bubble";
-  bubble.setAttribute("role", "tooltip");
-  bubble.textContent = text;
-
-  tip.appendChild(button);
-  tip.appendChild(bubble);
-}
-
-function enhanceSettingsInfoTips() {
-  if (!settingsPanelCard) return;
-  const tips = [...settingsPanelCard.querySelectorAll(".info-tip[data-tip]")];
-  tips.forEach((tip) => {
-    if (tip.dataset.enhanced === "true") return;
-    createInfoTipContent(tip);
-    tip.dataset.enhanced = "true";
-  });
-}
-
-function positionSettingsInfoTips() {
-  if (!settingsPanelCard) return;
-  const panelRect = settingsPanelCard.getBoundingClientRect();
-  const tips = [...settingsPanelCard.querySelectorAll(".info-tip")];
-  tips.forEach((tip) => {
-    const bubble = tip.querySelector(".info-tip__bubble");
-    if (!bubble) return;
-    const tipRect = tip.getBoundingClientRect();
-    const bubbleRect = bubble.getBoundingClientRect();
-    const gap = 8;
-    const panelPadding = 8;
-    const rightSpace = panelRect.right - tipRect.right - panelPadding;
-    const leftSpace = tipRect.left - panelRect.left - panelPadding;
-    const fitsRight = rightSpace >= bubbleRect.width + gap;
-    const fitsLeft = leftSpace >= bubbleRect.width + gap;
-    let side = "right";
-    if (fitsLeft && !fitsRight) side = "left";
-    else if (!fitsLeft && fitsRight) side = "right";
-    else if (!fitsLeft && !fitsRight) side = leftSpace >= rightSpace ? "left" : "right";
-    tip.dataset.side = side;
-  });
-}
-
 let settingsInfoTipsRaf = null;
 function scheduleSettingsInfoTipsPlacement() {
   if (settingsInfoTipsRaf) cancelAnimationFrame(settingsInfoTipsRaf);
   settingsInfoTipsRaf = requestAnimationFrame(() => {
     settingsInfoTipsRaf = null;
-    enhanceSettingsInfoTips();
-    positionSettingsInfoTips();
+    enhanceSettingsInfoTipsUI(settingsPanelCard);
+    positionSettingsInfoTipsUI(settingsPanelCard);
   });
 }
 
@@ -566,26 +521,12 @@ let confirmResolver = null;
 let activeModal = null;
 let modalScrollLock = null;
 let changelogMarkupLoaded = false;
-let stateToastQueue = [];
-let stateToastActive = false;
-
-function getModalBaseLayer(modal) {
-  if (!modal) return 100;
-  switch (modal.id) {
-    case "confirm-modal":
-      return 1000;
-    case "settings-modal":
-      return 900;
-    case "achievements-modal":
-      return 800;
-    case "changelog-modal":
-      return 700;
-    case "info-modal":
-      return 600;
-    default:
-      return 500;
-  }
-}
+const stateToastRefs = {
+  toastEl: achievementToast,
+  metaEl: achievementToastMeta,
+  iconEl: achievementToastIcon,
+  titleEl: achievementToastTitle
+};
 
 function scheduleImportedProgressCleanup() {
   if (progressCleanupTimeout) clearTimeout(progressCleanupTimeout);
@@ -604,32 +545,8 @@ function closeConfirmModal(result) {
   if (resolver) resolver(Boolean(result));
 }
 
-function getModalFocusableElements(modal) {
-  if (!modal) return [];
-  return [...modal.querySelectorAll("a[href], button, textarea, input, select, [tabindex]:not([tabindex='-1'])")]
-    .filter((el) => !el.hasAttribute("disabled") && el.getAttribute("aria-hidden") !== "true");
-}
-
 function trapModalFocus(event) {
-  if (!activeModal || event.key !== "Tab") return;
-  const focusable = getModalFocusableElements(activeModal);
-  if (!focusable.length) {
-    event.preventDefault();
-    if (activeModal.focus) activeModal.focus();
-    return;
-  }
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  const current = document.activeElement;
-  if (event.shiftKey && current === first) {
-    event.preventDefault();
-    last.focus();
-    return;
-  }
-  if (!event.shiftKey && current === last) {
-    event.preventDefault();
-    first.focus();
-  }
+  trapModalFocusUI(activeModal, event);
 }
 
 function openModal(modal, initialFocus = null) {
@@ -639,7 +556,6 @@ function openModal(modal, initialFocus = null) {
     modal._restoreFocusEl = activeEl;
   }
   document.body.appendChild(modal);
-  modal.style.zIndex = String(getModalBaseLayer(modal));
   if (!modalScrollLock) {
     modalScrollLock = {
       x: window.scrollX,
@@ -654,7 +570,8 @@ function openModal(modal, initialFocus = null) {
   }
   modal.classList.remove("hidden");
   activeModal = modal;
-  const fallback = getModalFocusableElements(modal)[0] || modal;
+  modal.style.zIndex = String(getModalBaseLayerUI(modal.id));
+  const fallback = getModalFocusableElementsUI(modal)[0] || modal;
   const target = initialFocus || fallback;
   requestAnimationFrame(() => {
     if (target && target.focus) target.focus();
@@ -702,14 +619,7 @@ function closeAchievementsModal() {
 }
 
 function flashElement(el, className, timeout = 700) {
-  if (!el || !className) return;
-  el.classList.remove(className);
-  void el.offsetWidth;
-  el.classList.add(className);
-  clearTimeout(el._flashTimer);
-  el._flashTimer = setTimeout(() => {
-    el.classList.remove(className);
-  }, timeout);
+  flashElementUI(el, className, timeout);
 }
 
 function flashProgressChange() {
@@ -755,39 +665,7 @@ function renderProgressMilestones(total, found = state.activeFoundCount) {
 }
 
 function showStateToast({ meta, title, icon }) {
-  if (!achievementToast) return;
-  stateToastQueue.push({
-    meta: meta || "Update",
-    title: title || "",
-    icon: icon || "OK"
-  });
-  if (stateToastActive) return;
-  void drainStateToastQueue();
-}
-
-async function drainStateToastQueue() {
-  if (stateToastActive || !achievementToast) return;
-  stateToastActive = true;
-  while (stateToastQueue.length) {
-    const next = stateToastQueue.shift();
-    if (!next) continue;
-    if (achievementToastMeta) achievementToastMeta.textContent = next.meta;
-    if (achievementToastIcon) achievementToastIcon.textContent = next.icon;
-    if (achievementToastTitle) achievementToastTitle.textContent = next.title;
-    achievementToast.hidden = false;
-    achievementToast.classList.remove("is-active");
-    void achievementToast.offsetWidth;
-    achievementToast.classList.add("is-active");
-    await new Promise((resolve) => {
-      clearTimeout(achievementToast._hideTimer);
-      achievementToast._hideTimer = setTimeout(() => {
-        achievementToast.classList.remove("is-active");
-        achievementToast.hidden = true;
-        resolve();
-      }, 2400);
-    });
-  }
-  stateToastActive = false;
+  showStateToastUI(stateToastState, stateToastRefs, { meta, title, icon });
 }
 
 function resolveReleaseHref(value) {

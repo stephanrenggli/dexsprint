@@ -9,7 +9,6 @@ It is intentionally separate from the README so the README stays focused on the 
 - Improve support for richer offline behavior, such as clearer cache status and optional fully bundled offline datasets
 - Decide whether DexSprint should stay shell-offline or become fully playable offline, then align caching and data loading with that choice
 - Add additional game modes such as timed challenge or streak mode
-- Reduce DOM coupling by moving startup wiring and shared UI helpers into narrower modules
 
 ## Current Risks
 
@@ -51,7 +50,6 @@ It is intentionally separate from the README so the README stays focused on the 
 
 ### Data / Features
 
-- Improve support for special forms such as mega evolutions, regional forms, gigantamax, and other alternate form categories
 - Add more supported guess languages beyond English, German, and Spanish
 - Offer a fully bundled offline dataset mode as an alternative to live-first PokeAPI loading
 
