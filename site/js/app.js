@@ -201,7 +201,7 @@ function getGameMode() {
 }
 
 function isStudyMode() {
-  return getGameMode() === "study";
+  return getGameMode() === "practice";
 }
 
 function isWeeklyChallengeMode() {
@@ -319,8 +319,9 @@ function applySettingsPayload(data, { persist = true } = {}) {
 
   if (gameModeSelect) {
     const requestedMode = data.gameMode ?? data.practiceMode;
-    const allowedModes = new Set([DEFAULT_GAME_MODE, "study", "weekly"]);
-    gameModeSelect.value = allowedModes.has(requestedMode) ? requestedMode : DEFAULT_GAME_MODE;
+    const normalizedMode = requestedMode === "study" ? "practice" : requestedMode;
+    const allowedModes = new Set([DEFAULT_GAME_MODE, "practice", "weekly"]);
+    gameModeSelect.value = allowedModes.has(normalizedMode) ? normalizedMode : DEFAULT_GAME_MODE;
   }
 
   document.body.classList.toggle("compact-mode", Boolean(data.compact));
@@ -2326,7 +2327,7 @@ function handleGuess(value) {
     if (exactMatch) {
       showStatusHint(
         state.activeNames.has(exactMatch.canonical)
-          ? "That Pokemon is not this study card."
+          ? "That Pokemon is not this practice card."
           : "That Pokemon is filtered out by the current filters."
       );
       return;
@@ -3090,7 +3091,7 @@ function getDebugState() {
     total: state.names.length,
     found: state.activeFoundCount,
     remaining: state.names.length - state.activeFoundCount,
-    studyMode: isStudyMode(),
+    practiceMode: isStudyMode(),
     currentEntry: state.activeEntry ? state.activeEntry.label : null,
     completedGenerations: getCompletedGroupEntries(state.generationIndex),
     completedTypes: getCompletedGroupEntries(state.typeIndex),
@@ -3259,7 +3260,7 @@ if (settingsReset) {
 
 if (gameModeSelect) {
   gameModeSelect.addEventListener("change", () => {
-    if (gameModeSelect.value !== "study") {
+    if (gameModeSelect.value !== "practice") {
       state.studyDeck = [];
       state.studyCurrent = null;
       state.studyRevealed = false;
