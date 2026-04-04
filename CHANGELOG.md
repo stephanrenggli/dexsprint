@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/stephanrenggli/dexsprint/compare/v1.6.1...v1.6.2) (2026-04-04)
+
+
+### Bug Fixes
+
+* submit guesses from mobile keyboard ([f3b65d5](https://github.com/stephanrenggli/dexsprint/commit/f3b65d5f2edf4ca80b2817d780b16e671f693620))
+
 ## [1.6.1](https://github.com/stephanrenggli/dexsprint/compare/v1.6.0...v1.6.1) (2026-04-04)
 
 
