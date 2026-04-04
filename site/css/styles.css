@@ -409,7 +409,7 @@ textarea {
 }
 
 /* Sidebar */
-.sidebar {
+.settings-panel {
   background: var(--surface);
   border-radius: 18px;
   padding: 12px;
@@ -427,40 +427,134 @@ textarea {
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-.sidebar-header {
+.modal-card--settings.settings-panel {
   position: relative;
+  inset: auto;
+  width: min(760px, 94vw);
+  max-width: 760px;
+  max-height: min(84vh, 860px);
+  overflow: hidden;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  padding: 18px;
 }
 
-.sidebar-header .modal-close {
+.settings-header {
+  position: static;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 0 12px;
+  margin: 0;
+  background: none;
+}
+
+.settings-header__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.settings-header .modal-close {
   position: static;
   flex: 0 0 auto;
 }
 
-.sidebar-header h2 {
+.settings-header h2 {
   margin: 0;
   font-size: 1rem;
 }
 
-.sidebar-section {
+.settings-section {
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface-3);
   display: grid;
+  gap: 10px;
+}
+
+.settings-section--actions {
   gap: 8px;
 }
 
-.sidebar,
-.sidebar * {
+.settings-body {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.settings-field {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-field label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+
+.settings-field select {
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  background: var(--surface);
+  color: var(--ink);
+  width: 100%;
+}
+
+.settings-field .progress-token {
+  width: 100%;
+}
+
+.settings-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.settings-section--actions .settings-actions {
+  justify-content: space-between;
+}
+
+.settings-section--actions .btn {
+  flex: 1 1 0;
+}
+
+.settings-panel,
+.settings-panel * {
   font-family: inherit;
 }
 
-.sidebar-section h3 {
+.settings-section h3 {
   margin: 0;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--muted);
+}
+
+.progress-token {
+  position: relative;
 }
 
 .progress-code {
@@ -469,14 +563,10 @@ textarea {
   height: 42px;
   padding: 10px 42px 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
-}
-
-.progress-token {
-  position: relative;
 }
 
 .progress-copy {
@@ -521,6 +611,10 @@ textarea {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.progress-actions .btn {
+  flex: 1 1 0;
 }
 
 .progress-feedback {
@@ -680,12 +774,6 @@ textarea {
   gap: 6px;
   flex-wrap: wrap;
   align-items: center;
-}
-
-.sidebar-collapsed .sidebar {
-  transform: translateX(-120%);
-  opacity: 0;
-  pointer-events: none;
 }
 
 /* Hero */
@@ -2738,24 +2826,6 @@ textarea {
 
   .hero-card {
     order: 2;
-  }
-
-  .sidebar {
-    position: fixed;
-    inset: 12px;
-    width: auto;
-    max-width: none;
-    max-height: calc(100vh - 24px);
-    margin-bottom: 0;
-    transform: translateX(0);
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .sidebar-collapsed .sidebar {
-    transform: translateY(-120%);
-    opacity: 0;
-    pointer-events: none;
   }
 
   .compact-mode .sprite-groups {

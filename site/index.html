@@ -47,7 +47,6 @@
 
         if (data.compact) body.classList.add("compact-mode");
         if (data.outlinesOff) body.classList.add("outlines-off");
-        if (data.sidebarCollapsed) body.classList.add("sidebar-collapsed");
         root.classList.toggle("dark-mode", Boolean(data.dark));
 
         const themeId = VALID_THEMES.has(data.theme) ? data.theme : DEFAULT_THEME;
@@ -59,98 +58,108 @@
   <div class="bg-scene"></div>
   <div class="bg-grid"></div>
 
-  <aside class="sidebar">
-    <div class="sidebar-header">
-      <h2>Settings</h2>
-      <button id="settings-close" class="modal-close" type="button" aria-label="Close settings">x</button>
-    </div>
-    <div class="sidebar-section">
-      <button id="compact-toggle" class="btn ghost btn-small" type="button">
-        Compact Mode
-      </button>
-    </div>
-    <div class="sidebar-section">
-      <h3>Gameplay</h3>
-      <div class="filter filter--select">
-        <label for="game-mode">Game Mode</label>
-        <select id="game-mode">
-          <option value="off" selected>Challenge</option>
-          <option value="weekly">Weekly Challenge</option>
-          <option value="practice">Practice</option>
-        </select>
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-card modal-card--settings settings-panel">
+      <div class="settings-header">
+        <div class="settings-header__copy">
+          <h2 id="settings-title">Settings</h2>
+          <p class="settings-subtitle">Configure gameplay, visuals, and progress sharing.</p>
+        </div>
+        <button id="settings-close" class="modal-close" type="button" aria-label="Close settings">x</button>
       </div>
-      <div class="filter filter--select">
-        <label for="typo-mode">Typo Tolerance</label>
-        <select id="typo-mode">
-          <option value="strict">Strict</option>
-          <option value="normal" selected>Normal</option>
-          <option value="forgiving">Forgiving</option>
-        </select>
+      <div class="settings-body">
+        <div class="settings-section settings-section--actions">
+          <h3>Quick Actions</h3>
+          <div class="settings-actions">
+            <button id="compact-toggle" class="btn ghost btn-small" type="button">Compact Mode</button>
+            <button id="settings-reset" class="btn ghost btn-small btn-reset" type="button">
+              Reset Settings
+            </button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Gameplay</h3>
+          <div class="settings-grid">
+            <div class="settings-field">
+              <label for="game-mode">Game Mode</label>
+              <select id="game-mode">
+                <option value="off" selected>Challenge</option>
+                <option value="weekly">Weekly Challenge</option>
+                <option value="practice">Practice</option>
+              </select>
+            </div>
+            <div class="settings-field">
+              <label for="typo-mode">Typo Tolerance</label>
+              <select id="typo-mode">
+                <option value="strict">Strict</option>
+                <option value="normal" selected>Normal</option>
+                <option value="forgiving">Forgiving</option>
+              </select>
+            </div>
+          </div>
+          <label class="toggle">
+            <input id="autocorrect-toggle" type="checkbox" checked />
+            <span>Auto-Accept Close Matches</span>
+          </label>
+        </div>
+        <div class="settings-section">
+          <h3>Audio</h3>
+          <label class="toggle">
+            <input id="cries-toggle" type="checkbox" />
+            <span>Enable Cries</span>
+          </label>
+          <label class="toggle">
+            <input id="legacy-cries-toggle" type="checkbox" />
+            <span>Use Legacy Cries</span>
+          </label>
+        </div>
+        <div class="settings-section">
+          <h3>Appearance</h3>
+          <label class="toggle">
+            <input id="outline-toggle" type="checkbox" />
+            <span>Show Outlines</span>
+          </label>
+          <label class="toggle">
+            <input id="dark-toggle" type="checkbox" />
+            <span>Dark Mode</span>
+          </label>
+          <label class="toggle">
+            <input id="show-dex-toggle" type="checkbox" />
+            <span>Show Pokedex ID</span>
+          </label>
+          <label class="toggle">
+            <input id="shiny-toggle" type="checkbox" />
+            <span>Use Shiny Sprites</span>
+          </label>
+          <span class="filter-heading">Theme</span>
+          <div id="theme-chooser" class="theme-grid"></div>
+        </div>
+        <div class="settings-section">
+          <h3>Progress</h3>
+          <div class="settings-field">
+            <label for="progress-code">Progress Link</label>
+            <div class="progress-token">
+              <input id="progress-code" class="progress-code" type="text" placeholder="Exported progress link or code" spellcheck="false" />
+              <button id="progress-copy" class="progress-copy" type="button" aria-label="Copy progress link" title="Copy progress link">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+                  <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <label class="toggle">
+            <input id="progress-include-settings" type="checkbox" />
+            <span>Include Settings</span>
+          </label>
+          <div class="progress-actions">
+            <button id="progress-import" class="btn ghost btn-small" type="button">Import</button>
+          </div>
+          <p id="progress-feedback" class="progress-feedback" aria-live="polite"></p>
+        </div>
       </div>
-      <label class="toggle">
-        <input id="autocorrect-toggle" type="checkbox" checked />
-        <span>Auto-Accept Close Matches</span>
-      </label>
     </div>
-    <div class="sidebar-section">
-      <h3>Audio</h3>
-      <label class="toggle">
-        <input id="cries-toggle" type="checkbox" />
-        <span>Enable Cries</span>
-      </label>
-      <label class="toggle">
-        <input id="legacy-cries-toggle" type="checkbox" />
-        <span>Use Legacy Cries</span>
-      </label>
-    </div>
-    <div class="sidebar-section">
-      <h3>Display</h3>
-      <label class="toggle">
-        <input id="outline-toggle" type="checkbox" />
-        <span>Show Outlines</span>
-      </label>
-      <label class="toggle">
-        <input id="dark-toggle" type="checkbox" />
-        <span>Dark Mode</span>
-      </label>
-      <label class="toggle">
-        <input id="show-dex-toggle" type="checkbox" />
-        <span>Show Pokedex ID</span>
-      </label>
-      <label class="toggle">
-        <input id="shiny-toggle" type="checkbox" />
-        <span>Use Shiny Sprites</span>
-      </label>
-      <button id="settings-reset" class="btn ghost btn-small" type="button">
-        Reset Settings
-      </button>
-    </div>
-    <div class="sidebar-section">
-      <h3>Theme</h3>
-      <div id="theme-chooser" class="theme-grid"></div>
-    </div>
-    <div class="sidebar-section">
-      <h3>Progress</h3>
-      <label class="toggle">
-        <input id="progress-include-settings" type="checkbox" />
-        <span>Include Settings</span>
-      </label>
-      <div class="progress-token">
-        <input id="progress-code" class="progress-code" type="text" placeholder="Exported progress link or code" spellcheck="false" />
-        <button id="progress-copy" class="progress-copy" type="button" aria-label="Copy progress link" title="Copy progress link">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <rect x="9" y="9" width="11" height="11" rx="2"></rect>
-            <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
-          </svg>
-        </button>
-      </div>
-      <div class="progress-actions">
-        <button id="progress-export" class="btn ghost btn-small" type="button">Export</button>
-        <button id="progress-import" class="btn ghost btn-small" type="button">Import</button>
-      </div>
-      <p id="progress-feedback" class="progress-feedback" aria-live="polite"></p>
-    </div>
-  </aside>
+  </div>
 
   <main class="app">
     <header class="hero">
@@ -183,8 +192,8 @@
           >
             Achievements
           </button>
-          <button id="filters-toggle" class="btn ghost btn-small" type="button">
-            Show Settings
+          <button id="filters-toggle" class="btn ghost btn-small" type="button" aria-haspopup="dialog" aria-controls="settings-modal">
+            Settings
           </button>
           <button id="reset-btn" class="btn ghost btn-small btn-reset">Reset</button>
         </div>
@@ -216,8 +225,8 @@
             >
               Achievements
             </button>
-            <button id="filters-toggle-compact" class="btn ghost btn-small" type="button">
-              Show Settings
+            <button id="filters-toggle-compact" class="btn ghost btn-small" type="button" aria-haspopup="dialog" aria-controls="settings-modal">
+              Settings
             </button>
             <button id="reset-btn-compact" class="btn ghost btn-small btn-reset" type="button">
               Reset

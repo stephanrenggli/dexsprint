@@ -65,6 +65,7 @@ const filtersToggle = document.getElementById("filters-toggle");
 const compactToggle = document.getElementById("compact-toggle");
 const criesToggle = document.getElementById("cries-toggle");
 const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
+const settingsModal = document.getElementById("settings-modal");
 const settingsClose = document.getElementById("settings-close");
 const showDexToggle = document.getElementById("show-dex-toggle");
 const shinyToggle = document.getElementById("shiny-toggle");
@@ -106,7 +107,6 @@ const changelogClose = document.getElementById("changelog-close");
 const changelogOpen = document.getElementById("changelog-open");
 const changelogContent = document.getElementById("changelog-content");
 const progressCodeEl = document.getElementById("progress-code");
-const progressExportBtn = document.getElementById("progress-export");
 const progressCopyBtn = document.getElementById("progress-copy");
 const progressImportBtn = document.getElementById("progress-import");
 const progressFeedbackEl = document.getElementById("progress-feedback");
@@ -223,7 +223,6 @@ function getSettingsPayload() {
     shiny: shinyToggle ? shinyToggle.checked : false,
     typoMode: typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
     autocorrect: autocorrectToggle ? autocorrectToggle.checked : true,
-    sidebarCollapsed: document.body.classList.contains("sidebar-collapsed"),
     filtersPanelExpanded: Boolean(filtersPanel && !filtersPanel.hidden),
     dark: document.documentElement.classList.contains("dark-mode"),
     theme: document.documentElement.dataset.theme || DEFAULT_THEME
@@ -231,7 +230,7 @@ function getSettingsPayload() {
 }
 
 function getShareableSettingsPayload() {
-  const { sidebarCollapsed, filtersPanelExpanded, ...shareableSettings } = getSettingsPayload();
+  const { filtersPanelExpanded, ...shareableSettings } = getSettingsPayload();
   return shareableSettings;
 }
 
@@ -371,13 +370,6 @@ function applySettingsPayload(data, { persist = true } = {}) {
   if (outlineToggle) outlineToggle.checked = !data.outlinesOff;
   document.body.classList.toggle("outlines-off", Boolean(data.outlinesOff));
 
-  if (Object.prototype.hasOwnProperty.call(data, "sidebarCollapsed")) {
-    document.body.classList.toggle("sidebar-collapsed", Boolean(data.sidebarCollapsed));
-    const settingsLabel = data.sidebarCollapsed ? "Show Settings" : "Hide Settings";
-    if (filtersToggle) filtersToggle.textContent = settingsLabel;
-    if (filtersToggleCompact) filtersToggleCompact.textContent = settingsLabel;
-  }
-
   if (Object.prototype.hasOwnProperty.call(data, "filtersPanelExpanded")) {
     setFiltersPanelExpanded(Boolean(data.filtersPanelExpanded), { persist: false });
   } else {
@@ -511,6 +503,24 @@ let changelogMarkupLoaded = false;
 let stateToastQueue = [];
 let stateToastActive = false;
 
+function getModalBaseLayer(modal) {
+  if (!modal) return 100;
+  switch (modal.id) {
+    case "confirm-modal":
+      return 1000;
+    case "settings-modal":
+      return 900;
+    case "achievements-modal":
+      return 800;
+    case "changelog-modal":
+      return 700;
+    case "info-modal":
+      return 600;
+    default:
+      return 500;
+  }
+}
+
 function scheduleImportedProgressCleanup() {
   if (progressCleanupTimeout) clearTimeout(progressCleanupTimeout);
   progressCleanupTimeout = setTimeout(() => {
@@ -562,6 +572,8 @@ function openModal(modal, initialFocus = null) {
   if (activeEl instanceof HTMLElement) {
     modal._restoreFocusEl = activeEl;
   }
+  document.body.appendChild(modal);
+  modal.style.zIndex = String(getModalBaseLayer(modal));
   if (!modalScrollLock) {
     modalScrollLock = {
       x: window.scrollX,
@@ -586,6 +598,7 @@ function openModal(modal, initialFocus = null) {
 function closeModal(modal, { restoreFocus = true } = {}) {
   if (!modal) return;
   modal.classList.add("hidden");
+  modal.style.zIndex = "";
   if (activeModal === modal) {
     activeModal = null;
   }
@@ -841,6 +854,15 @@ function closeChangelogModal() {
   closeModal(changelogModal);
 }
 
+function openSettingsModal() {
+  if (!settingsModal) return;
+  openModal(settingsModal, settingsClose || filtersToggle || filtersToggleCompact);
+}
+
+function closeSettingsModal() {
+  closeModal(settingsModal);
+}
+
 function renderConfirmStats(items) {
   if (!confirmStats) return;
   renderLabeledCards(confirmStats, items, {
@@ -885,6 +907,31 @@ function buildProgressShareLink() {
   return url.toString();
 }
 
+function syncProgressLinkPreview({ preserveSelection = false } = {}) {
+  if (!progressCodeEl) return "";
+  if (!state.allNames.length) {
+    progressCodeEl.value = "";
+    return "";
+  }
+  const shareLink = buildProgressShareLink();
+  const shouldRestoreSelection = preserveSelection && document.activeElement === progressCodeEl;
+  const selection = shouldRestoreSelection
+    ? {
+        start: progressCodeEl.selectionStart,
+        end: progressCodeEl.selectionEnd
+      }
+    : null;
+  progressCodeEl.value = shareLink;
+  if (selection && Number.isInteger(selection.start) && Number.isInteger(selection.end)) {
+    try {
+      progressCodeEl.setSelectionRange(selection.start, selection.end);
+    } catch (err) {
+      // Ignore selection restore failures in unsupported browsers.
+    }
+  }
+  return shareLink;
+}
+
 function applyImportedProgress(foundSet, { elapsed = 0, persist = true, resumeTimer = true } = {}) {
   stopTimer();
   state.found = new Set(
@@ -912,26 +959,11 @@ function applyImportedProgress(foundSet, { elapsed = 0, persist = true, resumeTi
   if (persist) saveState();
 }
 
-async function copyProgressLink() {
-  if (!progressCodeEl || !state.allNames.length) return;
-
-  const shareLink = buildProgressShareLink();
-  progressCodeEl.value = shareLink;
-  selectProgressCode();
-
-  try {
-    await navigator.clipboard.writeText(shareLink);
-    setProgressFeedback("Progress link copied.");
-  } catch (err) {
-    setProgressFeedback("Progress link ready to copy.");
-  }
-}
-
 async function copyExistingProgressValue() {
   if (!progressCodeEl) return;
-  const value = progressCodeEl.value.trim();
+  const value = syncProgressLinkPreview({ preserveSelection: true }).trim();
   if (!value) {
-    setProgressFeedback("Export a progress link first.");
+    setProgressFeedback("Open a quiz to generate a progress link.");
     return;
   }
 
@@ -973,7 +1005,7 @@ async function importProgressValue(value, { fromHash = false } = {}) {
     applyImportedProgress(imported.found, { elapsed: imported.elapsed });
 
     if (progressCodeEl) {
-      progressCodeEl.value = buildProgressShareLink();
+      syncProgressLinkPreview();
       if (!fromHash) selectProgressCode();
     }
 
@@ -1278,6 +1310,7 @@ function flushStateSave() {
   const previous = localStorage.getItem(STORAGE_KEY);
   localStorage.setItem(STORAGE_KEY, record);
   localStorage.setItem(STORAGE_BACKUP_KEY, previous || record);
+  syncProgressLinkPreview();
 }
 
 function saveState({ immediate = false } = {}) {
@@ -1357,6 +1390,7 @@ function restoreState() {
 
 function saveSettings() {
   localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(getSettingsPayload()));
+  syncProgressLinkPreview();
 }
 
 function updateThemeColorMeta(color) {
@@ -1391,10 +1425,9 @@ function resetSettings() {
   document.body.classList.remove("compact-mode");
   document.documentElement.classList.remove("dark-mode");
   document.body.classList.add("outlines-off");
-  document.body.classList.add("sidebar-collapsed");
   if (compactToggle) compactToggle.textContent = "Compact Mode";
-  if (filtersToggle) filtersToggle.textContent = "Show Settings";
-  if (filtersToggleCompact) filtersToggleCompact.textContent = "Show Settings";
+  if (filtersToggle) filtersToggle.textContent = "Settings";
+  if (filtersToggleCompact) filtersToggleCompact.textContent = "Settings";
   if (criesToggle) criesToggle.checked = false;
   if (legacyCriesToggle) legacyCriesToggle.checked = false;
   if (showDexToggle) showDexToggle.checked = false;
@@ -1411,6 +1444,7 @@ function resetSettings() {
   setChipGroupSelections(typeFilter, []);
   applyFilters();
   syncWeeklyChallengeState();
+  syncProgressLinkPreview();
 }
 
 function getStudyCandidates() {
@@ -1730,6 +1764,7 @@ function updateStats() {
       console.error("Badge rendering failed", err);
     }
   }
+  syncProgressLinkPreview();
 }
 
 function getBadgeContext() {
@@ -2157,6 +2192,7 @@ function resetQuiz() {
   clearState();
   if (progressCodeEl) progressCodeEl.value = "";
   setProgressFeedback("");
+  syncProgressLinkPreview();
 }
 
 async function confirmReset() {
@@ -3204,11 +3240,6 @@ if (filtersPanelToggle) {
     setFiltersPanelExpanded(filtersPanel ? filtersPanel.hidden : false);
   });
 }
-if (progressExportBtn) {
-  progressExportBtn.addEventListener("click", () => {
-    copyProgressLink();
-  });
-}
 if (progressCopyBtn) {
   progressCopyBtn.addEventListener("click", () => {
     copyExistingProgressValue();
@@ -3218,6 +3249,9 @@ if (progressImportBtn) {
   progressImportBtn.addEventListener("click", () => {
     importProgressValue(progressCodeEl ? progressCodeEl.value : "");
   });
+}
+if (progressIncludeSettingsEl) {
+  progressIncludeSettingsEl.addEventListener("change", saveSettings);
 }
 if (outlineToggle) {
   outlineToggle.checked = false;
@@ -3239,20 +3273,12 @@ if (compactToggle) {
 }
 
 if (filtersToggle) {
-  document.body.classList.add("sidebar-collapsed");
-  const updateSettingsLabel = (collapsed) => {
-    const label = collapsed ? "Show Settings" : "Hide Settings";
-    if (filtersToggle) filtersToggle.textContent = label;
-    if (filtersToggleCompact) filtersToggleCompact.textContent = label;
-  };
-  updateSettingsLabel(true);
-  const toggleSettings = () => {
-    const collapsed = document.body.classList.toggle("sidebar-collapsed");
-    updateSettingsLabel(collapsed);
-    saveSettings();
-  };
-  filtersToggle.addEventListener("click", toggleSettings);
-  if (filtersToggleCompact) filtersToggleCompact.addEventListener("click", toggleSettings);
+  filtersToggle.textContent = "Settings";
+  filtersToggle.addEventListener("click", openSettingsModal);
+  if (filtersToggleCompact) {
+    filtersToggleCompact.textContent = "Settings";
+    filtersToggleCompact.addEventListener("click", openSettingsModal);
+  }
 }
 
 if (achievementsOpenBtn) achievementsOpenBtn.addEventListener("click", openAchievementsModal);
@@ -3267,12 +3293,11 @@ if (achievementsModal) {
 }
 
 if (settingsClose) {
-  settingsClose.addEventListener("click", () => {
-    document.body.classList.add("sidebar-collapsed");
-    if (filtersToggle) filtersToggle.textContent = "Show Settings";
-    if (filtersToggleCompact) filtersToggleCompact.textContent = "Show Settings";
-    saveSettings();
-    focusInput();
+  settingsClose.addEventListener("click", closeSettingsModal);
+}
+if (settingsModal) {
+  settingsModal.addEventListener("click", (event) => {
+    if (event.target === settingsModal) closeSettingsModal();
   });
 }
 
@@ -3407,6 +3432,10 @@ document.addEventListener("keydown", (event) => {
       closeConfirmModal(false);
       return;
     }
+    if (settingsModal && !settingsModal.classList.contains("hidden")) {
+      closeSettingsModal();
+      return;
+    }
     if (achievementsModal && !achievementsModal.classList.contains("hidden")) {
       closeAchievementsModal();
       return;
@@ -3431,7 +3460,7 @@ if (inputEl) {
     if (!(target instanceof HTMLElement)) return;
     if (
       target.closest(
-        "input, textarea, select, button, a, label, .sidebar, .modal, .sprite-board, .sprite-card, .study-panel"
+        "input, textarea, select, button, a, label, .settings-panel, .modal, .sprite-board, .sprite-card, .study-panel"
       )
     ) {
       return;
