@@ -1,3 +1,5 @@
+import { createQrCodeDataUrl } from "../services/qr-code.js";
+
 export function createProgressShareController({
   state,
   progressCodeEl,
@@ -5,6 +7,14 @@ export function createProgressShareController({
   progressFeedbackEl,
   progressImportBtn,
   progressCopyBtn,
+  progressQrBtn,
+  qrModal,
+  qrClose,
+  qrImage,
+  qrLink,
+  qrCopyBtn,
+  openModal,
+  closeModal,
   progressCodePrefix,
   legacyProgressCodePrefix,
   getStableProgressIds,
@@ -30,6 +40,7 @@ export function createProgressShareController({
   setProgressFeedback
 }) {
   let progressCleanupTimeout = null;
+  let qrLinkValue = "";
 
   function setProgressFeedback(message) {
     if (!progressFeedbackEl) return;
@@ -120,6 +131,54 @@ export function createProgressShareController({
       setProgressFeedback("");
       progressCleanupTimeout = null;
     }, 4000);
+  }
+
+  function setQrLinkValue(value) {
+    qrLinkValue = value || "";
+    if (qrLink) qrLink.value = qrLinkValue;
+  }
+
+  function openQrModal() {
+    if (!qrModal) return false;
+    const shareLink = syncProgressLinkPreview({ preserveSelection: true }).trim();
+    if (!shareLink) {
+      setProgressFeedback("Open a quiz to generate a QR code.");
+      return false;
+    }
+    qrLinkValue = shareLink;
+    setQrLinkValue(shareLink);
+    if (qrImage) {
+      try {
+        qrImage.src = createQrCodeDataUrl(shareLink);
+      } catch (err) {
+        setProgressFeedback("That progress link is too long for the QR code.");
+        return false;
+      }
+      qrImage.alt = "QR code for the current progress link";
+    }
+    if (typeof openModal === "function") {
+      openModal(qrModal, qrClose || qrLink || qrImage);
+    }
+    return true;
+  }
+
+  function closeQrModal() {
+    if (!qrModal || typeof closeModal !== "function") return;
+    closeModal(qrModal);
+  }
+
+  async function copyQrLink() {
+    const value = qrLinkValue || syncProgressLinkPreview({ preserveSelection: true }).trim();
+    if (!value) {
+      setProgressFeedback("Open a quiz to generate a QR code.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      setProgressFeedback("Progress link copied.");
+    } catch (err) {
+      setProgressFeedback("Progress link ready to copy.");
+    }
   }
 
   function buildProgressShareLink() {
@@ -294,6 +353,9 @@ export function createProgressShareController({
     handleProgressHashChange,
     scheduleImportedProgressCleanup,
     buildProgressShareLink,
-    setProgressFeedback
+    setProgressFeedback,
+    openQrModal,
+    closeQrModal,
+    copyQrLink
   };
 }

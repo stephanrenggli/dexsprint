@@ -161,9 +161,15 @@ const changelogOpen = document.getElementById("changelog-open");
 const changelogContent = document.getElementById("changelog-content");
 const progressCodeEl = document.getElementById("progress-code");
 const progressCopyBtn = document.getElementById("progress-copy");
+const progressQrBtn = document.getElementById("progress-qr");
 const progressImportBtn = document.getElementById("progress-import");
 const progressFeedbackEl = document.getElementById("progress-feedback");
 const progressIncludeSettingsEl = document.getElementById("progress-include-settings");
+const qrModal = document.getElementById("qr-modal");
+const qrClose = document.getElementById("qr-close");
+const qrImage = document.getElementById("qr-image");
+const qrLink = document.getElementById("qr-link");
+const qrCopyBtn = document.getElementById("qr-copy");
 const settingsPanelCard = settingsModal ? settingsModal.querySelector(".settings-panel") : null;
 const studyPanel = document.getElementById("study-panel");
 const studySubtitle = document.getElementById("study-subtitle");
@@ -272,6 +278,14 @@ progressShareController = createProgressShareController({
   progressFeedbackEl,
   progressImportBtn,
   progressCopyBtn,
+  progressQrBtn,
+  qrModal,
+  qrClose,
+  qrImage,
+  qrLink,
+  qrCopyBtn,
+  openModal,
+  closeModal,
   progressCodePrefix: PROGRESS_CODE_PREFIX,
   legacyProgressCodePrefix: LEGACY_PROGRESS_CODE_PREFIX,
   getStableProgressIds,
@@ -676,6 +690,18 @@ function requestConfirmation(message, { title = "Confirm Action", confirmLabel =
 
 function syncProgressLinkPreview({ preserveSelection = false } = {}) {
   return progressShareController?.syncProgressLinkPreview({ preserveSelection }) || "";
+}
+
+function openProgressQrModal() {
+  return progressShareController?.openQrModal();
+}
+
+function closeProgressQrModal() {
+  return progressShareController?.closeQrModal();
+}
+
+function copyProgressQrLink() {
+  return progressShareController?.copyQrLink();
 }
 
 function applyImportedProgress(foundSet, options = {}) {
@@ -1479,6 +1505,11 @@ if (progressCopyBtn) {
     copyExistingProgressValue();
   });
 }
+if (progressQrBtn) {
+  progressQrBtn.addEventListener("click", () => {
+    openProgressQrModal();
+  });
+}
 if (progressImportBtn) {
   progressImportBtn.addEventListener("click", () => {
     importProgressValue(progressCodeEl ? progressCodeEl.value : "");
@@ -1523,6 +1554,18 @@ if (achievementsClose) achievementsClose.addEventListener("click", closeAchievem
 if (achievementsModal) {
   achievementsModal.addEventListener("click", (event) => {
     if (event.target === achievementsModal) closeAchievementsModal();
+  });
+}
+
+if (qrClose) {
+  qrClose.addEventListener("click", closeProgressQrModal);
+}
+if (qrCopyBtn) {
+  qrCopyBtn.addEventListener("click", copyProgressQrLink);
+}
+if (qrModal) {
+  qrModal.addEventListener("click", (event) => {
+    if (event.target === qrModal) closeProgressQrModal();
   });
 }
 

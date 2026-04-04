@@ -4,6 +4,8 @@ export function getModalBaseLayer(modalId) {
       return 1000;
     case "settings-modal":
       return 900;
+    case "qr-modal":
+      return 950;
     case "achievements-modal":
       return 800;
     case "changelog-modal":

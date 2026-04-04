@@ -18,6 +18,7 @@
   --pokeball: url("../assets/pokeball-light.svg");
   --info-tip-icon: url("../assets/info-tip.svg");
   --copy-icon: url("../assets/copy.svg");
+  --qr-icon: url("../assets/qr.svg");
   --surface: #fffdf7;
   --surface-2: #fff2db;
   --surface-3: #fff8ed;
@@ -587,7 +588,7 @@ textarea {
   width: 100%;
   min-width: 0;
   height: 42px;
-  padding: 10px 42px 10px 12px;
+  padding: 10px 74px 10px 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
@@ -627,6 +628,43 @@ textarea {
 
 .progress-copy:hover,
 .progress-copy:focus-visible {
+  background: color-mix(in srgb, var(--surface-3) 80%, transparent);
+  color: var(--ink);
+  outline: none;
+}
+
+.progress-qr {
+  position: absolute;
+  top: 50%;
+  right: 40px;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.progress-qr::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  display: block;
+  background-color: currentColor;
+  -webkit-mask: var(--qr-icon) center / 16px 16px no-repeat;
+  mask: var(--qr-icon) center / 16px 16px no-repeat;
+}
+
+.progress-qr:hover,
+.progress-qr:focus-visible {
   background: color-mix(in srgb, var(--surface-3) 80%, transparent);
   color: var(--ink);
   outline: none;
@@ -1794,12 +1832,63 @@ textarea {
   height: 88px;
 }
 
+.modal-content.qr-modal img.qr-modal__image {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
 .modal-card--confirm {
   width: min(420px, 92vw);
 }
 
 .modal-card--achievements {
   width: min(760px, 94vw);
+}
+
+.modal-card--qr {
+  width: min(680px, 94vw);
+}
+
+.qr-modal {
+  justify-items: center;
+  gap: 14px;
+}
+
+.qr-modal__art {
+  width: min(560px, 100%);
+  aspect-ratio: 1;
+  margin: 0 auto;
+  padding: 18px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-3));
+  border: 1px solid var(--border);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.qr-modal__image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.qr-modal__field {
+  display: grid;
+  gap: 8px;
+  width: min(560px, 100%);
+}
+
+.qr-modal__link {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  padding: 10px 12px;
 }
 
 .confirm-copy {

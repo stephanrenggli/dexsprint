@@ -1,6 +1,6 @@
 importScripts("./js/vendor/pokeapi-js-wrapper-sw.js");
 
-const CACHE_NAME = "dexsprint-shell-v13";
+const CACHE_NAME = "dexsprint-shell-v17";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -28,6 +28,8 @@ const APP_SHELL = [
   "./js/services/audio.js",
   "./js/services/catalog-source.js",
   "./js/services/catalog-hydration.js",
+  "./js/services/qr-code.js",
+  "./js/vendor/qrcode-generator.mjs",
   "./js/domain/filters.js",
   "./js/domain/text.js",
   "./js/domain/progress-code.js",
@@ -41,6 +43,7 @@ const APP_SHELL = [
   "./js/ui/toasts.js",
   "./js/vendor/pokeapi-js-wrapper.js",
   "./assets/favicon.svg",
+  "./assets/qr.svg",
   "./assets/32.png",
   "./assets/180.png",
   "./assets/192.png",
