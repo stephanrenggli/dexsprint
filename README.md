@@ -2,6 +2,8 @@
 
 A browser-based Pokemon name quiz inspired by [pkmnquiz.com](https://pkmnquiz.com/).
 
+Disclaimer: This project was full vibe-coded with Codex. It is an unofficial fan project and is not affiliated with or endorsed by Nintendo, Creatures Inc., GAME FREAK, The Pokemon Company, PokeAPI, or the maintainers of the linked asset repositories.
+
 You type Pokemon names and reveal their sprites as you find them. The app supports multiple layouts, persistent progress, configurable settings in a modal, multilingual guessing, themed UI modes, and detail popups backed by PokeAPI data.
 
 See [ROADMAP.md](ROADMAP.md) for future improvements.
@@ -26,9 +28,9 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 ## Tech
 
 - Plain HTML, CSS, and JavaScript
-- [PokeAPI](https://pokeapi.co/) data via a vendored copy of [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper)
+- [PokeAPI](https://pokeapi.co/) data via a vendored copy of [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper), with sprite assets from the [PokeAPI sprites](https://github.com/PokeAPI/sprites) repository and cry assets from the [PokeAPI cries](https://github.com/PokeAPI/cries) repository
 - `pokeapi-js-wrapper-sw.js` for service-worker-based caching support
-- Public Pokemon sprite and cry assets from PokeAPI-related repositories
+- Public Pokemon sprite assets from the [PokeAPI sprites repository](https://github.com/PokeAPI/sprites) and cry assets from the [PokeAPI cries repository](https://github.com/PokeAPI/cries)
 
 ## Running Locally
 
@@ -101,7 +103,7 @@ dexsprintDebug.clearSave()
 ## Credits
 
 - Inspired by [pkmnquiz.com](https://pkmnquiz.com/)
-- Built using [PokeAPI](https://pokeapi.co/), [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper), and public sprite/cry assets
+- Built using [PokeAPI](https://pokeapi.co/), [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper), [PokeAPI sprites](https://github.com/PokeAPI/sprites), and [PokeAPI cries](https://github.com/PokeAPI/cries)
 - Fully vibe-coded using Codex
 
 ## Disclaimer

@@ -2966,7 +2966,7 @@ textarea {
 
 .site-footer__top {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: space-between;
   gap: 18px;
   flex-wrap: wrap;
@@ -2976,6 +2976,7 @@ textarea {
   display: grid;
   gap: 6px;
   max-width: 760px;
+  flex: 1 1 420px;
 }
 
 .site-footer p {
@@ -2990,6 +2991,10 @@ textarea {
   flex-wrap: wrap;
   margin-left: auto;
   row-gap: 8px;
+  flex: 0 1 auto;
+  align-self: stretch;
+  padding-left: 18px;
+  border-left: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
 }
 
 .site-footer__link {
@@ -3037,6 +3042,19 @@ textarea {
 .site-footer__legal {
   max-width: 920px;
   color: var(--muted);
+}
+
+.site-footer__bottom {
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 64%, transparent);
+}
+
+@media (max-width: 720px) {
+  .site-footer__meta-actions {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
 }
 
 .modal-card--changelog {
