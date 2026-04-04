@@ -2147,6 +2147,44 @@ function getTypoCandidates(normalized, maxDist) {
   return getTypoCandidatesModule(state, normalized, maxDist);
 }
 
+function findExactMatchAcrossAllPokemon(normalized) {
+  if (!normalized) return null;
+  for (const canonical of state.allNames) {
+    const entry = state.meta.get(canonical);
+    if (!entry) continue;
+    if (normalizeGuess(entry.label) === normalized) {
+      return { canonical, language: "en" };
+    }
+    const localizedNames = state.namesByLang.get(canonical);
+    if (!localizedNames) continue;
+    for (const [language, name] of localizedNames.entries()) {
+      if (normalizeGuess(name) === normalized) {
+        return { canonical, language };
+      }
+    }
+  }
+  return null;
+}
+
+function getGuessRejectionMessage(value, normalized) {
+  const exactMatch = findExactMatchAcrossAllPokemon(normalized);
+  if (exactMatch) {
+    return state.activeNames.has(exactMatch.canonical)
+      ? "That Pokemon is already found."
+      : "That Pokemon is filtered out by the current filters.";
+  }
+
+  if (normalized.length < 3) {
+    return "That guess is too short.";
+  }
+
+  if (/[a-z]/i.test(value || "")) {
+    return "Too far off. Try English, German, or Spanish names.";
+  }
+
+  return "Too far off.";
+}
+
 function handleGuess(value) {
   const normalized = normalizeGuess(value);
   if (!normalized) return;
@@ -2168,6 +2206,15 @@ function handleGuess(value) {
       advanceStudyCard({ markFound: true });
       const label = state.meta.get(currentName)?.label || "Pokemon";
       showStatusHint(`Corrected to ${label}.`);
+      return;
+    }
+    const exactMatch = findExactMatchAcrossAllPokemon(normalized);
+    if (exactMatch) {
+      showStatusHint(
+        state.activeNames.has(exactMatch.canonical)
+          ? "That Pokemon is not this study card."
+          : "That Pokemon is filtered out by the current filters."
+      );
       return;
     }
     showStatusHint("Not quite. Reveal it or press Next.");
@@ -2215,7 +2262,10 @@ function handleGuess(value) {
     }
     return;
   }
-
+  const rejectionMessage = getGuessRejectionMessage(value, normalized);
+  if (rejectionMessage) {
+    showStatusHint(rejectionMessage);
+  }
 }
 
 function refreshGroupedGenerationHeaders() {
@@ -2373,6 +2423,7 @@ function handleKeydown(e) {
   const value = e.target.value;
   handleGuess(value);
   e.target.value = "";
+  syncInlineStatusVisibility();
 }
 
 function refreshActiveDetailViews() {
