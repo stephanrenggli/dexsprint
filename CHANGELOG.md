@@ -1,3 +1,10 @@
+## [1.3.4](https://github.com/stephanrenggli/dexsprint/compare/v1.3.3...v1.3.4) (2026-04-04)
+
+
+### Bug Fixes
+
+* harden persisted game state ([84ff324](https://github.com/stephanrenggli/dexsprint/commit/84ff3242e370c44667c3134ef89070d8f7ba714a))
+
 ## [1.3.3](https://github.com/stephanrenggli/dexsprint/compare/v1.3.2...v1.3.3) (2026-04-04)
 
 
