@@ -1,12 +1,18 @@
 importScripts("./js/vendor/pokeapi-js-wrapper-sw.js");
 
-const CACHE_NAME = "dexsprint-shell-v1";
+const CACHE_NAME = "dexsprint-shell-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./css/styles.css",
   "./js/app.js",
+  "./js/audio.js",
+  "./js/data.js",
+  "./js/guess.js",
+  "./js/progress.js",
+  "./js/state.js",
+  "./js/text.js",
   "./js/vendor/pokeapi-js-wrapper.js",
   "./assets/favicon.svg",
   "./assets/32.png",

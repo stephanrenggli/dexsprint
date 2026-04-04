@@ -1,36 +1,38 @@
-﻿const state = {
-  names: [],
-  allNames: [],
-  activeNames: new Set(),
-  activeFoundCount: 0,
-  meta: new Map(),
-  generationIndex: new Map(),
-  typeIndex: new Map(),
-  guessIndex: new Map(),
-  guessByLength: new Map(),
-  guessPrefixes: new Set(),
-  namesByLang: new Map(),
-  studyDeck: [],
-  studyCurrent: null,
-  studyRevealed: false,
-  found: new Set(),
-  recentlyFound: new Set(),
-  cryAudio: null,
-  isRestoring: false,
-  lastSavedSec: -1,
-  hasCelebratedCompletion: false,
-  badgesPrimed: false,
-  infoCache: new Map(),
-  timerId: null,
-  startTime: null,
-  savedElapsed: 0,
-  activeEntry: null,
-  seenBadges: new Set(),
-  badgeRevision: 0,
-  renderedBadgeRevision: -1,
-  restoredFilterSelections: { gens: [], types: [] },
-  saveStateTimer: null
-};
+﻿import { playCry as playCryModule } from "./audio.js";
+import {
+  BADGES,
+  DEFAULT_GAME_MODE,
+  DEFAULT_STATUS,
+  DEFAULT_TYPO_MODE,
+  PROGRESS_CODE_PREFIX,
+  SAVE_STATE_DEBOUNCE_MS,
+  STORAGE_KEY,
+  state
+} from "./state.js";
+import {
+  formatGenerationLabel,
+  generationOrder,
+  normalizeGuess,
+  normalizeName,
+  prettifyName
+} from "./text.js";
+import { decodeProgressPayload, encodeProgressPayload } from "./progress.js";
+import {
+  buildGuessIndex as buildGuessIndexModule,
+  findTypoMatch as findTypoMatchModule,
+  getMaxTypoDistance as getMaxTypoDistanceModule,
+  getTypoCandidates as getTypoCandidatesModule,
+  levenshteinWithin as levenshteinWithinModule
+} from "./guess.js";
+import {
+  applyMetadataIndexes as applyMetadataIndexesModule,
+  fetchResourcesInBatches as fetchResourcesInBatchesModule,
+  hydrateLocalizedNames as hydrateLocalizedNamesModule,
+  loadGenerations as loadGenerationsModule,
+  loadSpeciesList as loadSpeciesListModule,
+  loadTypes as loadTypesModule,
+  scheduleLocalizedNameHydration as scheduleLocalizedNameHydrationModule
+} from "./data.js";
 
 const totalCount = document.getElementById("total-count");
 const foundCount = document.getElementById("found-count");
@@ -144,65 +146,6 @@ const criesLatestBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/";
 const criesLegacyBase =
   "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/legacy/";
-const STORAGE_KEY = "pokequiz-state";
-const SAVE_STATE_DEBOUNCE_MS = 150;
-const DEFAULT_STATUS = "";
-const DEFAULT_GAME_MODE = "off";
-const DEFAULT_TYPO_MODE = "normal";
-const PROGRESS_CODE_PREFIX = "dq3.";
-const BADGES = [
-  {
-    id: "first-catch",
-    icon: "P1",
-    title: "First Catch",
-    description: "Find your first Pokemon.",
-    unlocked: ({ foundCount }) => foundCount >= 1
-  },
-  {
-    id: "rookie-trainer",
-    icon: "10",
-    title: "Rookie Trainer",
-    description: "Find 10 Pokemon.",
-    unlocked: ({ foundCount }) => foundCount >= 10
-  },
-  {
-    id: "collector",
-    icon: "100",
-    title: "Collector",
-    description: "Find 100 Pokemon.",
-    unlocked: ({ foundCount }) => foundCount >= 100
-  },
-  {
-    id: "halfway-there",
-    icon: "50%",
-    title: "Halfway There",
-    description: "Reach 50% overall completion.",
-    unlocked: ({ totalCount, foundCount }) =>
-      totalCount > 0 && foundCount / totalCount >= 0.5
-  },
-  {
-    id: "region-master",
-    icon: "GEN",
-    title: "Region Master",
-    description: "Complete any generation.",
-    unlocked: ({ completedGenerations }) => completedGenerations.length > 0
-  },
-  {
-    id: "type-specialist",
-    icon: "TYPE",
-    title: "Type Specialist",
-    description: "Complete any type.",
-    unlocked: ({ completedTypes }) => completedTypes.length > 0
-  },
-  {
-    id: "national-dex",
-    icon: "DEX",
-    title: "National Dex",
-    description: "Find every Pokemon in the quiz.",
-    unlocked: ({ totalCount, foundCount }) =>
-      totalCount > 0 && foundCount === totalCount
-  }
-];
 
 let deferredInstallPrompt = null;
 
@@ -255,188 +198,6 @@ function setupInstallPrompt() {
     deferredInstallPrompt = null;
     syncInstallButton();
   });
-}
-
-function normalizeName(value) {
-  if (!value) return "";
-  let name = value
-    .toLowerCase()
-    .trim()
-    .replace(/[’']/g, "")
-    .replace(/♀/g, "-f")
-    .replace(/♂/g, "-m")
-    .replace(/\s+/g, "-")
-    .replace(/\.+/g, "")
-    .replace(/[^a-z0-9-]/g, "");
-  name = name.replace(/-+/g, "-");
-  return name;
-}
-
-function prettifyName(value) {
-  return value
-    .split("-")
-    .map((chunk) => chunk.charAt(0).toUpperCase() + chunk.slice(1))
-    .join(" ")
-    .replace("Hp", "HP");
-}
-
-function base64UrlEncode(bytes) {
-  let binary = "";
-  bytes.forEach((value) => {
-    binary += String.fromCharCode(value);
-  });
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-function base64UrlDecode(value) {
-  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
-}
-
-function writeVarInt(value, bytes) {
-  if (!Number.isInteger(value) || value < 0) {
-    throw new Error("Invalid progress value");
-  }
-
-  let remaining = value;
-  do {
-    let byte = remaining & 0x7f;
-    remaining = Math.floor(remaining / 128);
-    if (remaining > 0) byte |= 0x80;
-    bytes.push(byte);
-  } while (remaining > 0);
-}
-
-function readVarInt(bytes, offsetRef) {
-  let result = 0;
-  let shift = 0;
-
-  while (offsetRef.index < bytes.length) {
-    const byte = bytes[offsetRef.index];
-    offsetRef.index += 1;
-    result += (byte & 0x7f) * 2 ** shift;
-    if ((byte & 0x80) === 0) {
-      return result;
-    }
-    shift += 7;
-    if (shift > 35) break;
-  }
-
-  throw new Error("Invalid progress encoding");
-}
-
-function computeChecksum(bytes) {
-  let hash = 2166136261;
-  bytes.forEach((value) => {
-    hash ^= value;
-    hash = Math.imul(hash, 16777619) >>> 0;
-  });
-  return hash >>> 0;
-}
-
-function checksumBytes(value) {
-  return [
-    (value >>> 24) & 0xff,
-    (value >>> 16) & 0xff,
-    (value >>> 8) & 0xff,
-    value & 0xff
-  ];
-}
-
-function bytesToChecksum(bytes) {
-  if (bytes.length !== 4) {
-    throw new Error("Invalid checksum");
-  }
-  return (
-    ((bytes[0] << 24) >>> 0) |
-    ((bytes[1] << 16) >>> 0) |
-    ((bytes[2] << 8) >>> 0) |
-    (bytes[3] >>> 0)
-  ) >>> 0;
-}
-
-function encodeUtf8(value) {
-  return new TextEncoder().encode(value);
-}
-
-function decodeUtf8(bytes) {
-  return new TextDecoder().decode(bytes);
-}
-
-function encodeProgressPayload({ ids, elapsed, settings = null }) {
-  const payload = [];
-  writeVarInt(elapsed, payload);
-  writeVarInt(ids.length, payload);
-
-  let previousId = 0;
-  ids.forEach((id) => {
-    writeVarInt(id - previousId, payload);
-    previousId = id;
-  });
-
-  if (settings) {
-    const settingsBytes = encodeUtf8(JSON.stringify(settings));
-    writeVarInt(1, payload);
-    writeVarInt(settingsBytes.length, payload);
-    settingsBytes.forEach((value) => payload.push(value));
-  } else {
-    writeVarInt(0, payload);
-  }
-
-  const payloadBytes = Uint8Array.from(payload);
-  const checksum = checksumBytes(computeChecksum(payloadBytes));
-  return base64UrlEncode(Uint8Array.from([...checksum, ...payloadBytes]));
-}
-
-function decodeProgressPayload(serialized) {
-  const bytes = base64UrlDecode(serialized);
-  if (bytes.length < 4) {
-    throw new Error("Invalid progress payload");
-  }
-
-  const expectedChecksum = bytesToChecksum([...bytes.slice(0, 4)]);
-  const payload = bytes.slice(4);
-  const actualChecksum = computeChecksum(payload);
-  if (actualChecksum !== expectedChecksum) {
-    throw new Error("Progress code checksum mismatch");
-  }
-
-  const offsetRef = { index: 0 };
-  const elapsed = readVarInt(payload, offsetRef);
-  const count = readVarInt(payload, offsetRef);
-  const ids = [];
-  let previousId = 0;
-
-  for (let i = 0; i < count; i += 1) {
-    const delta = readVarInt(payload, offsetRef);
-    if (delta <= 0) {
-      throw new Error("Invalid progress delta");
-    }
-    previousId += delta;
-    ids.push(previousId);
-  }
-
-  let settings = null;
-  const hasSettings = offsetRef.index < payload.length ? readVarInt(payload, offsetRef) : 0;
-  if (hasSettings) {
-    const settingsLength = readVarInt(payload, offsetRef);
-    const settingsEnd = offsetRef.index + settingsLength;
-    if (settingsEnd > payload.length) {
-      throw new Error("Invalid progress payload");
-    }
-    settings = JSON.parse(
-      decodeUtf8(payload.slice(offsetRef.index, settingsEnd))
-    );
-    offsetRef.index = settingsEnd;
-  }
-
-  if (offsetRef.index !== payload.length) {
-    throw new Error("Invalid progress payload");
-  }
-
-  return { elapsed, ids, settings };
 }
 
 function getStableProgressIds() {
@@ -1050,49 +811,6 @@ async function handleProgressHashChange() {
   await restoreProgressFromHash();
 }
 
-function normalizeGuess(value) {
-  if (!value) return "";
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[’']/g, "")
-    .replace(/♀/g, "f")
-    .replace(/♂/g, "m")
-    .replace(/\s+/g, "")
-    .replace(/\.+/g, "")
-    .replace(/[^a-z0-9]/g, "");
-}
-
-function formatGenerationLabel(genName) {
-  const map = {
-    "generation-i": "Kanto (Gen I)",
-    "generation-ii": "Johto (Gen II)",
-    "generation-iii": "Hoenn (Gen III)",
-    "generation-iv": "Sinnoh (Gen IV)",
-    "generation-v": "Unova (Gen V)",
-    "generation-vi": "Kalos (Gen VI)",
-    "generation-vii": "Alola (Gen VII)",
-    "generation-viii": "Galar (Gen VIII)",
-    "generation-ix": "Paldea (Gen IX)"
-  };
-  return map[genName] || prettifyName(genName);
-}
-
-function generationOrder(genName) {
-  const order = {
-    "generation-i": 1,
-    "generation-ii": 2,
-    "generation-iii": 3,
-    "generation-iv": 4,
-    "generation-v": 5,
-    "generation-vi": 6,
-    "generation-vii": 7,
-    "generation-viii": 8,
-    "generation-ix": 9
-  };
-  return order[genName] || 999;
-}
-
 function formatTime(seconds) {
   const totalSeconds = Math.max(0, Math.floor(seconds));
   const weeks = Math.floor(totalSeconds / 604800);
@@ -1156,75 +874,13 @@ function setTimerText(value) {
   if (compactTimerEl) compactTimerEl.textContent = value;
 }
 
-async function playCry(canonical) {
-  if (!canonical) return;
-  const entry = state.meta.get(canonical);
-  if (!entry || !entry.cryId) return;
-  if (criesToggle && !criesToggle.checked) return;
-  try {
-    if (!state.cryAudio) {
-      state.cryAudio = new Audio();
-      state.cryAudio.preload = "auto";
-    }
-    state.cryAudio.pause();
-    const useLegacy = legacyCriesToggle && legacyCriesToggle.checked;
-    const legacyUrl = `${criesLegacyBase}${entry.cryId}.ogg`;
-    const modernUrl = `${criesLatestBase}${entry.cryId}.ogg`;
-    state.cryAudio.volume = 0.1;
-    if (useLegacy) {
-      await playCryWithFallback(legacyUrl, modernUrl);
-      return;
-    }
-    state.cryAudio.src = modernUrl;
-    await state.cryAudio.play();
-  } catch (err) {
-    // no-op: audio is optional
-  }
-}
-
-async function playCryWithFallback(legacyUrl, modernUrl) {
-  if (!state.cryAudio) return;
-  return new Promise((resolve, reject) => {
-    const audio = state.cryAudio;
-    let settled = false;
-
-    const cleanup = () => {
-      audio.removeEventListener("error", onLegacyError);
-      audio.removeEventListener("playing", onPlaying);
-    };
-
-    const onPlaying = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve();
-    };
-
-    const onLegacyError = () => {
-      audio.removeEventListener("error", onLegacyError);
-      audio.src = modernUrl;
-      audio
-        .play()
-        .then(() => {
-          if (settled) return;
-          settled = true;
-          cleanup();
-          resolve();
-        })
-        .catch((err) => {
-          if (settled) return;
-          settled = true;
-          cleanup();
-          reject(err);
-        });
-    };
-
-    audio.addEventListener("playing", onPlaying, { once: true });
-    audio.addEventListener("error", onLegacyError, { once: true });
-    audio.src = legacyUrl;
-    audio.play().catch(() => {
-      // If play fails due to autoplay restrictions, don't force fallback.
-    });
+function playCry(canonical) {
+  return playCryModule(canonical, {
+    state,
+    criesToggle,
+    legacyCriesToggle,
+    criesLatestBase,
+    criesLegacyBase
   });
 }
 
@@ -2285,62 +1941,24 @@ function getHiddenLabel(entry) {
 }
 
 function levenshteinWithin(a, b, max) {
-  const alen = a.length;
-  const blen = b.length;
-  if (Math.abs(alen - blen) > max) return max + 1;
-  const row = new Array(blen + 1).fill(0);
-  for (let j = 0; j <= blen; j += 1) row[j] = j;
-  for (let i = 1; i <= alen; i += 1) {
-    let prev = i - 1;
-    row[0] = i;
-    let minInRow = row[0];
-    for (let j = 1; j <= blen; j += 1) {
-      const temp = row[j];
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + cost);
-      prev = temp;
-      if (row[j] < minInRow) minInRow = row[j];
-    }
-    if (minInRow > max) return max + 1;
-  }
-  return row[blen];
+  return levenshteinWithinModule(a, b, max);
 }
 
 function findTypoMatch(normalized) {
-  if (!normalized) return null;
-  if (state.guessPrefixes.has(normalized)) return null;
-  if (normalized.length < 4) return null;
-  const maxDist = getMaxTypoDistance(normalized);
-  if (maxDist <= 0) return null;
-  let bestCanonical = null;
-  let bestDist = maxDist + 1;
-  let bestCount = 0;
-  for (const candidate of getTypoCandidates(normalized, maxDist)) {
-    if (Math.abs(candidate.length - normalized.length) > maxDist) continue;
-    const dist = levenshteinWithin(normalized, candidate, maxDist);
-    if (dist > maxDist) continue;
-    const canonical = state.guessIndex.get(candidate);
-    if (dist < bestDist) {
-      bestDist = dist;
-      bestCanonical = canonical;
-      bestCount = 1;
-    } else if (dist === bestDist && canonical !== bestCanonical) {
-      bestCount += 1;
-    }
-  }
-  if (bestCanonical && bestCount === 1) return bestCanonical;
-  return null;
+  return findTypoMatchModule(
+    state,
+    normalized,
+    typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
+    DEFAULT_TYPO_MODE
+  );
 }
 
 function getMaxTypoDistance(normalized) {
-  const mode = typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE;
-  if (mode === "strict") return 0;
-  if (mode === "forgiving") {
-    if (normalized.length <= 4) return 1;
-    if (normalized.length <= 8) return 2;
-    return 3;
-  }
-  return normalized.length <= 6 ? 1 : 2;
+  return getMaxTypoDistanceModule(
+    normalized,
+    typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
+    DEFAULT_TYPO_MODE
+  );
 }
 
 function syncTypoSettings() {
@@ -2353,16 +1971,7 @@ function syncTypoSettings() {
 }
 
 function getTypoCandidates(normalized, maxDist) {
-  if (!state.guessByLength.size) {
-    return state.guessIndex.keys();
-  }
-  const candidates = [];
-  for (let len = normalized.length - maxDist; len <= normalized.length + maxDist; len += 1) {
-    const guesses = state.guessByLength.get(len);
-    if (!guesses) continue;
-    guesses.forEach((guess) => candidates.push(guess));
-  }
-  return candidates;
+  return getTypoCandidatesModule(state, normalized, maxDist);
 }
 
 function handleGuess(value) {
@@ -2584,78 +2193,27 @@ function handleKeydown(e) {
   e.target.value = "";
 }
 
-async function loadGenerations() {
-  const data = await pokedex.getGenerationsList({ limit: 40 });
-  const gens = data && data.results ? data.results : [];
-  const generationMap = new Map();
-  const genDetails = await pokedex.resource(gens.map((gen) => gen.url));
-  const entries = (genDetails || []).map((genData) => {
-    if (!genData) return null;
-    const species = genData.pokemon_species || [];
-    const names = species.map((s) => normalizeName(s.name)).filter(Boolean);
-    names.forEach((name) => generationMap.set(name, genData.name));
-    return { name: genData.name, label: prettifyName(genData.name), names };
-  });
-  return { entries: entries.filter(Boolean), generationMap };
-}
-
-async function loadTypes() {
-  const data = await pokedex.getTypesList({ limit: 40 });
-  const types = (data && data.results ? data.results : []).filter(
-    (type) => type.name !== "unknown" && type.name !== "shadow"
-  );
-  const typeMap = new Map();
-  const typeDetails = await pokedex.resource(types.map((type) => type.url));
-  const entries = (typeDetails || []).map((typeData) => {
-    if (!typeData) return null;
-    const pokemon = typeData.pokemon || [];
-    const names = pokemon
-      .map((p) => normalizeName(p.pokemon.name))
-      .filter(Boolean);
-    names.forEach((name) => {
-      if (!typeMap.has(name)) typeMap.set(name, new Set());
-      typeMap.get(name).add(typeData.name);
-    });
-    return {
-      name: typeData.name,
-      label: prettifyName(typeData.name),
-      names,
-      id: typeData.id
-    };
-  });
-  return { entries: entries.filter(Boolean), typeMap };
-}
-
-function applyMetadataIndexes(generationData, typeData) {
-  state.generationIndex = new Map();
-  state.typeIndex = new Map();
-
-  generationData.entries.forEach((entry) => {
-    state.generationIndex.set(
-      entry.name,
-      new Set(entry.names.map(normalizeName))
-    );
-  });
-
-  typeData.entries.forEach((entry) => {
-    state.typeIndex.set(entry.name, new Set(entry.names.map(normalizeName)));
-  });
-
-  state.meta.forEach((entry, normalized) => {
-    entry.generation = formatGenerationLabel(
-      generationData.generationMap.get(normalized) || "Unknown"
-    );
-    entry.types = typeData.typeMap.has(normalized)
-      ? [...typeData.typeMap.get(normalized)].sort().map(prettifyName)
-      : [];
-  });
-}
-
 function refreshActiveDetailViews() {
   if (state.activeEntry && infoModal && !infoModal.classList.contains("hidden")) {
     openInfoModal(state.activeEntry);
   }
   renderStudyPanel();
+}
+
+function applyMetadataIndexes(generationData, typeData) {
+  return applyMetadataIndexesModule(state, generationData, typeData, formatGenerationLabel);
+}
+
+async function loadGenerations() {
+  return loadGenerationsModule(pokedex);
+}
+
+async function loadTypes() {
+  return loadTypesModule(pokedex);
+}
+
+async function loadSpeciesList() {
+  return loadSpeciesListModule(pokedex, slowPokedex);
 }
 
 function scheduleFilterMetadataHydration(generationPromise, typePromise) {
@@ -2905,107 +2463,24 @@ function applyFilters() {
 }
 
 function buildGuessIndex() {
-  state.guessIndex.clear();
-  state.guessByLength.clear();
-  state.guessPrefixes.clear();
-  const registerGuess = (guess, canonical) => {
-    if (!guess) return;
-    const isNewGuess = !state.guessIndex.has(guess);
-    state.guessIndex.set(guess, canonical);
-    if (isNewGuess) {
-      addPrefixes(guess);
-      if (!state.guessByLength.has(guess.length)) {
-        state.guessByLength.set(guess.length, []);
-      }
-      state.guessByLength.get(guess.length).push(guess);
-    }
-  };
-  state.names.forEach((canonical) => {
-    const labels = state.namesByLang.get(canonical);
-    const entry = state.meta.get(canonical);
-    const defaultLabel = entry ? entry.label : prettifyName(canonical);
-    const localizedLabels = [
-      labels && labels.get("en") ? labels.get("en") : defaultLabel,
-      labels && labels.get("de") ? labels.get("de") : null,
-      labels && labels.get("es") ? labels.get("es") : null
-    ];
-
-    localizedLabels.forEach((label) => {
-      const guess = normalizeGuess(label);
-      registerGuess(guess, canonical);
-    });
-
-    const fallbackGuess = normalizeGuess(defaultLabel);
-    registerGuess(fallbackGuess, canonical);
-  });
+  return buildGuessIndexModule(state, normalizeGuess, prettifyName);
 }
 
 async function fetchResourcesInBatches(urls, batchSize = 40) {
-  const output = [];
-  for (let i = 0; i < urls.length; i += batchSize) {
-    const batch = urls.slice(i, i + batchSize);
-    if (!batch.length) continue;
-    const batchResult = await pokedex.resource(batch);
-    if (Array.isArray(batchResult)) {
-      output.push(...batchResult);
-    } else if (batchResult) {
-      output.push(batchResult);
-    }
-  }
-  return output;
+  return fetchResourcesInBatchesModule(pokedex, urls, batchSize);
 }
 
 function hydrateLocalizedNames(speciesDetails) {
-  speciesDetails.forEach((detail) => {
-    if (!detail || !detail.name) return;
-    const canonical = normalizeName(detail.name);
-    if (!canonical) return;
-    const namesByLang = new Map();
-    (detail.names || []).forEach((nameEntry) => {
-      if (!nameEntry || !nameEntry.language) return;
-      if (nameEntry.language.name === "en") {
-        namesByLang.set("en", nameEntry.name);
-      }
-      if (nameEntry.language.name === "de") {
-        namesByLang.set("de", nameEntry.name);
-      }
-      if (nameEntry.language.name === "es") {
-        namesByLang.set("es", nameEntry.name);
-      }
-    });
-    state.namesByLang.set(canonical, namesByLang);
-  });
-  buildGuessIndex();
+  return hydrateLocalizedNamesModule(state, speciesDetails);
 }
 
 function scheduleLocalizedNameHydration(detailUrls) {
-  if (!detailUrls.length) return;
-  const hydrate = async () => {
-    try {
-      const speciesDetails = await fetchResourcesInBatches(detailUrls, 40);
-      hydrateLocalizedNames(speciesDetails);
-    } catch (error) {
-      console.warn("Localized name hydration failed", error);
-    }
-  };
-
-  if ("requestIdleCallback" in window) {
-    window.requestIdleCallback(() => {
-      void hydrate();
-    }, { timeout: 1500 });
-    return;
-  }
-
-  window.setTimeout(() => {
-    void hydrate();
-  }, 0);
-}
-
-function addPrefixes(value) {
-  if (value.length < 3) return;
-  for (let i = 2; i < value.length; i += 1) {
-    state.guessPrefixes.add(value.slice(0, i));
-  }
+  return scheduleLocalizedNameHydrationModule({
+    state,
+    pokedex,
+    detailUrls,
+    fetchResourcesInBatches: fetchResourcesInBatchesModule
+  });
 }
 
 async function loadPokemon() {

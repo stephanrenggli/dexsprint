@@ -5,7 +5,6 @@ It is intentionally separate from the README so the README stays focused on the 
 
 ## High Priority
 
-- Split `app.js` into smaller modules such as state, rendering, data loading, settings, and audio
 - Add a small automated test suite for normalization, typo matching, persistence restore, and progress encoding/decoding
 - Improve support for richer offline behavior, such as clearer cache status and optional fully bundled offline datasets
 - Decide whether DexSprint should stay shell-offline or become fully playable offline, then align caching and data loading with that choice
@@ -14,19 +13,8 @@ It is intentionally separate from the README so the README stays focused on the 
 
 ## Current Risks
 
-- `app.js` currently concentrates most runtime behavior in one file, which makes changes harder to isolate and test
 - Offline support is good for the shell, but gameplay and changelog data still depend on live network calls
 - There is no dedicated test runner yet, so regressions in core logic would be easy to miss
-
-## Recently Completed
-
-- Added milestone celebrations for completed generations and completed types
-- Improved offline-first behavior with cached dataset fallback and stronger service worker caching
-- Added configurable typo tolerance modes such as strict, normal, and forgiving
-- Added optional suggestions instead of always auto-accepting close matches
-- Added achievement badges with unlock notifications
-- Improved the detail modal with richer presentation for type, size, abilities, and related data
-- Moved theme definitions into CSS custom-property themes so early theme restore only sets theme ids and classes
 
 ## Nice to Have
 
@@ -37,7 +25,6 @@ It is intentionally separate from the README so the README stays focused on the 
 
 ### UI / UX
 
-- Refine the guess-input feedback model further, especially for compact and mobile layouts
 - Add more subtle milestone celebrations for progress checkpoints beyond generation/type/full completion
 - Add better loading and offline states such as clearer cache-aware messaging or skeleton states
 
