@@ -673,6 +673,7 @@ function openModal(modal, initialFocus = null) {
   if (activeEl instanceof HTMLElement) {
     modal._restoreFocusEl = activeEl;
   }
+  modal._locksScroll = true;
   const supportsStableScrollbarGutter =
     typeof CSS !== "undefined" && CSS.supports && CSS.supports("scrollbar-gutter: stable both-edges");
   const scrollbarGap = supportsStableScrollbarGutter
@@ -682,6 +683,22 @@ function openModal(modal, initialFocus = null) {
   modal.classList.remove("hidden");
   activeModal = modal;
   document.body.classList.add("modal-open");
+  const fallback = getModalFocusableElements(modal)[0] || modal;
+  const target = initialFocus || fallback;
+  requestAnimationFrame(() => {
+    if (target && target.focus) target.focus();
+  });
+}
+
+function openInfoModalOverlay(modal, initialFocus = null) {
+  if (!modal) return;
+  const activeEl = document.activeElement;
+  if (activeEl instanceof HTMLElement) {
+    modal._restoreFocusEl = activeEl;
+  }
+  modal._locksScroll = false;
+  modal.classList.remove("hidden");
+  activeModal = modal;
   const fallback = getModalFocusableElements(modal)[0] || modal;
   const target = initialFocus || fallback;
   requestAnimationFrame(() => {
@@ -2064,7 +2081,7 @@ async function openInfoModal(entry) {
   if (infoAbilities) infoAbilities.innerHTML = "";
   if (infoFacts) infoFacts.innerHTML = "";
   state.activeEntry = entry;
-  openModal(infoModal, infoClose);
+  openInfoModalOverlay(infoModal, infoClose);
   playCry(entry.normalized || normalizeName(entry.label || ""));
 
   try {
