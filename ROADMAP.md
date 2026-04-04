@@ -43,7 +43,7 @@ It is intentionally separate from the README so the README stays focused on the 
 - Add keyboard shortcuts for frequent actions like revealing the next Pokemon, toggling hints, opening settings, or skipping
 - Keep input focus more aggressively after correct guesses and after closing modals
 - Add clearer sprite loading and fallback states so missing assets do not feel like dead space
-- Add stronger quick settings access, per-setting explanations, and the ability to pin preferred modes or presets
+- Add stronger per-setting explanations and the ability to pin preferred modes or presets
 - Add stronger visual distinction for completed and guessed states, especially in compact mode
 - Add clearer loading and offline states such as skeleton screens, cache status messaging, and explicit retry fallback copy
 - Add progress preloading for the most likely data in the selected mode or filter so the app feels faster
@@ -59,7 +59,6 @@ It is intentionally separate from the README so the README stays focused on the 
 
 - Add paste-and-go support for trying multiple guesses quickly
 - Add smarter autocomplete or recent-guess suggestions
-- Add a visible remaining-count indicator for the current quiz set
 - Add a better "you are here" indicator for progress by generation, type, or filter
 - Add a continue-where-you-left-off prompt after refresh or revisit
 - Add per-setting reset controls instead of requiring a full settings reset

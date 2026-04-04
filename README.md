@@ -2,7 +2,7 @@
 
 A browser-based Pokemon name quiz inspired by [pkmnquiz.com](https://pkmnquiz.com/).
 
-You type Pokemon names and reveal their sprites as you find them. The app supports multiple layouts, persistent progress, multilingual guessing, themed UI modes, and detail popups backed by PokeAPI data.
+You type Pokemon names and reveal their sprites as you find them. The app supports multiple layouts, persistent progress, configurable settings in a modal, multilingual guessing, themed UI modes, and detail popups backed by PokeAPI data.
 
 See [ROADMAP.md](ROADMAP.md) for future improvements.
 
@@ -17,6 +17,7 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 - Optional outlines, shiny sprites, Pokedex ID display, dark mode, and type-based themes
 - Pokemon cries with optional legacy cries
 - Persistent game state and settings via `localStorage`
+- Settings live in a modal with grouped gameplay, audio, appearance, and progress sections
 - Achievement badges in a modal with unlock notifications and progress cues
 - Weekly rotating challenge themes generated from the current dex data
 - Rich Pokemon detail modal with previous/next navigation, copy actions, replayable cries, sprite, types, genus, stat cards, abilities, and related species data
