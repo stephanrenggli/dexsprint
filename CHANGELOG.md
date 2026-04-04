@@ -1,3 +1,10 @@
+## [1.6.3](https://github.com/stephanrenggli/dexsprint/compare/v1.6.2...v1.6.3) (2026-04-04)
+
+
+### Bug Fixes
+
+* use correct study card type icons ([7ffc902](https://github.com/stephanrenggli/dexsprint/commit/7ffc902de65edd926fe833a4dbb01387df8bf7fe))
+
 ## [1.6.2](https://github.com/stephanrenggli/dexsprint/compare/v1.6.1...v1.6.2) (2026-04-04)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "dexsprint",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "private": true,
   "type": "module",
   "description": "Semantic release tooling for the DexSprint static site",
