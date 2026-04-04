@@ -1,4 +1,4 @@
-import qrcode from "../vendor/qrcode-generator.mjs";
+import qrcode from "../vendor/qrcode-generator.js";
 
 export function createQrCodeDataUrl(text) {
   const qr = qrcode(0, "L");

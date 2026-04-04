@@ -1,6 +1,6 @@
 importScripts("./js/vendor/pokeapi-js-wrapper-sw.js");
 
-const CACHE_NAME = "dexsprint-shell-v17";
+const CACHE_NAME = "dexsprint-shell-v18";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -29,7 +29,7 @@ const APP_SHELL = [
   "./js/services/catalog-source.js",
   "./js/services/catalog-hydration.js",
   "./js/services/qr-code.js",
-  "./js/vendor/qrcode-generator.mjs",
+  "./js/vendor/qrcode-generator.js",
   "./js/domain/filters.js",
   "./js/domain/text.js",
   "./js/domain/progress-code.js",
