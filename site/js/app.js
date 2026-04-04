@@ -111,6 +111,7 @@ const progressCopyBtn = document.getElementById("progress-copy");
 const progressImportBtn = document.getElementById("progress-import");
 const progressFeedbackEl = document.getElementById("progress-feedback");
 const progressIncludeSettingsEl = document.getElementById("progress-include-settings");
+const settingsPanelCard = settingsModal ? settingsModal.querySelector(".settings-panel") : null;
 const studyPanel = document.getElementById("study-panel");
 const studySubtitle = document.getElementById("study-subtitle");
 const studyCounter = document.getElementById("study-counter");
@@ -210,6 +211,71 @@ function getStableProgressIds() {
     .map((entry) => Number(entry.dexId))
     .filter((id) => Number.isInteger(id) && id > 0)
     .sort((a, b) => a - b);
+}
+
+function createInfoTipContent(tip) {
+  const label = tip.dataset.tipLabel || "Help";
+  const text = tip.dataset.tip || "";
+  const tipId = tip.dataset.tipId || "";
+  tip.replaceChildren();
+
+  const button = document.createElement("button");
+  button.className = "info-tip__button";
+  button.type = "button";
+  button.setAttribute("aria-label", `${label} help`);
+  if (tipId) button.setAttribute("aria-describedby", tipId);
+
+  const bubble = document.createElement("span");
+  if (tipId) bubble.id = tipId;
+  bubble.className = "info-tip__bubble";
+  bubble.setAttribute("role", "tooltip");
+  bubble.textContent = text;
+
+  tip.appendChild(button);
+  tip.appendChild(bubble);
+}
+
+function enhanceSettingsInfoTips() {
+  if (!settingsPanelCard) return;
+  const tips = [...settingsPanelCard.querySelectorAll(".info-tip[data-tip]")];
+  tips.forEach((tip) => {
+    if (tip.dataset.enhanced === "true") return;
+    createInfoTipContent(tip);
+    tip.dataset.enhanced = "true";
+  });
+}
+
+function positionSettingsInfoTips() {
+  if (!settingsPanelCard) return;
+  const panelRect = settingsPanelCard.getBoundingClientRect();
+  const tips = [...settingsPanelCard.querySelectorAll(".info-tip")];
+  tips.forEach((tip) => {
+    const bubble = tip.querySelector(".info-tip__bubble");
+    if (!bubble) return;
+    const tipRect = tip.getBoundingClientRect();
+    const bubbleRect = bubble.getBoundingClientRect();
+    const gap = 8;
+    const panelPadding = 8;
+    const rightSpace = panelRect.right - tipRect.right - panelPadding;
+    const leftSpace = tipRect.left - panelRect.left - panelPadding;
+    const fitsRight = rightSpace >= bubbleRect.width + gap;
+    const fitsLeft = leftSpace >= bubbleRect.width + gap;
+    let side = "right";
+    if (fitsLeft && !fitsRight) side = "left";
+    else if (!fitsLeft && fitsRight) side = "right";
+    else if (!fitsLeft && !fitsRight) side = leftSpace >= rightSpace ? "left" : "right";
+    tip.dataset.side = side;
+  });
+}
+
+let settingsInfoTipsRaf = null;
+function scheduleSettingsInfoTipsPlacement() {
+  if (settingsInfoTipsRaf) cancelAnimationFrame(settingsInfoTipsRaf);
+  settingsInfoTipsRaf = requestAnimationFrame(() => {
+    settingsInfoTipsRaf = null;
+    enhanceSettingsInfoTips();
+    positionSettingsInfoTips();
+  });
 }
 
 function getSettingsPayload() {
@@ -857,6 +923,9 @@ function closeChangelogModal() {
 function openSettingsModal() {
   if (!settingsModal) return;
   openModal(settingsModal, settingsClose || filtersToggle || filtersToggleCompact);
+  requestAnimationFrame(() => {
+    scheduleSettingsInfoTipsPlacement();
+  });
 }
 
 function closeSettingsModal() {
@@ -3299,6 +3368,11 @@ if (settingsModal) {
   settingsModal.addEventListener("click", (event) => {
     if (event.target === settingsModal) closeSettingsModal();
   });
+}
+
+if (settingsPanelCard) {
+  scheduleSettingsInfoTipsPlacement();
+  window.addEventListener("resize", scheduleSettingsInfoTipsPlacement);
 }
 
 if (legacyCriesToggle) {

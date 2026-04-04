@@ -15,7 +15,9 @@
   --pill: #fff2db;
   --pill-border: #f1d8b1;
   --shadow: 0 20px 50px rgba(28, 27, 25, 0.12);
-  --pokeball: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='26' fill='%23e3d3bc'/><path d='M6 32h52' stroke='%23c3b29a' stroke-width='6'/><circle cx='32' cy='32' r='8' fill='%23f7f1e5' stroke='%23c3b29a' stroke-width='4'/></svg>");
+  --pokeball: url("../assets/pokeball-light.svg");
+  --info-tip-icon: url("../assets/info-tip.svg");
+  --copy-icon: url("../assets/copy.svg");
   --surface: #fffdf7;
   --surface-2: #fff2db;
   --surface-3: #fff8ed;
@@ -268,7 +270,7 @@ textarea {
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
   --outline-filter: grayscale(1) saturate(0) brightness(0) invert(1);
   --outline-opacity: 0.7;
-  --pokeball: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='26' fill='%233b342c'/><path d='M6 32h52' stroke='%2350463c' stroke-width='6'/><circle cx='32' cy='32' r='8' fill='%23241f19' stroke='%2350463c' stroke-width='4'/></svg>");
+  --pokeball: url("../assets/pokeball-dark.svg");
   background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
 }
 
@@ -489,7 +491,8 @@ textarea {
   display: grid;
   gap: 12px;
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 4px;
 }
 
@@ -509,6 +512,19 @@ textarea {
   text-transform: uppercase;
   letter-spacing: 1.5px;
   color: var(--muted);
+}
+
+.settings-field__head,
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.settings-field__head label {
+  flex: 0 0 auto;
+  min-width: 0;
 }
 
 .settings-field select {
@@ -543,6 +559,16 @@ textarea {
 .settings-panel,
 .settings-panel * {
   font-family: inherit;
+}
+
+.settings-panel {
+  user-select: none;
+}
+
+.settings-panel input,
+.settings-panel select,
+.settings-panel textarea {
+  user-select: text;
 }
 
 .settings-section h3 {
@@ -589,15 +615,14 @@ textarea {
   transition: background 0.18s ease, color 0.18s ease;
 }
 
-.progress-copy svg {
+.progress-copy::before {
+  content: "";
   width: 16px;
   height: 16px;
   display: block;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  background-color: currentColor;
+  -webkit-mask: var(--copy-icon) center / 16px 16px no-repeat;
+  mask: var(--copy-icon) center / 16px 16px no-repeat;
 }
 
 .progress-copy:hover,
@@ -1414,12 +1439,112 @@ textarea {
 .toggle {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
   font-weight: 500;
+  flex: 0 0 auto;
 }
 
 .toggle input {
   accent-color: var(--accent);
+  margin-top: 2px;
+}
+
+.toggle-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.toggle-copy__title {
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.info-tip {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding-top: 0;
+}
+
+.info-tip__button {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-4) 80%, transparent);
+  color: var(--muted);
+  cursor: help;
+  transition: none;
+}
+
+.info-tip__button::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  background-color: currentColor;
+  -webkit-mask: var(--info-tip-icon) center / 9px 9px no-repeat;
+  mask: var(--info-tip-icon) center / 9px 9px no-repeat;
+}
+
+.info-tip__button:hover,
+.info-tip__button:focus-visible {
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-4));
+  color: var(--ink);
+  outline: none;
+}
+
+.info-tip__bubble {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(240px, calc(100vw - 48px));
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  box-shadow: var(--shadow-soft);
+  color: var(--ink);
+  font-size: 0.7rem;
+  line-height: 1.35;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: none;
+  pointer-events: none;
+}
+
+.info-tip:hover .info-tip__bubble,
+.info-tip:focus-within .info-tip__bubble {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-4px);
+}
+
+.settings-panel .info-tip__bubble {
+  top: 50%;
+  left: calc(100% + 8px);
+  right: auto;
+  transform: translateY(-50%);
+}
+
+.settings-panel .info-tip[data-side="left"] .info-tip__bubble {
+  left: auto;
+  right: calc(100% + 8px);
+}
+
+.settings-panel .info-tip:hover .info-tip__bubble,
+.settings-panel .info-tip:focus-within .info-tip__bubble {
+  transform: translateY(-50%);
 }
 
 .theme-grid {
@@ -2875,6 +3000,10 @@ textarea {
   .filter--select {
     grid-column: 1 / -1;
     align-content: start;
+  }
+
+  .info-tip__bubble {
+    max-width: min(200px, calc(100vw - 32px));
   }
 
   .modal-card {

@@ -81,7 +81,10 @@
           <h3>Gameplay</h3>
           <div class="settings-grid">
             <div class="settings-field">
-              <label for="game-mode">Game Mode</label>
+              <div class="settings-field__head">
+                <label for="game-mode">Game Mode</label>
+                <span class="info-tip" data-tip-label="Game Mode" data-tip-id="game-mode-tip" data-tip="Challenge is the normal quiz, Weekly locks to a rotating theme, and Practice gives you a study deck."></span>
+              </div>
               <select id="game-mode">
                 <option value="off" selected>Challenge</option>
                 <option value="weekly">Weekly Challenge</option>
@@ -89,7 +92,10 @@
               </select>
             </div>
             <div class="settings-field">
-              <label for="typo-mode">Typo Tolerance</label>
+              <div class="settings-field__head">
+                <label for="typo-mode">Typo Tolerance</label>
+                <span class="info-tip" data-tip-label="Typo Tolerance" data-tip-id="typo-mode-tip" data-tip="Pick how much spelling help you want before a guess is accepted."></span>
+              </div>
               <select id="typo-mode">
                 <option value="strict">Strict</option>
                 <option value="normal" selected>Normal</option>
@@ -97,61 +103,100 @@
               </select>
             </div>
           </div>
-          <label class="toggle">
-            <input id="autocorrect-toggle" type="checkbox" checked />
-            <span>Auto-Accept Close Matches</span>
-          </label>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="autocorrect-toggle" type="checkbox" checked />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Auto-Accept Close Matches</span>
+                <span class="info-tip" data-tip-label="Auto-Accept Close Matches" data-tip-id="autocorrect-tip" data-tip="Automatically accepts near-misses instead of leaving them as suggestions."></span>
+              </span>
+            </label>
+          </div>
         </div>
         <div class="settings-section">
           <h3>Audio</h3>
-          <label class="toggle">
-            <input id="cries-toggle" type="checkbox" />
-            <span>Enable Cries</span>
-          </label>
-          <label class="toggle">
-            <input id="legacy-cries-toggle" type="checkbox" />
-            <span>Use Legacy Cries</span>
-          </label>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="cries-toggle" type="checkbox" />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Enable Cries</span>
+                <span class="info-tip" data-tip-label="Enable Cries" data-tip-id="cries-tip" data-tip="Plays each Pokemon's cry when you reveal it."></span>
+              </span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="legacy-cries-toggle" type="checkbox" />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Use Legacy Cries</span>
+                <span class="info-tip" data-tip-label="Use Legacy Cries" data-tip-id="legacy-cries-tip" data-tip="Uses the older cry archive when the newer one is unavailable or quieter."></span>
+              </span>
+            </label>
+          </div>
         </div>
         <div class="settings-section">
           <h3>Appearance</h3>
-          <label class="toggle">
-            <input id="outline-toggle" type="checkbox" />
-            <span>Show Outlines</span>
-          </label>
-          <label class="toggle">
-            <input id="dark-toggle" type="checkbox" />
-            <span>Dark Mode</span>
-          </label>
-          <label class="toggle">
-            <input id="show-dex-toggle" type="checkbox" />
-            <span>Show Pokedex ID</span>
-          </label>
-          <label class="toggle">
-            <input id="shiny-toggle" type="checkbox" />
-            <span>Use Shiny Sprites</span>
-          </label>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="outline-toggle" type="checkbox" />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Show Outlines</span>
+                <span class="info-tip" data-tip-label="Show Outlines" data-tip-id="outline-tip" data-tip="Keeps sprite outlines visible instead of flattening them."></span>
+              </span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="dark-toggle" type="checkbox" />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Dark Mode</span>
+                <span class="info-tip" data-tip-label="Dark Mode" data-tip-id="dark-tip" data-tip="Switches the app to a darker color palette."></span>
+              </span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="show-dex-toggle" type="checkbox" />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Show Pokedex ID</span>
+                <span class="info-tip" data-tip-label="Show Pokedex ID" data-tip-id="show-dex-tip" data-tip="Adds each Pokemon's National Dex number to the reveal view."></span>
+              </span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="shiny-toggle" type="checkbox" />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Use Shiny Sprites</span>
+                <span class="info-tip" data-tip-label="Use Shiny Sprites" data-tip-id="shiny-tip" data-tip="Shows the shiny form instead of the default sprite."></span>
+              </span>
+            </label>
+          </div>
           <span class="filter-heading">Theme</span>
           <div id="theme-chooser" class="theme-grid"></div>
         </div>
         <div class="settings-section">
           <h3>Progress</h3>
           <div class="settings-field">
-            <label for="progress-code">Progress Link</label>
+            <div class="settings-field__head">
+              <label for="progress-code">Progress Link</label>
+              <span class="info-tip" data-tip-label="Progress Link" data-tip-id="progress-code-tip" data-tip="Paste a shared code here to import a saved run or copy one out to share it."></span>
+            </div>
             <div class="progress-token">
               <input id="progress-code" class="progress-code" type="text" placeholder="Exported progress link or code" spellcheck="false" />
               <button id="progress-copy" class="progress-copy" type="button" aria-label="Copy progress link" title="Copy progress link">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <rect x="9" y="9" width="11" height="11" rx="2"></rect>
-                  <path d="M15 9V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"></path>
-                </svg>
               </button>
             </div>
           </div>
-          <label class="toggle">
-            <input id="progress-include-settings" type="checkbox" />
-            <span>Include Settings</span>
-          </label>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="progress-include-settings" type="checkbox" />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Include Settings</span>
+                <span class="info-tip" data-tip-label="Include Settings" data-tip-id="progress-include-settings-tip" data-tip="Adds your current mode, theme, and other preferences to the shared code."></span>
+              </span>
+            </label>
+          </div>
           <div class="progress-actions">
             <button id="progress-import" class="btn ghost btn-small" type="button">Import</button>
           </div>
