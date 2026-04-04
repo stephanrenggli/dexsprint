@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/stephanrenggli/dexsprint/compare/v1.5.0...v1.6.0) (2026-04-04)
+
+
+### Features
+
+* add qr progress sharing ([788eff5](https://github.com/stephanrenggli/dexsprint/commit/788eff50d927b9ba126843010a98cd111c904f54))
+
 # [1.5.0](https://github.com/stephanrenggli/dexsprint/compare/v1.4.0...v1.5.0) (2026-04-04)
 
 
