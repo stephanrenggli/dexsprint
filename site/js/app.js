@@ -4,9 +4,15 @@ import {
   DEFAULT_GAME_MODE,
   DEFAULT_STATUS,
   DEFAULT_TYPO_MODE,
+  LEGACY_STORAGE_KEY,
+  LEGACY_STORAGE_SETTINGS_KEY,
+  LEGACY_PROGRESS_CODE_PREFIX,
   PROGRESS_CODE_PREFIX,
   SAVE_STATE_DEBOUNCE_MS,
   STORAGE_KEY,
+  STORAGE_BACKUP_KEY,
+  STORAGE_SCHEMA_VERSION,
+  STORAGE_SETTINGS_KEY,
   state
 } from "./state.js";
 import {
@@ -301,11 +307,13 @@ function encodeFoundProgress() {
 }
 
 function decodeFoundProgress(code) {
-  if (!code || !code.startsWith(PROGRESS_CODE_PREFIX)) {
+  const validPrefixes = [PROGRESS_CODE_PREFIX, LEGACY_PROGRESS_CODE_PREFIX];
+  if (!code || !validPrefixes.some((prefix) => code.startsWith(prefix))) {
     throw new Error("Invalid progress code");
   }
 
-  const decoded = decodeProgressPayload(code.slice(PROGRESS_CODE_PREFIX.length));
+  const prefix = validPrefixes.find((value) => code.startsWith(value)) || PROGRESS_CODE_PREFIX;
+  const decoded = decodeProgressPayload(code.slice(prefix.length));
   const ids = new Set(decoded.ids);
   const found = new Set();
   state.meta.forEach((entry, name) => {
@@ -323,7 +331,7 @@ function decodeFoundProgress(code) {
 function extractProgressCode(value) {
   const raw = (value || "").trim();
   if (!raw) return "";
-  if (raw.startsWith(PROGRESS_CODE_PREFIX)) {
+  if (raw.startsWith(PROGRESS_CODE_PREFIX) || raw.startsWith(LEGACY_PROGRESS_CODE_PREFIX)) {
     return raw;
   }
 
@@ -333,7 +341,10 @@ function extractProgressCode(value) {
     if (hash.startsWith("progress=")) {
       return decodeURIComponent(hash.slice("progress=".length));
     }
-    if (hash.startsWith(PROGRESS_CODE_PREFIX)) {
+    if (
+      hash.startsWith(PROGRESS_CODE_PREFIX) ||
+      hash.startsWith(LEGACY_PROGRESS_CODE_PREFIX)
+    ) {
       return hash;
     }
   } catch (err) {
@@ -358,7 +369,11 @@ function isProgressUrlValue(value) {
   try {
     const url = new URL(raw, window.location.href);
     const hash = url.hash.replace(/^#/, "");
-    return hash.startsWith("progress=") || hash.startsWith(PROGRESS_CODE_PREFIX);
+    return (
+      hash.startsWith("progress=") ||
+      hash.startsWith(PROGRESS_CODE_PREFIX) ||
+      hash.startsWith(LEGACY_PROGRESS_CODE_PREFIX)
+    );
   } catch (err) {
     return false;
   }
@@ -779,7 +794,11 @@ async function importProgressValue(value, { fromHash = false } = {}) {
 async function restoreProgressFromHash() {
   const hash = window.location.hash.replace(/^#/, "");
   if (!hash) return false;
-  if (!hash.startsWith("progress=") && !hash.startsWith(PROGRESS_CODE_PREFIX)) {
+  if (
+    !hash.startsWith("progress=") &&
+    !hash.startsWith(PROGRESS_CODE_PREFIX) &&
+    !hash.startsWith(LEGACY_PROGRESS_CODE_PREFIX)
+  ) {
     return false;
   }
   const cleanUrl = `${window.location.pathname}${window.location.search}`;
@@ -924,6 +943,48 @@ function buildStatePayload() {
   };
 }
 
+function buildPersistedStateRecord(payload) {
+  return {
+    schemaVersion: STORAGE_SCHEMA_VERSION,
+    payload,
+    savedAt: Date.now()
+  };
+}
+
+function parsePersistedStateRecord(raw, { allowLegacy = false } = {}) {
+  if (!raw) return null;
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+
+  if (
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    data.schemaVersion === STORAGE_SCHEMA_VERSION &&
+    data.payload &&
+    typeof data.payload === "object" &&
+    !Array.isArray(data.payload)
+  ) {
+    return data.payload;
+  }
+
+  if (
+    allowLegacy &&
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    !Object.prototype.hasOwnProperty.call(data, "schemaVersion")
+  ) {
+    return data;
+  }
+
+  return null;
+}
+
 function flushStateSave() {
   if (state.isRestoring) return;
   if (state.saveStateTimer) {
@@ -931,7 +992,10 @@ function flushStateSave() {
     state.saveStateTimer = null;
   }
   const payload = buildStatePayload();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  const record = JSON.stringify(buildPersistedStateRecord(payload));
+  const previous = localStorage.getItem(STORAGE_KEY);
+  localStorage.setItem(STORAGE_KEY, record);
+  localStorage.setItem(STORAGE_BACKUP_KEY, previous || record);
 }
 
 function saveState({ immediate = false } = {}) {
@@ -953,17 +1017,19 @@ function clearState() {
     state.saveStateTimer = null;
   }
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_BACKUP_KEY);
+  localStorage.removeItem(LEGACY_STORAGE_KEY);
 }
 
 function restoreState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return false;
-  let data;
-  try {
-    data = JSON.parse(raw);
-  } catch (err) {
-    return false;
-  }
+  const backupRaw = localStorage.getItem(STORAGE_BACKUP_KEY);
+  const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+  const data =
+    parsePersistedStateRecord(raw) ||
+    parsePersistedStateRecord(backupRaw) ||
+    parsePersistedStateRecord(legacyRaw, { allowLegacy: true });
+  if (!data) return false;
   state.isRestoring = true;
 
   if (groupFilter && data.group) {
@@ -1001,11 +1067,14 @@ function restoreState() {
   }
 
   state.isRestoring = false;
+  if (!raw && !backupRaw && legacyRaw) {
+    flushStateSave();
+  }
   return true;
 }
 
 function saveSettings() {
-  localStorage.setItem(`${STORAGE_KEY}:settings`, JSON.stringify(getSettingsPayload()));
+  localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(getSettingsPayload()));
 }
 
 function updateThemeColorMeta(color) {
@@ -1018,19 +1087,24 @@ function updateThemeColorMeta(color) {
 }
 
 function restoreSettings() {
-  const raw = localStorage.getItem(`${STORAGE_KEY}:settings`);
-  if (!raw) return;
+  const raw = localStorage.getItem(STORAGE_SETTINGS_KEY);
+  const legacyRaw = localStorage.getItem(LEGACY_STORAGE_SETTINGS_KEY);
+  if (!raw && !legacyRaw) return;
   let data;
   try {
-    data = JSON.parse(raw);
+    data = JSON.parse(raw || legacyRaw);
   } catch (err) {
     return;
   }
   applySettingsPayload(data, { persist: false });
+  if (!raw && legacyRaw) {
+    saveSettings();
+  }
 }
 
 function resetSettings() {
-  localStorage.removeItem(`${STORAGE_KEY}:settings`);
+  localStorage.removeItem(STORAGE_SETTINGS_KEY);
+  localStorage.removeItem(LEGACY_STORAGE_SETTINGS_KEY);
   if (gameModeSelect) gameModeSelect.value = DEFAULT_GAME_MODE;
   document.body.classList.remove("compact-mode");
   document.documentElement.classList.remove("dark-mode");

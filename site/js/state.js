@@ -32,12 +32,18 @@ export const state = {
   saveStateTimer: null
 };
 
-export const STORAGE_KEY = "pokequiz-state";
+export const STORAGE_SCHEMA_VERSION = 2;
+export const STORAGE_KEY = `dexsprint-state:v${STORAGE_SCHEMA_VERSION}`;
+export const STORAGE_BACKUP_KEY = `${STORAGE_KEY}:backup`;
+export const STORAGE_SETTINGS_KEY = `${STORAGE_KEY}:settings`;
+export const LEGACY_STORAGE_KEY = "pokequiz-state";
+export const LEGACY_STORAGE_SETTINGS_KEY = "pokequiz-state:settings";
 export const SAVE_STATE_DEBOUNCE_MS = 150;
 export const DEFAULT_STATUS = "";
 export const DEFAULT_GAME_MODE = "off";
 export const DEFAULT_TYPO_MODE = "normal";
-export const PROGRESS_CODE_PREFIX = "dq3.";
+export const PROGRESS_CODE_PREFIX = "dexsprint.";
+export const LEGACY_PROGRESS_CODE_PREFIX = "dq3.";
 export const BADGES = [
   {
     id: "first-catch",
