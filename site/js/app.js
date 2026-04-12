@@ -1603,6 +1603,13 @@ const pokemonBootstrap = createPokemonBootstrap({
     if (isWeeklyChallengeMode()) {
       applyFilters();
     }
+  },
+  onLocalizedNameHydrationWarning: () => {
+    showStateToast({
+      meta: "Loading",
+      title: "Some localized PokéAPI names failed to load",
+      icon: "!"
+    });
   }
 });
 

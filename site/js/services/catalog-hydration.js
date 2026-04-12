@@ -81,7 +81,8 @@ export function scheduleLocalizedNameHydration({
   pokedex,
   detailUrls,
   fetchResourcesInBatches,
-  onComplete
+  onComplete,
+  onError
 }) {
   if (!detailUrls.length) {
     state.legendaryIndex = new Set();
@@ -101,6 +102,9 @@ export function scheduleLocalizedNameHydration({
       }
     } catch (error) {
       console.warn("Localized name hydration failed", error);
+      if (typeof onError === "function") {
+        onError(error);
+      }
       state.legendaryIndex = new Set();
       state.legendaryIndexReady = true;
       if (typeof onComplete === "function") {

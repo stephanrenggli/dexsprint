@@ -19,7 +19,8 @@ export function createPokemonBootstrap(deps) {
     setInputStatus,
     inputEl,
     retryBtn,
-    onCatalogHydrated
+    onCatalogHydrated,
+    onLocalizedNameHydrationWarning
   } = deps;
 
   async function loadPokemon() {
@@ -79,17 +80,22 @@ export function createPokemonBootstrap(deps) {
       restoreSettings();
       restoreState();
       applyFilters();
-      scheduleLocalizedNameHydration({
-        state,
-        pokedex,
-        detailUrls,
-        fetchResourcesInBatches,
-        onComplete: () => {
-          if (typeof onCatalogHydrated === "function") {
-            onCatalogHydrated();
-          }
+    scheduleLocalizedNameHydration({
+      state,
+      pokedex,
+      detailUrls,
+      fetchResourcesInBatches,
+      onComplete: () => {
+        if (typeof onCatalogHydrated === "function") {
+          onCatalogHydrated();
         }
-      });
+      },
+      onError: () => {
+        if (typeof onLocalizedNameHydrationWarning === "function") {
+          onLocalizedNameHydrationWarning();
+        }
+      }
+    });
       scheduleFilterMetadataHydration(generationPromise, typePromise);
       await restoreProgressFromHash();
       syncWeeklyChallengeState();
