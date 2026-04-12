@@ -672,20 +672,7 @@ textarea {
   --chip-grid-type-max-height: none;
   --chip-grid-type-overflow: visible;
   --chip-grid-type-padding-right: 0;
-  --filter-background: transparent;
-  --filter-border-color: var(--border);
-  --filter-shadow: none;
-  --filter-radius: 14px;
-  --filter-padding: 10px;
   --filter-min-height: 0;
-  --chip-grid-background: transparent;
-  --chip-grid-border: 0;
-  --chip-grid-radius: 0;
-  --chip-grid-padding: 4px 2px;
-  --chip-background: color-mix(in srgb, var(--surface) 86%, transparent);
-  --chip-border-color: color-mix(in srgb, var(--border) 88%, transparent);
-  --chip-min-height: 30px;
-  --chip-type-min-height: 32px;
 }
 
 .multiplayer-modal-card #multiplayer-filters-panel {
@@ -2656,15 +2643,7 @@ textarea {
   background: color-mix(in srgb, var(--surface-3) 72%, transparent);
 }
 
-.sprite-board-filters {
-  --filters-panel-columns: minmax(280px, 1fr) minmax(360px, 1.35fr);
-  --filters-panel-gap: 12px;
-  --filters-panel-align: start;
-  --chip-grid-generation-columns: repeat(2, minmax(0, 1fr));
-  --chip-grid-type-columns: repeat(4, minmax(0, 1fr));
-  --chip-grid-type-max-height: 296px;
-  --chip-grid-type-overflow: auto;
-  --chip-grid-type-padding-right: 4px;
+:where(.sprite-board-filters, .multiplayer-modal-card) {
   --filter-background: transparent;
   --filter-border-color: var(--border);
   --filter-shadow: none;
@@ -2678,6 +2657,17 @@ textarea {
   --chip-border-color: color-mix(in srgb, var(--border) 88%, transparent);
   --chip-min-height: 30px;
   --chip-type-min-height: 32px;
+}
+
+.sprite-board-filters {
+  --filters-panel-columns: minmax(280px, 1fr) minmax(360px, 1.35fr);
+  --filters-panel-gap: 12px;
+  --filters-panel-align: start;
+  --chip-grid-generation-columns: repeat(2, minmax(0, 1fr));
+  --chip-grid-type-columns: repeat(4, minmax(0, 1fr));
+  --chip-grid-type-max-height: 296px;
+  --chip-grid-type-overflow: auto;
+  --chip-grid-type-padding-right: 4px;
 }
 
 .sprite-board-filters .filter label {
