@@ -1476,25 +1476,37 @@ function refreshActiveDetailViews() {
 
 function scheduleFilterMetadataHydration(generationPromise, typePromise) {
   const hydrate = async () => {
-    try {
-      const [generationData, typeData] = await Promise.all([generationPromise, typePromise]);
-      applyMetadataIndexesModule(state, generationData, typeData, formatGenerationLabel);
-      refreshWeeklyChallengeCatalog();
-      populateGenChips(generationData.entries);
-      populateTypeChips(typeData.entries);
-      multiplayerFiltersController?.populateGenChips(generationData.entries);
-      multiplayerFiltersController?.populateTypeChips(typeData.entries);
-      setChipGroupSelections(genFilter, state.restoredFilterSelections.gens);
-      setChipGroupSelections(typeFilter, state.restoredFilterSelections.types);
-      setChipGroupSelections(multiplayerGenFilter, state.restoredFilterSelections.gens);
-      setChipGroupSelections(multiplayerTypeFilter, state.restoredFilterSelections.types);
-      multiplayerFiltersController?.applyFilters({ force: true, persist: false });
-      applyFilters();
-      syncWeeklyChallengeState();
-      refreshActiveDetailViews();
-    } catch (error) {
-      console.warn("Metadata hydration failed", error);
+    const [generationResult, typeResult] = await Promise.allSettled([generationPromise, typePromise]);
+    const generationData =
+      generationResult.status === "fulfilled"
+        ? generationResult.value
+        : { entries: [], generationMap: new Map() };
+    const typeData =
+      typeResult.status === "fulfilled"
+        ? typeResult.value
+        : { entries: [], typeMap: new Map() };
+
+    if (generationResult.status === "rejected") {
+      console.warn("Generation metadata hydration failed", generationResult.reason);
     }
+    if (typeResult.status === "rejected") {
+      console.warn("Type metadata hydration failed", typeResult.reason);
+    }
+
+    applyMetadataIndexesModule(state, generationData, typeData, formatGenerationLabel);
+    refreshWeeklyChallengeCatalog();
+    populateGenChips(generationData.entries);
+    populateTypeChips(typeData.entries);
+    multiplayerFiltersController?.populateGenChips(generationData.entries);
+    multiplayerFiltersController?.populateTypeChips(typeData.entries);
+    setChipGroupSelections(genFilter, state.restoredFilterSelections.gens);
+    setChipGroupSelections(typeFilter, state.restoredFilterSelections.types);
+    setChipGroupSelections(multiplayerGenFilter, state.restoredFilterSelections.gens);
+    setChipGroupSelections(multiplayerTypeFilter, state.restoredFilterSelections.types);
+    multiplayerFiltersController?.applyFilters({ force: true, persist: false });
+    applyFilters();
+    syncWeeklyChallengeState();
+    refreshActiveDetailViews();
   };
 
   if ("requestIdleCallback" in window) {

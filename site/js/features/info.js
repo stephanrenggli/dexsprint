@@ -106,14 +106,7 @@ export function createInfoController({
       infoAbilities.textContent = "No ability data available.";
       return;
     }
-    const fragment = document.createDocumentFragment();
-    abilities.forEach((ability) => {
-      const chip = document.createElement("span");
-      chip.className = "info-pill";
-      chip.textContent = ability;
-      fragment.appendChild(chip);
-    });
-    infoAbilities.replaceChildren(fragment);
+    renderTextChips(infoAbilities, abilities, "info-pill");
   }
 
   function renderInfoFacts(details) {

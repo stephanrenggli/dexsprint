@@ -8,11 +8,16 @@ export function createMultiplayerClient({ apiBase = "" } = {}) {
   }
 
   async function postJson(path, payload) {
-    const response = await fetch(`${apiBase}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload || {})
-    });
+    let response;
+    try {
+      response = await fetch(`${apiBase}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload || {})
+      });
+    } catch {
+      throw new Error("Could not reach the multiplayer server.");
+    }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
       throw new Error(data.message || "Multiplayer request failed.");
@@ -30,7 +35,13 @@ export function createMultiplayerClient({ apiBase = "" } = {}) {
 
   function connect({ roomId, sessionToken, onMessage, onOpen, onClose, onError }) {
     disconnect();
-    socket = new WebSocket(getWebSocketUrl(roomId, sessionToken));
+    try {
+      socket = new WebSocket(getWebSocketUrl(roomId, sessionToken));
+    } catch {
+      socket = null;
+      if (typeof onError === "function") onError();
+      return;
+    }
     socket.addEventListener("open", () => {
       if (typeof onOpen === "function") onOpen();
     });
