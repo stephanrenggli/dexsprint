@@ -8,7 +8,7 @@ export function createWeeklyChallengeController({
   setFiltersPanelExpanded,
   inputEl,
   setInputStatus,
-  clearInputStatusIf,
+  clearInputStatus,
   formatGenerationLabel,
   generationOrder,
   prettifyName,
@@ -113,7 +113,7 @@ export function createWeeklyChallengeController({
         setInputStatus("Loading weekly challenge theme...");
       } else {
         inputEl.placeholder = defaultInputPlaceholder;
-        clearInputStatusIf?.("Loading weekly challenge theme...");
+        clearInputStatus?.();
       }
     }
   }

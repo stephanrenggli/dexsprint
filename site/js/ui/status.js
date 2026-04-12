@@ -55,11 +55,8 @@ export function createStatusController({
     }, 1500);
   }
 
-  function clearInputStatusIf(message, replacement = "") {
-    if (!statusEl) return false;
-    if (statusEl.textContent !== message) return false;
-    setInputStatus(replacement);
-    return true;
+  function clearInputStatus() {
+    setInputStatus("");
   }
 
   return {
@@ -67,6 +64,6 @@ export function createStatusController({
     setInputStatus,
     syncInlineStatusVisibility,
     showStatusHint,
-    clearInputStatusIf
+    clearInputStatus
   };
 }
