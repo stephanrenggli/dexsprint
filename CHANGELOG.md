@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/stephanrenggli/dexsprint/compare/v2.0.0...v2.0.1) (2026-04-12)
+
+### Bug Fixes
+
+* balance multiplayer filter card sizing ([a8c5488](https://github.com/stephanrenggli/dexsprint/commit/a8c54884be5e81ca11e7fddcb6a393fbe4f4af52))
+* preserve pokemon canonical names ([db08ded](https://github.com/stephanrenggli/dexsprint/commit/db08ded6c2f6ff97722470c36a0f10120eddf85a))
+
 ## [2.0.0](https://github.com/stephanrenggli/dexsprint/compare/v1.6.3...v2.0.0) (2026-04-12)
 
 ### ⚠ BREAKING CHANGES
