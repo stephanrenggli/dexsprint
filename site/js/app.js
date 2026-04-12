@@ -269,24 +269,19 @@ function isMultiplayerActive() {
   return multiplayerController?.isActive?.() || false;
 }
 
-function isMultiplayerHost() {
-  return multiplayerController?.isHost?.() || false;
-}
-
 function isMultiplayerModalOpen() {
   return Boolean(multiplayerModal && !multiplayerModal.classList.contains("hidden"));
 }
 
 function getMultiplayerAccessState(snapshot = null) {
-  const active = Boolean(snapshot);
-  const host = active && Boolean(multiplayerController?.isHost?.());
-  const inLobby = snapshot?.status === "lobby";
-  const settingsLocked = active && !inLobby;
+  const access = multiplayerController?.getRoomAccessState?.(snapshot) || {
+    active: Boolean(snapshot),
+    host: false,
+    inLobby: snapshot?.status === "lobby",
+    settingsLocked: Boolean(snapshot) && snapshot?.status !== "lobby"
+  };
   return {
-    active,
-    host,
-    inLobby,
-    settingsLocked,
+    ...access,
     modalOpen: isMultiplayerModalOpen()
   };
 }
@@ -483,7 +478,10 @@ multiplayerFiltersController = createFiltersController({
   updateFilterSummary: updateMultiplayerFilterSummary,
   setFiltersPanelExpanded: setMultiplayerFiltersPanelExpanded,
   syncWeeklyChallengeState,
-  isFiltersLocked: () => isMultiplayerActive() && !isMultiplayerHost()
+  isFiltersLocked: () => {
+    const { active, host } = getMultiplayerAccessState();
+    return active && !host;
+  }
 });
 
 debugController = createDebugController({
@@ -699,7 +697,7 @@ multiplayerController = createMultiplayerController({
   syncMultiplayerTimer,
   applyRoomSettings: applyMultiplayerRoomSettings,
   restoreLocalSettings: restoreSettings,
-  isFiltersLocked: () => isMultiplayerActive(),
+  isFiltersLocked: () => getMultiplayerAccessState().active,
   onRoomStateChange: syncMultiplayerLockState,
   openJoinPrompt: openMultiplayerJoinModal,
   closeJoinPrompt: closeMultiplayerJoinModal,

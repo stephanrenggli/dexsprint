@@ -24,63 +24,62 @@ export function createPokemonBootstrap(deps) {
     onLocalizedNameHydrationWarning
   } = deps;
 
-  async function loadPokemon() {
-    setInputStatus("Loading Pokemon list...");
-    if (retryBtn) retryBtn.hidden = true;
-    try {
-      const generationPromise = loadGenerations(pokedex);
-      const typePromise = loadTypes(pokedex);
-      const speciesData = await pokedex.getPokemonSpeciesList({ limit: 2000 });
-      const speciesEntries = speciesData && speciesData.results ? speciesData.results : [];
-      const names = [];
-      state.meta = new Map();
-      state.generationIndex = new Map();
-      state.typeIndex = new Map();
-      state.legendaryIndex = new Set();
-      state.legendaryIndexReady = false;
-      state.weeklyChallengeCatalog = [];
-      state.weeklyChallengeCatalogReady = false;
-      state.guessIndex.clear();
-      state.namesByLang.clear();
+  function resetCatalogState() {
+    state.meta = new Map();
+    state.generationIndex = new Map();
+    state.typeIndex = new Map();
+    state.legendaryIndex = new Set();
+    state.legendaryIndexReady = false;
+    state.weeklyChallengeCatalog = [];
+    state.weeklyChallengeCatalogReady = false;
+    state.guessIndex.clear();
+    state.namesByLang.clear();
+  }
 
-      speciesEntries.forEach((entry) => {
-        const normalized = normalizeName(entry.name);
-        if (!normalized) return;
-        names.push(normalized);
-        let sprite = "";
-        if (entry.url) {
-          const match = entry.url.match(/\/pokemon-species\/(\d+)\//);
-          if (match) {
-            sprite = `${spriteBase}${match[1]}.png`;
-            entry.cryId = match[1];
-          }
+  function seedCatalogFromSpeciesEntries(speciesEntries) {
+    const names = [];
+    const speciesByName = new Map();
+
+    speciesEntries.forEach((entry) => {
+      const normalized = normalizeName(entry.name);
+      if (!normalized) return;
+      names.push(normalized);
+      speciesByName.set(normalized, entry.url || "");
+
+      let sprite = "";
+      if (entry.url) {
+        const match = entry.url.match(/\/pokemon-species\/(\d+)\//);
+        if (match) {
+          sprite = `${spriteBase}${match[1]}.png`;
+          entry.cryId = match[1];
         }
-        state.meta.set(normalized, {
-          label: entry.name,
-          sprite,
-          cryId: entry.cryId || "",
-          dexId: entry.cryId || "",
-          generation: "Unknown",
-          types: [],
-          normalized
-        });
+      }
+
+      state.meta.set(normalized, {
+        label: entry.name,
+        sprite,
+        cryId: entry.cryId || "",
+        dexId: entry.cryId || "",
+        generation: "Unknown",
+        types: [],
+        normalized
       });
+    });
 
-      const speciesByName = new Map();
-      speciesEntries.forEach((entry) => {
-        const normalized = normalizeName(entry.name);
-        if (normalized) speciesByName.set(normalized, entry.url);
-      });
+    return {
+      names,
+      detailUrls: names.map((canonical) => speciesByName.get(canonical)).filter(Boolean)
+    };
+  }
 
-      const detailUrls = names
-        .map((canonical) => speciesByName.get(canonical))
-        .filter(Boolean);
+  function applyInitialCatalogState() {
+    initThemes();
+    restoreSettings();
+    restoreState();
+    applyFilters();
+  }
 
-      state.allNames = names;
-      initThemes();
-      restoreSettings();
-      restoreState();
-      applyFilters();
+  function scheduleCatalogHydration(detailUrls, generationPromise, typePromise) {
     scheduleLocalizedNameHydration({
       state,
       pokedex,
@@ -102,7 +101,22 @@ export function createPokemonBootstrap(deps) {
         }
       }
     });
-      scheduleFilterMetadataHydration(generationPromise, typePromise);
+    scheduleFilterMetadataHydration(generationPromise, typePromise);
+  }
+
+  async function loadPokemon() {
+    setInputStatus("Loading Pokemon list...");
+    if (retryBtn) retryBtn.hidden = true;
+    try {
+      const generationPromise = loadGenerations(pokedex);
+      const typePromise = loadTypes(pokedex);
+      const speciesData = await pokedex.getPokemonSpeciesList({ limit: 2000 });
+      const speciesEntries = speciesData && speciesData.results ? speciesData.results : [];
+      resetCatalogState();
+      const { names, detailUrls } = seedCatalogFromSpeciesEntries(speciesEntries);
+      state.allNames = names;
+      applyInitialCatalogState();
+      scheduleCatalogHydration(detailUrls, generationPromise, typePromise);
       await restoreProgressFromHash();
       syncWeeklyChallengeState();
       if (!inputEl || !inputEl.disabled) {

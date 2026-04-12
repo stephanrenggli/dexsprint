@@ -102,16 +102,27 @@ export function createMultiplayerController({
     return Boolean(room && sessionToken);
   }
 
-  function isHost() {
-    return Boolean(room?.players.find((player) => player.id === playerId)?.host);
+  function getRoomAccessState(snapshot = room) {
+    const active = Boolean(snapshot);
+    const host = active && Boolean(snapshot?.players.find((player) => player.id === playerId)?.host);
+    const inLobby = snapshot?.status === "lobby";
+    const settingsLocked = active && !inLobby;
+    return {
+      active,
+      host,
+      inLobby,
+      settingsLocked
+    };
   }
 
   function canHostControlRoom() {
-    return isActive() && isHost();
+    const access = getRoomAccessState();
+    return access.active && access.host;
   }
 
   function canSyncRoomSettings() {
-    return canHostControlRoom() && room?.status === "lobby";
+    const access = getRoomAccessState();
+    return access.active && access.host && access.inLobby;
   }
 
   function getPlayerName() {
@@ -552,7 +563,7 @@ export function createMultiplayerController({
 
   return {
     isActive,
-    isHost,
+    getRoomAccessState,
     canHostControlRoom,
     canSyncRoomSettings,
     configureRoom,
