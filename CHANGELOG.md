@@ -1,3 +1,13 @@
+## [2.0.0](https://github.com/stephanrenggli/dexsprint/compare/v1.6.3...v2.0.0) (2026-04-12)
+
+### ⚠ BREAKING CHANGES
+
+* add multiplayer
+
+### Features
+
+* add multiplayer ([09e2f9b](https://github.com/stephanrenggli/dexsprint/commit/09e2f9b7c3d61ad5db8b9c3a6b18a96de3e3c4c8))
+
 ## [1.6.3](https://github.com/stephanrenggli/dexsprint/compare/v1.6.2...v1.6.3) (2026-04-04)
 
 
