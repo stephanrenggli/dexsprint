@@ -79,7 +79,7 @@ import {
   loadGenerations as loadGenerationsModule,
   loadTypes as loadTypesModule
 } from "./services/catalog-source.js";
-import { flashElement as flashElementUI } from "./ui/dom.js";
+import { flashElement as flashElementUI, setCheckboxGroupDisabled } from "./ui/dom.js";
 import {
   enhanceSettingsInfoTips as enhanceSettingsInfoTipsUI,
   positionSettingsInfoTips as positionSettingsInfoTipsUI
@@ -849,17 +849,15 @@ function syncMultiplayerLockState(snapshot = null) {
   if (multiplayerFiltersPanelToggle) multiplayerFiltersPanelToggle.disabled = inRoom ? setupLocked || !host : false;
   if (multiplayerGroupFilter) multiplayerGroupFilter.disabled = inRoom ? setupLocked || !host : false;
   if (multiplayerFiltersSlot) {
-    multiplayerFiltersSlot
-      .querySelectorAll(".chip-grid input[type='checkbox']")
-      .forEach((input) => {
-        input.disabled = filterInputsDisabled;
-      });
+    setCheckboxGroupDisabled(
+      multiplayerFiltersSlot.querySelectorAll(".chip-grid input[type='checkbox']"),
+      filterInputsDisabled,
+      multiplayerFiltersSlot
+    );
   }
   if (groupFilter) groupFilter.disabled = inRoom;
   if (filtersPanelToggle) filtersPanelToggle.disabled = inRoom;
-  [...document.querySelectorAll(".chip-grid input[type='checkbox']")].forEach((input) => {
-    input.disabled = filterInputsDisabled;
-  });
+  setCheckboxGroupDisabled(document.querySelectorAll(".chip-grid input[type='checkbox']"), filterInputsDisabled);
   if (gameModeSelect) gameModeSelect.disabled = inRoom;
   if (typoModeSelect) typoModeSelect.disabled = inRoom;
   if (autocorrectToggle) autocorrectToggle.disabled = inRoom;
@@ -1491,6 +1489,13 @@ function scheduleFilterMetadataHydration(generationPromise, typePromise) {
     }
     if (typeResult.status === "rejected") {
       console.warn("Type metadata hydration failed", typeResult.reason);
+    }
+    if (generationResult.status === "rejected" || typeResult.status === "rejected") {
+      showStateToast({
+        meta: "Loading",
+        title: "Some PokéAPI metadata failed to load",
+        icon: "!"
+      });
     }
 
     applyMetadataIndexesModule(state, generationData, typeData, formatGenerationLabel);

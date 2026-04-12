@@ -55,3 +55,13 @@ export function flashElement(el, className, timeout = 700) {
     el.classList.remove(className);
   }, timeout);
 }
+
+export function setCheckboxGroupDisabled(inputs, disabled, container = null) {
+  if (container) {
+    container.setAttribute("aria-disabled", disabled ? "true" : "false");
+  }
+  const checkboxInputs = inputs || [];
+  [...checkboxInputs].forEach((input) => {
+    input.disabled = disabled;
+  });
+}

@@ -1,3 +1,5 @@
+import { setCheckboxGroupDisabled } from "../ui/dom.js";
+
 export function createWeeklyChallengeController({
   state,
   genFilter,
@@ -87,10 +89,7 @@ export function createWeeklyChallengeController({
   function setWeeklyChallengeFilterLock(locked) {
     [genFilter, typeFilter].forEach((container) => {
       if (!container) return;
-      container.querySelectorAll("input[type='checkbox']").forEach((input) => {
-        input.disabled = locked;
-      });
-      container.setAttribute("aria-disabled", locked ? "true" : "false");
+      setCheckboxGroupDisabled(container.querySelectorAll("input[type='checkbox']"), locked, container);
     });
     if (filtersPanelToggle) {
       filtersPanelToggle.disabled = locked;
