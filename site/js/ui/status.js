@@ -1,5 +1,4 @@
 export function createStatusController({
-  state,
   inputEl,
   statusEl,
   defaultStatus,
@@ -16,7 +15,7 @@ export function createStatusController({
       } else {
         inputEl.focus();
       }
-    } catch (err) {
+    } catch {
       inputEl.focus();
     }
     requestAnimationFrame(() => {

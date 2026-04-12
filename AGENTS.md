@@ -1,54 +1,79 @@
 # DexSprint Instructions
 
-This repository is a static Pokémon quiz app with the deployable site in `site/` and release tooling in the repo root. The codebase is ESM-only.
+A browser-based Pokémon name quiz. The repo has two parts:
+- **`site/`** — static ESM browser app (no build step)
+- **`server/`** / **`shared/`** — TypeScript multiplayer server (compiled to `dist/`)
 
 ## Project Layout
 
-- `site/index.html` is the app shell and initial theme/bootstrap markup.
-- `site/js/app.js` is the browser entrypoint and bootstraps the feature modules under `site/js/`.
-- `site/js/core/`, `site/js/domain/`, `site/js/features/`, `site/js/services/`, and `site/js/ui/` contain the actual runtime logic.
-- `site/css/styles.css` contains the app styling.
-- `site/sw.js` handles service-worker caching.
-- `scripts/sync-site-version.mjs` keeps the visible site version in sync with `package.json`.
-- The root-level `site/js/*.js` compatibility shims were removed. New code should import the concrete modules directly from the subdirectories above.
+### Browser (`site/`)
 
-### High-Level Module Roles
+- `site/index.html` — app shell and initial markup
+- `site/js/app.js` — browser entrypoint, registers all feature controllers
+- `site/js/core/` — app state, persistence, timers, selectors, bootstrap sequencing
+- `site/js/domain/` — pure data and string/guess/filter logic
+- `site/js/services/` — external API calls and infrastructure
+- `site/js/features/` — quiz, study, settings, sharing, debug, modals, multiplayer, weekly challenge
+- `site/js/ui/` — reusable DOM helpers and presentation utilities
+- `site/css/styles.css` — app styling
+- `site/sw.js` — service-worker caching; update this when adding/moving browser modules
+- `scripts/sync-site-version.mjs` — syncs version from `package.json` to `site/index.html`
 
-- `site/js/app.js` wires the app together and registers the controllers.
-- `site/js/core/` owns app state, persistence, timers, selectors, and bootstrap sequencing.
-- `site/js/domain/` holds pure data and string/guess/filter logic.
-- `site/js/services/` talks to external APIs or other non-UI infrastructure.
-- `site/js/features/` contains feature controllers for quiz, study, settings, sharing, debug, and modal flows.
-- `site/js/ui/` provides reusable DOM helpers and small presentation utilities.
+### Server (`server/` / `shared/`)
 
-## Working Rules
+- `server/src/index.ts` — server entrypoint (Fastify + WebSocket)
+- `server/src/rooms/` — room state management
+- `server/src/realtime/` — WebSocket room handling
+- `server/src/catalog/` — PokeAPI catalog loading and storage
+- `shared/src/` — shared protocol types, guess logic, and text utilities (used by both server and tests)
 
-- Prefer `apply_patch` for manual file edits.
-- Do not revert user changes or unrelated edits.
-- Avoid destructive git commands unless the user explicitly asks.
-- Keep changes ASCII-only unless the file already uses non-ASCII characters.
-- This project has no build step, so changes should work directly in `site/`.
+### Current Multiplayer Behavior
 
-## App Notes
+- The host controls multiplayer room settings, including group-by and room filters, from the multiplayer modal.
+- The sprite-board filter bar stays hidden while a room is active; guests should not see or edit those controls.
+- Multiplayer reset is host-only and clears room progress, timer state, and the room event log.
+- Leaving a room marks the player disconnected instead of deleting the player record, so same-session rejoin can reuse the existing identity.
+- The room timer starts on the first accepted guess, and multiplayer snapshots are the source of truth for synchronized reveals and badges.
 
-- The app depends on live PokeAPI data and GitHub release data for some features.
-- Because the app uses a service worker, test it through a local web server instead of opening `index.html` directly.
-- If you change the published version, update both `package.json` and the version markers in `site/index.html` using `npm run sync-site-version -- <version>`.
-- `package.json` declares `"type": "module"`, so Node treats the repo's `.js` files as ESM.
+## Developer Commands
+
+```bash
+# Browser (static, no build step) — serve through a local server
+python -m http.server 8080 --directory site
+
+# Server (development)
+npm run dev:server       # tsx watch mode
+npm run build:server     # compile TypeScript to dist/
+npm start                # run compiled server (http://localhost:3000)
+
+# TypeScript
+npm run typecheck        # type-check server and shared code
+
+# Tests (server + shared)
+npm run test:server      # runs *.test.ts files via node --test
+
+# Release
+npm run release          # semantic-release (increments version, updates CHANGELOG.md, creates git tag)
+```
+
+## Key Constraints
+
+- Browser code is **plain ESM JavaScript** — no TypeScript, no bundler. Changes work directly in `site/`.
+- Server code is **TypeScript** with `moduleResolution: NodeNext`, output to `dist/`.
+- `package.json` has `"type": "module"` — all `.js` files in the repo root are ESM.
+- The service worker requires serving over HTTP(S), not `file://`. Always test via a local server.
+- Release automation (`@semantic-release/exec`) runs `npm run sync-site-version -- <version>` to patch `site/index.html` on each release.
 
 ## Good Defaults
 
-- Preserve the existing static-site structure unless a change clearly benefits from deeper refactoring.
-- When making behavior changes, check the effects on progress persistence, settings persistence, and service-worker caching.
-- Keep `README.md` and `ROADMAP.md` aligned with the current implementation whenever setup, behavior, or priorities change.
-- If a change affects how the project is run, deployed, or understood, update the docs in the same change rather than leaving a follow-up note.
-- When adding or moving modules, update `site/sw.js` so the offline app shell stays in sync.
+- When adding browser modules, add them to `site/sw.js` APP_SHELL array for offline support.
+- Preserve the static-site structure unless a change clearly benefits from refactoring.
+- Keep `README.md` and `ROADMAP.md` in sync with implementation.
+- The app depends on live PokeAPI data — some features fail gracefully if the API is unavailable.
+- In multiplayer UI work, avoid introducing separate guest/host code paths unless they are required by the room model; prefer shared state with host-only enablement.
 
 ## Git Conventions
 
-- Use conventional commits such as `feat:`, `fix:`, `chore:`, and `docs:`.
-- Keep commits focused on a single concern whenever possible.
-- When writing or updating a commit message, review the whole diff, not only the most recent change.
-- Do not rewrite or amend existing commits unless the user explicitly asks.
-- Avoid force-pushing or destructive history changes unless explicitly requested.
-- If the worktree already contains unrelated changes, leave them alone and work around them.
+- Use conventional commits: `feat:`, `fix:`, `chore:`, `docs:`.
+- Keep commits focused on a single concern.
+- Do not rewrite or amend commits unless the user explicitly asks.

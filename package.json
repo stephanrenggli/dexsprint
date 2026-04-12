@@ -3,13 +3,25 @@
   "version": "1.6.3",
   "private": true,
   "type": "module",
-  "description": "Semantic release tooling for the DexSprint static site",
+  "description": "DexSprint static site and v2 multiplayer server",
   "scripts": {
+    "dev:server": "tsx watch server/src/index.ts",
+    "build:server": "tsc -p tsconfig.server.json",
+    "typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "test:server": "node --import tsx --test \"shared/**/*.test.ts\" \"server/**/*.test.ts\"",
+    "start": "node dist/server/src/index.js",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run",
     "sync-site-version": "node scripts/sync-site-version.mjs"
   },
+  "dependencies": {
+    "@fastify/static": "^8.3.0",
+    "@fastify/websocket": "^11.2.0",
+    "fastify": "^5.6.2",
+    "ws": "^8.18.3"
+  },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/exec": "^7.1.0",
@@ -17,6 +29,14 @@
     "@semantic-release/github": "^11.0.6",
     "@semantic-release/npm": "^12.0.1",
     "@semantic-release/release-notes-generator": "^14.1.0",
-    "semantic-release": "^24.2.3"
+    "@types/node": "^22.10.2",
+    "@types/ws": "^8.5.13",
+    "conventional-changelog-conventionalcommits": "^9.3.1",
+    "eslint": "^10.2.0",
+    "globals": "^17.5.0",
+    "semantic-release": "^24.2.3",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.58.1"
   }
 }

@@ -113,7 +113,7 @@ export function createChangelogController({ githubRepo, changelogContent }) {
       );
       changelogContent.replaceChildren(parsed);
       changelogMarkupLoaded = true;
-    } catch (err) {
+    } catch {
       changelogContent.innerHTML = "";
       const fallback = document.createElement("p");
       fallback.className = "changelog-state";

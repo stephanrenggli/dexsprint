@@ -32,7 +32,7 @@ export function parsePersistedStateRecord(raw, { allowLegacy = false, schemaVers
   let data;
   try {
     data = JSON.parse(raw);
-  } catch (err) {
+  } catch {
     return null;
   }
 

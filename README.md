@@ -4,7 +4,7 @@ A browser-based Pokemon name quiz inspired by [pkmnquiz.com](https://pkmnquiz.co
 
 Disclaimer: This project was full vibe-coded with Codex. It is an unofficial fan project and is not affiliated with or endorsed by Nintendo, Creatures Inc., GAME FREAK, The Pokemon Company, PokeAPI, or the maintainers of the linked asset repositories.
 
-You type Pokemon names and reveal their sprites as you find them. The app supports multiple layouts, persistent progress, configurable settings in a modal, multilingual guessing, themed UI modes, and detail popups backed by PokeAPI data.
+You type Pokemon names and reveal their sprites as you find them. The app supports multiple layouts, persistent progress, configurable settings in a modal, multilingual guessing, themed UI modes, multiplayer rooms, and detail popups backed by PokeAPI data.
 
 The browser code is organized as ESM modules under `site/js/`, with `site/js/app.js` acting as the bootstrap entrypoint.
 
@@ -18,6 +18,8 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 - Reveal sprites as you find each Pokemon
 - Normal mode and compact mode
 - Grouping and filtering by generation/region and type
+- Multiplayer rooms with host-controlled room settings, host-only reset, synchronized timers, room chat/events, and reconnectable sessions
+- Multiplayer modal controls for room mode, group-by, and room filters
 - Optional outlines, shiny sprites, Pokedex ID display, dark mode, and type-based themes
 - Pokemon cries with optional legacy cries
 - Persistent game state and settings via `localStorage`
@@ -37,13 +39,13 @@ See [ROADMAP.md](ROADMAP.md) for future improvements.
 
 ## Running Locally
 
-There is no build step.
+The current browser app still has no frontend build step.
 
 Because the app uses a service worker and ESM modules, you should run it through a local web server instead of opening `index.html` directly.
 
 The deployable app lives in `site/`.
 
-Examples:
+Static-site only example:
 
 ```powershell
 python -m http.server 8080 --directory site
@@ -55,9 +57,34 @@ Then open:
 http://localhost:8080/
 ```
 
+The v2 multiplayer server is a TypeScript Node service that serves the same `site/` directory and exposes the room APIs/WebSocket endpoint.
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the server in development:
+
+```bash
+npm run dev:server
+```
+
+Build and run the compiled server:
+
+```bash
+npm run build:server
+npm start
+```
+
+By default the server listens on `http://localhost:3000`. The server loads a Pokemon catalog from PokeAPI on startup for server-authoritative multiplayer validation.
+
+To try multiplayer, open the app through the Node server, open Settings, and use the Multiplayer section to create or join a private room. The host controls the room filters and group-by settings from the multiplayer modal, and only the host can reset or start the room. Room links use a `#room=<code>` hash and reconnect with a session token stored in the browser. Players who leave are marked inactive instead of disappearing, and the room timer starts on the first accepted guess.
+
 ## Deployment
 
-This project can be deployed as a static site on any basic web server, including Nginx.
+The current app can still be deployed as a static site on any basic web server, including Nginx.
 
 For Dokploy, set the static publish directory to `site`.
 
@@ -67,6 +94,24 @@ Make sure:
 - `site/index.html`, `site/js/app.js`, `site/css/styles.css`, `site/assets/favicon.svg`, and `site/js/vendor/pokeapi-js-wrapper-sw.js` are all published together at the same path
 - `site/js/vendor/pokeapi-js-wrapper.js` is published with the rest of the static assets
 - the service worker file remains reachable from the same scope as the app
+
+For v2 multiplayer, deploy the Node service instead of static-only hosting. The included `Dockerfile` builds the TypeScript server, installs production dependencies, and serves `site/` plus `/api/*` and `/ws/*` from one origin.
+
+Multiplayer notes:
+
+- the sprite-board filter bar is hidden while a room is active
+- the multiplayer modal owns the room filter and group-by controls
+- the host can configure room settings before start and can reset multiplayer progress
+- resetting a room clears the multiplayer event log and timer
+- same-device rejoin uses the stored session token for the room
+
+Useful server endpoints:
+
+- `GET /health`
+- `GET /api/catalog/version`
+- `POST /api/rooms`
+- `POST /api/rooms/:code/join`
+- `GET /ws/rooms/:roomId?sessionToken=...`
 
 ## Releases
 

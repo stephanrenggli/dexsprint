@@ -25,9 +25,9 @@ export async function playCry(canonical, {
     }
     state.cryAudio.src = modernUrl;
     await state.cryAudio.play();
-  } catch (err) {
-    // no-op: audio is optional
-  }
+    } catch {
+      // no-op: audio is optional
+    }
 }
 
 export async function playCryWithFallback(state, legacyUrl, modernUrl) {

@@ -1,6 +1,8 @@
+/* global importScripts */
+
 importScripts("./js/vendor/pokeapi-js-wrapper-sw.js");
 
-const CACHE_NAME = "dexsprint-shell-v18";
+const CACHE_NAME = "dexsprint-shell-v20";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -20,6 +22,7 @@ const APP_SHELL = [
   "./js/features/progress-share.js",
   "./js/features/progress.js",
   "./js/features/weekly-challenge.js",
+  "./js/features/multiplayer.js",
   "./js/features/info.js",
   "./js/features/settings.js",
   "./js/features/quiz.js",
@@ -28,6 +31,7 @@ const APP_SHELL = [
   "./js/services/audio.js",
   "./js/services/catalog-source.js",
   "./js/services/catalog-hydration.js",
+  "./js/services/multiplayer-client.js",
   "./js/services/qr-code.js",
   "./js/vendor/qrcode-generator.js",
   "./js/domain/filters.js",

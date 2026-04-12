@@ -85,11 +85,18 @@ function decodeUtf8(bytes) {
 
 export function encodeProgressPayload({ ids, elapsed, settings = null }) {
   const payload = [];
-  writeVarInt(elapsed, payload);
-  writeVarInt(ids.length, payload);
+  const safeElapsed = Number.isFinite(elapsed) && elapsed >= 0 ? Math.floor(elapsed) : 0;
+  const safeIds = Array.isArray(ids)
+    ? ids
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    : [];
+
+  writeVarInt(safeElapsed, payload);
+  writeVarInt(safeIds.length, payload);
 
   let previousId = 0;
-  ids.forEach((id) => {
+  safeIds.forEach((id) => {
     writeVarInt(id - previousId, payload);
     previousId = id;
   });

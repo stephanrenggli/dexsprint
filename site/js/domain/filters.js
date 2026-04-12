@@ -1,4 +1,4 @@
-import { formatGenerationLabel, generationOrder, normalizeName, prettifyName } from "./text.js";
+import { formatGenerationLabel, normalizeName, prettifyName } from "./text.js";
 
 export function summarizeFilterSelection(values, formatter) {
   if (!values || !values.length) return "All";

@@ -159,7 +159,7 @@ export function createInfoController({
       renderInfoAbilities(details);
       renderInfoFacts(details);
       renderInfoTypes(entry.types || []);
-    } catch (err) {
+    } catch {
       if (infoGenus) infoGenus.textContent = "Could not load details.";
     }
   }

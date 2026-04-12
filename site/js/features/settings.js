@@ -10,7 +10,6 @@ export function createSettingsController({
   defaultTheme,
   themes,
   themeChooser,
-  themeColorMeta,
   gameModeSelect,
   compactToggle,
   outlineToggle,
@@ -35,12 +34,12 @@ export function createSettingsController({
   applyFilters,
   syncWeeklyChallengeState,
   syncProgressLinkPreview,
-  setInputStatus,
   updateThemeColorMeta,
   getSettingsPayload,
   getGameMode,
   getWeeklyChallengeTheme,
-  requestConfirmation
+  requestConfirmation,
+  isFiltersLocked = () => false
 }) {
   function setFiltersPanelExpanded(expanded, { persist = true } = {}) {
     if (!filtersPanel || !filtersPanelToggle) return;
@@ -54,8 +53,19 @@ export function createSettingsController({
   function syncTypoSettings() {
     if (!typoModeSelect || !autocorrectToggle) return;
     const isStrict = typoModeSelect.value === "strict";
-    autocorrectToggle.disabled = isStrict;
-    autocorrectToggle.closest(".toggle")?.classList.toggle("toggle--disabled", isStrict);
+    const locked = isFiltersLocked();
+    autocorrectToggle.disabled = locked || isStrict;
+    autocorrectToggle
+      .closest(".toggle")
+      ?.classList.toggle("toggle--disabled", locked || isStrict);
+  }
+
+  function syncGameplaySettings() {
+    const locked = isFiltersLocked();
+    if (gameModeSelect) gameModeSelect.disabled = locked;
+    if (groupFilter) groupFilter.disabled = locked;
+    if (typoModeSelect) typoModeSelect.disabled = locked;
+    syncTypoSettings();
   }
 
   function setTheme(themeId, persist = true) {
@@ -154,8 +164,12 @@ export function createSettingsController({
     if (shinyToggle) shinyToggle.checked = Boolean(data.shiny);
     if (typoModeSelect) typoModeSelect.value = data.typoMode || DEFAULT_TYPO_MODE;
     if (autocorrectToggle) autocorrectToggle.checked = data.autocorrect !== false;
+    if (groupFilter) {
+      const group = ["none", "generation", "type"].includes(data.group) ? data.group : "generation";
+      groupFilter.value = group;
+    }
 
-    syncTypoSettings();
+    syncGameplaySettings();
     updateFilterSummary();
 
     if (persist) {
@@ -176,7 +190,7 @@ export function createSettingsController({
     let data;
     try {
       data = JSON.parse(raw || legacyRaw);
-    } catch (err) {
+    } catch {
       return;
     }
     applySettingsPayload(data, { persist: false });
@@ -186,30 +200,33 @@ export function createSettingsController({
   }
 
   function resetSettings() {
+    const locked = isFiltersLocked();
     localStorage.removeItem(storageSettingsKey);
     localStorage.removeItem(legacyStorageSettingsKey);
-    if (gameModeSelect) gameModeSelect.value = DEFAULT_GAME_MODE;
     document.body.classList.remove("compact-mode");
     document.documentElement.classList.remove("dark-mode");
-    document.body.classList.add("outlines-off");
     if (compactToggle) compactToggle.textContent = "Compact Mode";
     if (filtersToggle) filtersToggle.textContent = "Settings";
     if (filtersToggleCompact) filtersToggleCompact.textContent = "Settings";
     if (criesToggle) criesToggle.checked = false;
     if (legacyCriesToggle) legacyCriesToggle.checked = false;
-    if (showDexToggle) showDexToggle.checked = false;
     if (shinyToggle) shinyToggle.checked = false;
-    if (typoModeSelect) typoModeSelect.value = DEFAULT_TYPO_MODE;
-    if (autocorrectToggle) autocorrectToggle.checked = true;
-    if (outlineToggle) outlineToggle.checked = false;
     if (darkToggle) darkToggle.checked = false;
     setFiltersPanelExpanded(false, { persist: false });
     setTheme(defaultTheme, false);
-    syncTypoSettings();
-    if (groupFilter) groupFilter.value = "generation";
-    setChipGroupSelections(genFilter, []);
-    setChipGroupSelections(typeFilter, []);
-    applyFilters();
+    if (!locked) {
+      if (gameModeSelect) gameModeSelect.value = DEFAULT_GAME_MODE;
+      document.body.classList.add("outlines-off");
+      if (showDexToggle) showDexToggle.checked = false;
+      if (typoModeSelect) typoModeSelect.value = DEFAULT_TYPO_MODE;
+      if (autocorrectToggle) autocorrectToggle.checked = true;
+      if (outlineToggle) outlineToggle.checked = false;
+      if (groupFilter) groupFilter.value = "generation";
+      setChipGroupSelections(genFilter, []);
+      setChipGroupSelections(typeFilter, []);
+      applyFilters();
+    }
+    syncGameplaySettings();
     syncWeeklyChallengeState();
     syncProgressLinkPreview();
   }
@@ -226,6 +243,7 @@ export function createSettingsController({
   return {
     setFiltersPanelExpanded,
     syncTypoSettings,
+    syncGameplaySettings,
     setTheme,
     initThemes,
     updateFilterSummary,

@@ -5,7 +5,6 @@ export function createViewController({
   spriteGrid,
   groupFilter,
   progressBar,
-  progressValue,
   progressMilestonesEl,
   foundCount,
   compactFoundCount,

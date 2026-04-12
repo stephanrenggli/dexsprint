@@ -15,10 +15,11 @@ export function createQuizController({
   renderStudyPanel,
   saveState,
   showStatusHint,
-  setInputStatus,
   startTimer,
   highlightPokemon,
-  syncInlineStatusVisibility
+  syncInlineStatusVisibility,
+  isMultiplayerActive = () => false,
+  submitMultiplayerGuess = () => false
 }) {
   function findExactMatchAcrossAllPokemon(normalized) {
     if (!normalized) return null;
@@ -77,6 +78,12 @@ export function createQuizController({
   function handleGuess(value) {
     const normalized = normalizeGuess(value);
     if (!normalized) return;
+
+    if (!isStudyMode() && isMultiplayerActive()) {
+      submitMultiplayerGuess(value);
+      return;
+    }
+
     if (isStudyMode()) {
       const currentName = state.studyCurrent;
       if (!currentName) return;
@@ -159,7 +166,7 @@ export function createQuizController({
   }
 
   function handleInputEvent(e) {
-    startTimer();
+    if (!isMultiplayerActive()) startTimer();
     const value = e.target.value;
     syncInlineStatusVisibility();
     if (!value.includes(",")) return;
@@ -184,7 +191,7 @@ export function createQuizController({
   function handleKeydown(e) {
     if (e.key !== "Enter" && e.key !== "Go" && e.key !== "Done" && e.key !== "Return") return;
     if (e.isComposing) return;
-    startTimer();
+    if (!isMultiplayerActive()) startTimer();
     const value = e.target.value;
     handleGuess(value);
     e.target.value = "";
@@ -194,7 +201,7 @@ export function createQuizController({
   function handleSubmit(e) {
     if (e) e.preventDefault();
     if (!inputEl) return;
-    startTimer();
+    if (!isMultiplayerActive()) startTimer();
     const value = inputEl.value;
     handleGuess(value);
     inputEl.value = "";

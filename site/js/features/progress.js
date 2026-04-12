@@ -11,15 +11,12 @@ export function createProgressController({
   renderProgressMilestones,
   triggerCompletionCelebration,
   clearCompletionCelebration,
-  flashProgressChange,
-  flashProgressMilestone,
-  syncProgressUnlockCues,
-  syncProgressMilestoneCues,
   syncProgressLinkPreview,
   renderBadges,
   getCompletedGroupEntries,
-  isStudyMode,
-  showStateToast
+  syncProgressUnlockCues,
+  syncProgressMilestoneCues,
+  isStudyMode
 }) {
   function recalculateActiveFoundCount() {
     let count = 0;

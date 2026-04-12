@@ -5,14 +5,10 @@ export function createProgressShareController({
   progressCodeEl,
   progressIncludeSettingsEl,
   progressFeedbackEl,
-  progressImportBtn,
-  progressCopyBtn,
-  progressQrBtn,
   qrModal,
   qrClose,
   qrImage,
   qrLink,
-  qrCopyBtn,
   openModal,
   closeModal,
   progressCodePrefix,
@@ -33,11 +29,8 @@ export function createProgressShareController({
   updateStats,
   renderSprites,
   renderStudyPanel,
-  syncProgressUnlockCues,
-  syncProgressMilestoneCues,
   selectProgressCode,
   getImportPreviewStats,
-  setProgressFeedback
 }) {
   let progressCleanupTimeout = null;
   let qrLinkValue = "";
@@ -96,7 +89,7 @@ export function createProgressShareController({
       if (hash.startsWith(progressCodePrefix) || hash.startsWith(legacyProgressCodePrefix)) {
         return hash;
       }
-    } catch (err) {
+    } catch {
       // ignore invalid URLs and try plain-text parsing below
     }
 
@@ -119,7 +112,7 @@ export function createProgressShareController({
       const url = new URL(raw, window.location.href);
       const hash = url.hash.replace(/^#/, "");
       return hash.startsWith("progress=") || hash.startsWith(progressCodePrefix) || hash.startsWith(legacyProgressCodePrefix);
-    } catch (err) {
+    } catch {
       return false;
     }
   }
@@ -150,7 +143,7 @@ export function createProgressShareController({
     if (qrImage) {
       try {
         qrImage.src = createQrCodeDataUrl(shareLink);
-      } catch (err) {
+      } catch {
         setProgressFeedback("That progress link is too long for the QR code.");
         return false;
       }
@@ -176,7 +169,7 @@ export function createProgressShareController({
     try {
       await navigator.clipboard.writeText(value);
       setProgressFeedback("Progress link copied.");
-    } catch (err) {
+    } catch {
       setProgressFeedback("Progress link ready to copy.");
     }
   }
@@ -206,7 +199,7 @@ export function createProgressShareController({
     if (selection && Number.isInteger(selection.start) && Number.isInteger(selection.end)) {
       try {
         progressCodeEl.setSelectionRange(selection.start, selection.end);
-      } catch (err) {
+      } catch {
         // Ignore selection restore failures in unsupported browsers.
       }
     }
@@ -250,8 +243,26 @@ export function createProgressShareController({
     try {
       await navigator.clipboard.writeText(value);
       setProgressFeedback("Progress link copied.");
-    } catch (err) {
+    } catch {
       setProgressFeedback("Progress link ready to copy.");
+    }
+  }
+
+  async function copyExistingProgressCode() {
+    if (!progressCodeEl) return;
+    const code = encodeFoundProgress();
+    if (!code) {
+      setProgressFeedback("Open a quiz to generate a progress code.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(code);
+      setProgressFeedback("Progress code copied.");
+    } catch {
+      progressCodeEl.value = code;
+      selectProgressCode();
+      setProgressFeedback("Progress code ready to copy.");
     }
   }
 
@@ -295,7 +306,7 @@ export function createProgressShareController({
       scheduleImportedProgressCleanup();
       showStatusHint("Progress imported.");
       return true;
-    } catch (err) {
+    } catch {
       if (!fromHash) setProgressFeedback("That progress code is not valid.");
       return false;
     }
@@ -329,7 +340,7 @@ export function createProgressShareController({
         window.history.replaceState(null, "", cleanUrl);
       }
       return didImport;
-    } catch (err) {
+    } catch {
       window.history.replaceState(null, "", cleanUrl);
       return false;
     }
@@ -348,6 +359,7 @@ export function createProgressShareController({
     syncProgressLinkPreview,
     applyImportedProgress,
     copyExistingProgressValue,
+    copyExistingProgressCode,
     importProgressValue,
     restoreProgressFromHash,
     handleProgressHashChange,

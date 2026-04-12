@@ -1,6 +1,5 @@
 import { playCry as playCryModule } from "./services/audio.js";
 import {
-  BADGES,
   DEFAULT_GAME_MODE,
   DEFAULT_STATUS,
   DEFAULT_TYPO_MODE,
@@ -20,7 +19,6 @@ import {
   DEFAULT_THEME,
   THEMES,
   STUDY_SCENE_PALETTE_BY_TYPE,
-  TYPE_ID_MAP,
   githubRepo,
   spriteFallback,
   spriteShinyBase
@@ -38,7 +36,6 @@ import {
   findTypoMatch as findTypoMatchModule,
 } from "./domain/typo-match.js";
 import {
-  buildPersistedStateRecord as buildPersistedStateRecordCore,
   buildStatePayload as buildStatePayloadCore,
   clearState as clearStateCore,
   flushStateSave as flushStateSaveCore,
@@ -65,8 +62,9 @@ import { createProgressShareController } from "./features/progress-share.js";
 import { createQuizController } from "./features/quiz.js";
 import { createStudyController } from "./features/study.js";
 import { createViewController } from "./features/views.js";
+import { createMultiplayerController } from "./features/multiplayer.js";
+import { createMultiplayerClient } from "./services/multiplayer-client.js";
 import {
-  filterNamesBySelectedIndex as filterNamesBySelectedIndexCore,
   getGenerationSlugByInput as getGenerationSlugByInputCore,
   getTypeSlugByInput as getTypeSlugByInputCore,
   summarizeFilterSelection as summarizeFilterSelectionCore
@@ -106,6 +104,7 @@ const groupFilter = document.getElementById("group-filter");
 const filtersPanel = document.getElementById("filters-panel");
 const filtersPanelToggle = document.getElementById("filters-panel-toggle");
 const filterSummary = document.getElementById("filter-summary");
+const spriteBoardFilters = document.querySelector(".app .sprite-board-filters");
 const spriteGrid = document.getElementById("sprite-grid");
 const progressBar = document.getElementById("progress-bar");
 const progressMilestonesEl = document.getElementById("progress-milestones");
@@ -120,6 +119,23 @@ const criesToggle = document.getElementById("cries-toggle");
 const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
 const settingsModal = document.getElementById("settings-modal");
 const settingsClose = document.getElementById("settings-close");
+const multiplayerOpenBtn = document.getElementById("multiplayer-open");
+const multiplayerOpenCompactBtn = document.getElementById("multiplayer-open-compact");
+const multiplayerModal = document.getElementById("multiplayer-modal");
+const multiplayerFiltersSlot = document.getElementById("multiplayer-filters-slot");
+const multiplayerFilterSummary = document.getElementById("multiplayer-filter-summary");
+const multiplayerFiltersPanel = document.getElementById("multiplayer-filters-panel");
+const multiplayerFiltersPanelToggle = document.getElementById("multiplayer-filters-panel-toggle");
+const multiplayerGroupFilter = document.getElementById("multiplayer-group-filter");
+const multiplayerGenFilter = document.getElementById("multiplayer-gen-filter");
+const multiplayerTypeFilter = document.getElementById("multiplayer-type-filter");
+const multiplayerClose = document.getElementById("multiplayer-close");
+const multiplayerJoinModal = document.getElementById("multiplayer-join-modal");
+const multiplayerJoinClose = document.getElementById("multiplayer-join-close");
+const multiplayerJoinMessage = document.getElementById("multiplayer-join-message");
+const multiplayerJoinPlayerName = document.getElementById("multiplayer-join-player-name");
+const multiplayerJoinCancel = document.getElementById("multiplayer-join-cancel");
+const multiplayerJoinAccept = document.getElementById("multiplayer-join-accept");
 const showDexToggle = document.getElementById("show-dex-toggle");
 const shinyToggle = document.getElementById("shiny-toggle");
 const settingsReset = document.getElementById("settings-reset");
@@ -152,7 +168,6 @@ const confirmModal = document.getElementById("confirm-modal");
 const confirmClose = document.getElementById("confirm-close");
 const confirmTitle = document.getElementById("confirm-title");
 const confirmMessage = document.getElementById("confirm-message");
-const confirmStats = document.getElementById("confirm-stats");
 const confirmCancel = document.getElementById("confirm-cancel");
 const confirmAccept = document.getElementById("confirm-accept");
 const changelogModal = document.getElementById("changelog-modal");
@@ -161,6 +176,7 @@ const changelogOpen = document.getElementById("changelog-open");
 const changelogContent = document.getElementById("changelog-content");
 const progressCodeEl = document.getElementById("progress-code");
 const progressCopyBtn = document.getElementById("progress-copy");
+const progressCopyCodeBtn = document.getElementById("progress-copy-code");
 const progressQrBtn = document.getElementById("progress-qr");
 const progressImportBtn = document.getElementById("progress-import");
 const progressFeedbackEl = document.getElementById("progress-feedback");
@@ -171,6 +187,10 @@ const qrImage = document.getElementById("qr-image");
 const qrLink = document.getElementById("qr-link");
 const qrCopyBtn = document.getElementById("qr-copy");
 const settingsPanelCard = settingsModal ? settingsModal.querySelector(".settings-panel") : null;
+const multiplayerGameplayLock = document.getElementById("multiplayer-gameplay-lock");
+const multiplayerGameplayControls = document.getElementById("multiplayer-gameplay-controls");
+const multiplayerProgressLock = document.getElementById("multiplayer-progress-lock");
+const multiplayerProgressControls = document.getElementById("multiplayer-progress-controls");
 const guessForm = document.getElementById("guess-form");
 const studyPanel = document.getElementById("study-panel");
 const studySubtitle = document.getElementById("study-subtitle");
@@ -184,6 +204,23 @@ const studyName = document.getElementById("study-name");
 const studyActions = document.getElementById("study-actions");
 const studyRevealBtn = document.getElementById("study-reveal");
 const studyNextBtn = document.getElementById("study-next");
+const multiplayerPanel = document.getElementById("multiplayer-panel");
+const multiplayerStatus = document.getElementById("multiplayer-status");
+const multiplayerPlayers = document.getElementById("multiplayer-players");
+const multiplayerEvents = document.getElementById("multiplayer-events");
+const multiplayerRoomCode = document.getElementById("multiplayer-room-code");
+const multiplayerRoomCodeModal = document.getElementById("multiplayer-room-code-modal");
+const multiplayerRoomCodeDisplay = document.getElementById("multiplayer-room-code-display");
+const multiplayerRoomCodeField = document.getElementById("multiplayer-room-code-field");
+const multiplayerRoomCodeInput = document.getElementById("multiplayer-room-code-input");
+const multiplayerPlayerName = document.getElementById("multiplayer-player-name");
+const multiplayerMode = document.getElementById("multiplayer-mode");
+const multiplayerCreate = document.getElementById("multiplayer-create");
+const multiplayerJoin = document.getElementById("multiplayer-join");
+const multiplayerStart = document.getElementById("multiplayer-start");
+const multiplayerLeave = document.getElementById("multiplayer-leave");
+const multiplayerCopy = document.getElementById("multiplayer-copy");
+const multiplayerCopyCode = document.getElementById("multiplayer-copy-code");
 
 const pokedex = new Pokedex.Pokedex({
   cache: true,
@@ -191,6 +228,7 @@ const pokedex = new Pokedex.Pokedex({
   cacheImages: false
 });
 const stateToastState = { queue: [], active: false };
+const multiplayerClient = createMultiplayerClient();
 let changelogController = null;
 let progressShareController = null;
 let weeklyChallengeController = null;
@@ -205,6 +243,15 @@ let settingsController = null;
 let quizController = null;
 let studyController = null;
 let viewController = null;
+let multiplayerFiltersController = null;
+let multiplayerController = null;
+let soloTimerSnapshot = null;
+
+function setMultiplayerFiltersInModal(inModal) {
+  if (!multiplayerFiltersSlot) return;
+  multiplayerFiltersSlot.hidden = !inModal;
+  multiplayerFiltersSlot.setAttribute("aria-hidden", inModal ? "false" : "true");
+}
 
 async function registerAppServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
@@ -246,6 +293,7 @@ function getSettingsPayload() {
     shiny: shinyToggle ? shinyToggle.checked : false,
     typoMode: typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
     autocorrect: autocorrectToggle ? autocorrectToggle.checked : true,
+    group: groupFilter ? groupFilter.value : "generation",
     filtersPanelExpanded: Boolean(filtersPanel && !filtersPanel.hidden),
     dark: document.documentElement.classList.contains("dark-mode"),
     theme: document.documentElement.dataset.theme || DEFAULT_THEME
@@ -253,8 +301,25 @@ function getSettingsPayload() {
 }
 
 function getShareableSettingsPayload() {
-  const { filtersPanelExpanded, ...shareableSettings } = getSettingsPayload();
+  const shareableSettings = getSettingsPayload();
+  delete shareableSettings.filtersPanelExpanded;
   return shareableSettings;
+}
+
+function getMultiplayerRoomSettings() {
+  const group = multiplayerGroupFilter && ["none", "generation", "type"].includes(multiplayerGroupFilter.value)
+    ? multiplayerGroupFilter.value
+    : "generation";
+  return {
+    mode: multiplayerMode && multiplayerMode.value === "coop" ? "coop" : "race",
+    typoMode: typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
+    autocorrect: autocorrectToggle ? autocorrectToggle.checked : true,
+    outlinesOff: document.body.classList.contains("outlines-off"),
+    showDex: showDexToggle ? showDexToggle.checked : false,
+    group,
+    generations: multiplayerFiltersController?.getSelectedGenerations() || [],
+    types: multiplayerFiltersController?.getSelectedTypes() || []
+  };
 }
 
 timerController = createTimerController({
@@ -355,6 +420,33 @@ filtersController = createFiltersController({
   syncWeeklyChallengeState
 });
 
+multiplayerFiltersController = createFiltersController({
+  state,
+  genFilter: multiplayerGenFilter,
+  typeFilter: multiplayerTypeFilter,
+  filtersPanel: multiplayerFiltersPanel,
+  filtersPanelToggle: multiplayerFiltersPanelToggle,
+  formatGenerationLabel,
+  generationOrder,
+  prettifyName,
+  isWeeklyChallengeMode,
+  getWeeklyChallengeTheme,
+  getWeeklyChallengeNames,
+  isWeeklyChallengeReady,
+  recalculateActiveFoundCount,
+  updateStats,
+  renderSprites,
+  renderStudyPanel,
+  buildGuessIndex: buildGuessIndexModule,
+  normalizeGuess,
+  saveState: () => {},
+  onFiltersChanged: () => multiplayerController?.configureRoom?.(),
+  updateFilterSummary: updateMultiplayerFilterSummary,
+  setFiltersPanelExpanded: setMultiplayerFiltersPanelExpanded,
+  syncWeeklyChallengeState,
+  isFiltersLocked: () => multiplayerController?.isActive() && !multiplayerController?.isHost?.()
+});
+
 debugController = createDebugController({
   state,
   unlockGeneration,
@@ -445,7 +537,8 @@ settingsController = createSettingsController({
   getSettingsPayload,
   getGameMode,
   getWeeklyChallengeTheme,
-  requestConfirmation: (...args) => modalController.requestConfirmation(...args)
+  requestConfirmation: (...args) => modalController.requestConfirmation(...args),
+  isFiltersLocked: () => multiplayerController?.isActive() || false
 });
 
 studyController = createStudyController({
@@ -522,6 +615,57 @@ progressController = createProgressController({
   showStateToast
 });
 
+multiplayerController = createMultiplayerController({
+  client: multiplayerClient,
+  state,
+  elements: {
+    panel: multiplayerPanel,
+    status: multiplayerStatus,
+    players: multiplayerPlayers,
+    events: multiplayerEvents,
+    roomCode: multiplayerRoomCode,
+    modalRoomCode: multiplayerRoomCodeModal,
+    roomCodeDisplay: multiplayerRoomCodeDisplay,
+    roomCodeField: multiplayerRoomCodeField,
+    roomCodeInput: multiplayerRoomCodeInput,
+    playerNameInput: multiplayerPlayerName,
+    modeSelect: multiplayerMode,
+    createBtn: multiplayerCreate,
+    joinBtn: multiplayerJoin,
+    startBtn: multiplayerStart,
+    leaveBtn: multiplayerLeave,
+    copyBtn: multiplayerCopy,
+    copyCodeBtn: multiplayerCopyCode
+  },
+  joinInvite: {
+    message: multiplayerJoinMessage,
+    playerNameInput: multiplayerJoinPlayerName,
+    acceptBtn: multiplayerJoinAccept,
+    cancelBtn: multiplayerJoinCancel,
+    closeBtn: multiplayerJoinClose,
+    modal: multiplayerJoinModal
+  },
+  getRoomSettings: getMultiplayerRoomSettings,
+  recalculateActiveFoundCount,
+  updateStats,
+  renderSprites,
+  renderStudyPanel,
+  showRevealPreview,
+  playCry,
+  showStatusHint,
+  focusInput,
+  saveSoloTimerSnapshot,
+  restoreSoloTimerSnapshot,
+  syncMultiplayerTimer,
+  applyRoomSettings: applyMultiplayerRoomSettings,
+  restoreLocalSettings: restoreSettings,
+  isFiltersLocked: () => multiplayerController?.isActive() || false,
+  onRoomStateChange: syncMultiplayerLockState,
+  openJoinPrompt: openMultiplayerJoinModal,
+  closeJoinPrompt: closeMultiplayerJoinModal,
+  closeRoomModal: closeMultiplayerModal
+});
+
 quizController = createQuizController({
   state,
   inputEl,
@@ -542,11 +686,16 @@ quizController = createQuizController({
   setInputStatus,
   startTimer,
   highlightPokemon,
-  syncInlineStatusVisibility
+  syncInlineStatusVisibility,
+  isMultiplayerActive: () => multiplayerController?.isActive() || false,
+  submitMultiplayerGuess: (value) => multiplayerController?.submitGuess(value) || false
 });
 const handleSubmit = quizController.handleSubmit;
 
 function getGameMode() {
+  if ((multiplayerModal && !multiplayerModal.classList.contains("hidden")) || multiplayerController?.isActive()) {
+    return DEFAULT_GAME_MODE;
+  }
   return gameModeSelect ? gameModeSelect.value : DEFAULT_GAME_MODE;
 }
 
@@ -556,14 +705,6 @@ function isStudyMode() {
 
 function isWeeklyChallengeMode() {
   return getGameMode() === "weekly";
-}
-
-function getWeeklyChallengeWeekIndex() {
-  return weeklyChallengeController?.getWeeklyChallengeWeekIndex() || 0;
-}
-
-function getWeeklyGenerationLabel(slug) {
-  return weeklyChallengeController?.getWeeklyGenerationLabel(slug) || formatGenerationLabel(slug);
 }
 
 function refreshWeeklyChallengeCatalog() {
@@ -582,10 +723,6 @@ function getWeeklyChallengeNames(theme = getWeeklyChallengeTheme()) {
   return weeklyChallengeController?.getWeeklyChallengeNames(theme) || [];
 }
 
-function setWeeklyChallengeFilterLock(locked) {
-  return weeklyChallengeController?.setWeeklyChallengeFilterLock(locked);
-}
-
 function syncWeeklyChallengeState() {
   return weeklyChallengeController?.syncWeeklyChallengeState();
 }
@@ -596,6 +733,127 @@ function applySettingsPayload(data, { persist = true } = {}) {
 
 function setProgressFeedback(message) {
   progressShareController?.setProgressFeedback(message);
+}
+
+function updateMultiplayerFilterSummary() {
+  if (!multiplayerFilterSummary) return;
+  const groupLabels = {
+    none: "None",
+    generation: "Generations",
+    type: "Type"
+  };
+  const generationSummary = summarizeFilterSelectionCore(
+    multiplayerFiltersController?.getSelectedGenerations() || [],
+    (gen) => formatGenerationLabel(gen)
+  );
+  const typeSummary = summarizeFilterSelectionCore(
+    multiplayerFiltersController?.getSelectedTypes() || [],
+    (type) => prettifyName(type)
+  );
+  const groupSummary = groupLabels[multiplayerGroupFilter?.value || "generation"] || "Generations";
+  multiplayerFilterSummary.textContent = `Group: ${groupSummary} - Generations: ${generationSummary} - Types: ${typeSummary}`;
+}
+
+function setMultiplayerFiltersPanelExpanded(expanded, { persist = false } = {}) {
+  if (!multiplayerFiltersPanel || !multiplayerFiltersPanelToggle) return;
+  const isExpanded = Boolean(expanded);
+  multiplayerFiltersPanel.hidden = !isExpanded;
+  multiplayerFiltersPanelToggle.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+  multiplayerFiltersPanelToggle.textContent = isExpanded ? "Hide Filters" : "Edit Filters";
+  if (persist) {
+    updateMultiplayerFilterSummary();
+  }
+}
+
+function saveSoloTimerSnapshot() {
+  if (soloTimerSnapshot) return;
+  soloTimerSnapshot = {
+    savedElapsed: state.savedElapsed || 0,
+    startTime: state.startTime,
+    running: Boolean(state.timerId)
+  };
+}
+
+function restoreSoloTimerSnapshot() {
+  if (!soloTimerSnapshot) return;
+  const snapshot = soloTimerSnapshot;
+  soloTimerSnapshot = null;
+  if (state.timerId) stopTimer();
+  state.savedElapsed = snapshot.savedElapsed || 0;
+  state.startTime = snapshot.startTime || null;
+  if (snapshot.running && state.startTime) {
+    startTimer(true);
+    setTimerText(formatTime(getElapsedSeconds()));
+  } else {
+    setTimerText(formatTime(state.savedElapsed || 0));
+  }
+}
+
+function syncMultiplayerTimer(snapshot = null) {
+  if (!snapshot?.timerStartedAt) {
+    if (state.timerId) stopTimer();
+    state.savedElapsed = 0;
+    state.startTime = null;
+    setTimerText("00:00");
+    return;
+  }
+
+  const startedAt = Date.parse(snapshot.timerStartedAt);
+  if (!Number.isFinite(startedAt)) return;
+
+  if (state.timerId) stopTimer();
+  state.savedElapsed = 0;
+  state.startTime = startedAt;
+  startTimer(true);
+  setTimerText(formatTime(getElapsedSeconds()));
+}
+
+function syncMultiplayerLockState(snapshot = null) {
+  const inRoom = Boolean(snapshot);
+  const host = inRoom && Boolean(multiplayerController?.isHost?.());
+  const setupLocked = inRoom && snapshot?.status !== "lobby";
+  const filterInputsDisabled = inRoom ? setupLocked || !host : false;
+  const showModalFilters =
+    Boolean(multiplayerModal && !multiplayerModal.classList.contains("hidden")) &&
+    (!inRoom || host);
+
+  if (multiplayerGameplayLock) multiplayerGameplayLock.hidden = !inRoom;
+  if (multiplayerGameplayControls) multiplayerGameplayControls.hidden = inRoom;
+  if (multiplayerProgressLock) multiplayerProgressLock.hidden = !inRoom;
+  if (multiplayerProgressControls) multiplayerProgressControls.hidden = inRoom;
+  if (progressIncludeSettingsEl) progressIncludeSettingsEl.disabled = inRoom;
+  if (progressImportBtn) progressImportBtn.disabled = inRoom;
+  if (progressCopyBtn) progressCopyBtn.disabled = inRoom;
+  if (progressCopyCodeBtn) progressCopyCodeBtn.disabled = inRoom;
+  if (progressQrBtn) progressQrBtn.disabled = inRoom;
+  if (progressCodeEl) progressCodeEl.disabled = inRoom;
+  if (progressCodeEl) progressCodeEl.setAttribute("aria-disabled", inRoom ? "true" : "false");
+  if (progressCodeEl) progressCodeEl.classList.toggle("is-disabled", inRoom);
+  if (resetBtn) resetBtn.disabled = inRoom && !host;
+  if (resetBtnCompact) resetBtnCompact.disabled = inRoom && !host;
+  if (spriteBoardFilters) {
+    spriteBoardFilters.hidden = inRoom;
+  }
+  if (multiplayerFiltersPanelToggle) multiplayerFiltersPanelToggle.disabled = inRoom ? setupLocked || !host : false;
+  if (multiplayerGroupFilter) multiplayerGroupFilter.disabled = inRoom ? setupLocked || !host : false;
+  if (multiplayerFiltersSlot) {
+    multiplayerFiltersSlot
+      .querySelectorAll(".chip-grid input[type='checkbox']")
+      .forEach((input) => {
+        input.disabled = filterInputsDisabled;
+      });
+  }
+  if (groupFilter) groupFilter.disabled = inRoom;
+  if (filtersPanelToggle) filtersPanelToggle.disabled = inRoom;
+  [...document.querySelectorAll(".chip-grid input[type='checkbox']")].forEach((input) => {
+    input.disabled = filterInputsDisabled;
+  });
+  if (gameModeSelect) gameModeSelect.disabled = inRoom;
+  if (typoModeSelect) typoModeSelect.disabled = inRoom;
+  if (autocorrectToggle) autocorrectToggle.disabled = inRoom;
+  if (outlineToggle) outlineToggle.disabled = inRoom && !host;
+  if (showDexToggle) showDexToggle.disabled = inRoom && !host;
+  setMultiplayerFiltersInModal(showModalFilters);
 }
 
 function getImportPreviewStats(imported) {
@@ -664,10 +922,6 @@ function showStateToast({ meta, title, icon }) {
   showStateToastUI(stateToastState, stateToastRefs, { meta, title, icon });
 }
 
-function ensureChangelogLoaded() {
-  return changelogController?.ensureChangelogLoaded();
-}
-
 function openChangelogModal() {
   modalController?.openChangelogModal();
 }
@@ -682,6 +936,30 @@ function openSettingsModal() {
 
 function closeSettingsModal() {
   modalController?.closeSettingsModal();
+}
+
+function openMultiplayerModal() {
+  if (multiplayerGroupFilter && groupFilter) multiplayerGroupFilter.value = groupFilter.value;
+  setMultiplayerFiltersInModal(!multiplayerController?.isActive() || multiplayerController?.isHost());
+  syncGameplaySettings();
+  updateMultiplayerFilterSummary();
+  syncWeeklyChallengeState();
+  openModal(multiplayerModal, multiplayerPlayerName || multiplayerRoomCodeInput || multiplayerCreate);
+}
+
+function closeMultiplayerModal() {
+  closeModal(multiplayerModal);
+  setMultiplayerFiltersInModal(false);
+  syncGameplaySettings();
+  syncWeeklyChallengeState();
+}
+
+function openMultiplayerJoinModal() {
+  openModal(multiplayerJoinModal, multiplayerJoinPlayerName || multiplayerJoinAccept);
+}
+
+function closeMultiplayerJoinModal() {
+  closeModal(multiplayerJoinModal);
 }
 
 function requestConfirmation(message, { title = "Confirm Action", confirmLabel = "Confirm", stats = [] } = {}) {
@@ -706,12 +984,12 @@ function copyProgressQrLink() {
   return progressShareController?.copyQrLink();
 }
 
-function applyImportedProgress(foundSet, options = {}) {
-  return progressShareController?.applyImportedProgress(foundSet, options);
-}
-
 async function copyExistingProgressValue() {
   return progressShareController?.copyExistingProgressValue();
+}
+
+async function copyExistingProgressCode() {
+  return progressShareController?.copyExistingProgressCode();
 }
 
 async function importProgressValue(value, { fromHash = false } = {}) {
@@ -766,27 +1044,6 @@ function stopTimer() {
   return timerController?.stopTimer();
 }
 
-function buildStatePayload() {
-  return buildStatePayloadCore({
-    state,
-    getElapsedSeconds,
-    groupFilter,
-    getSelectedGenerations,
-    getSelectedTypes
-  });
-}
-
-function buildPersistedStateRecord(payload) {
-  return buildPersistedStateRecordCore(payload, STORAGE_SCHEMA_VERSION);
-}
-
-function parsePersistedStateRecord(raw, { allowLegacy = false } = {}) {
-  return parsePersistedStateRecordCore(raw, {
-    allowLegacy,
-    schemaVersion: STORAGE_SCHEMA_VERSION
-  });
-}
-
 function flushStateSave() {
   return flushStateSaveCore({
     state,
@@ -805,6 +1062,7 @@ function flushStateSave() {
 
 function saveState({ immediate = false } = {}) {
   if (state.isRestoring) return;
+  if (multiplayerController?.isActive?.()) return;
   if (immediate) {
     flushStateSave();
     return;
@@ -863,38 +1121,6 @@ function restoreSettings() {
   return settingsController?.restoreSettings();
 }
 
-function resetSettings() {
-  return settingsController?.resetSettings();
-}
-
-function getStudyCandidates() {
-  return studyController.getStudyCandidates();
-}
-
-function ensureStudyDeck() {
-  return studyController.ensureStudyDeck();
-}
-
-function renderStudyMeta(entry) {
-  return studyController.renderStudyMeta(entry);
-}
-
-function renderStudyTypes(entry) {
-  return studyController.renderStudyTypes(entry);
-}
-
-function applyStudyScene(entry) {
-  return studyController.applyStudyScene(entry);
-}
-
-function renderStudyName(label, options = {}) {
-  return studyController.renderStudyName(label, options);
-}
-
-function clearStudyNameReveal() {
-  return studyController.clearStudyNameReveal();
-}
-
 function renderStudyPanel() {
   return studyController.renderStudyPanel();
 }
@@ -907,20 +1133,12 @@ async function confirmResetSettings() {
   return settingsController?.confirmResetSettings();
 }
 
-function setTheme(themeId, persist = true) {
-  return settingsController?.setTheme(themeId, persist);
-}
-
 function initThemes() {
   return settingsController?.initThemes();
 }
 
 function updateStats() {
   return progressController?.updateStats();
-}
-
-function getBadgeContext() {
-  return getBadgeContextCore(state);
 }
 
 function getProgressUnlockContext() {
@@ -1039,10 +1257,6 @@ function clearCompletionCelebration() {
   return viewController?.clearCompletionCelebration();
 }
 
-function createSpriteCard(entry, isFound) {
-  return viewController?.createSpriteCard(entry, isFound);
-}
-
 function recalculateActiveFoundCount() {
   return progressController?.recalculateActiveFoundCount() || 0;
 }
@@ -1051,13 +1265,12 @@ function markPokemonFound(canonical) {
   return progressController?.markPokemonFound(canonical) || false;
 }
 
-
 function renderSprites() {
-  return viewController?.renderSprites();
-}
-
-function renderSpritesGrouped(fragment) {
-  return viewController?.renderSpritesGrouped(fragment);
+  const result = viewController?.renderSprites();
+  if (multiplayerController?.isActive?.()) {
+    multiplayerController?.refreshAttributionBadges?.();
+  }
+  return result;
 }
 
 function resetQuiz() {
@@ -1095,6 +1308,17 @@ function resetQuiz() {
 }
 
 async function confirmReset() {
+  if (multiplayerController?.isActive?.()) {
+    if (!multiplayerController?.isHost?.()) return;
+    const ok = await requestConfirmation(
+      "Reset multiplayer progress? This will clear every player's found Pokemon and restart the room timer.",
+      { title: "Reset Room", confirmLabel: "Reset" }
+    );
+    if (!ok) return;
+    multiplayerController?.resetRoom?.();
+    return;
+  }
+
   const total = state.names.length;
   const found = state.activeFoundCount;
   if (total && found) {
@@ -1120,30 +1344,6 @@ function closeInfoModal() {
   return infoController?.closeInfoModal();
 }
 
-function renderInfoMeta(entry) {
-  return infoController?.renderInfoMeta(entry);
-}
-
-function renderInfoStats(details) {
-  return infoController?.renderInfoStats(details);
-}
-
-function renderInfoAbilities(details) {
-  return infoController?.renderInfoAbilities(details);
-}
-
-function renderInfoFacts(details) {
-  return infoController?.renderInfoFacts(details);
-}
-
-function getTypeId(typeName) {
-  return infoController ? infoController.getTypeId(typeName) : TYPE_ID_MAP[typeName] || 1;
-}
-
-async function getPokedexInfo(entry) {
-  return infoController?.getPokedexInfo(entry);
-}
-
 function getHiddenLabel(entry) {
   if (showDexToggle && showDexToggle.checked && entry.dexId) {
     return `#${String(entry.dexId).padStart(3, "0")}`;
@@ -1164,8 +1364,8 @@ function syncTypoSettings() {
   return settingsController?.syncTypoSettings();
 }
 
-function handleGuess(value) {
-  return quizController?.handleGuess(value);
+function syncGameplaySettings() {
+  return settingsController?.syncGameplaySettings();
 }
 
 function handleInputEvent(e) {
@@ -1176,20 +1376,16 @@ function handleLiveMatch(e) {
   return quizController?.handleLiveMatch(e);
 }
 
-function handleKeydown(e) {
-  return quizController?.handleKeydown(e);
-}
-
 function refreshGroupedGenerationHeaders() {
   return viewController?.refreshGroupedGenerationHeaders();
 }
 
 function updateSpriteCardsForPokemon(canonical, { animateReveal = false } = {}) {
-  if (!canonical || !spriteGrid) return;
+  if (!canonical || !spriteGrid) return false;
   const entry = state.meta.get(canonical);
-  if (!entry) return;
+  if (!entry) return false;
   const cards = [...spriteGrid.querySelectorAll(`.sprite-card[data-pokemon="${canonical}"]`)];
-  if (!cards.length) return;
+  if (!cards.length) return false;
 
   const isFound = state.found.has(canonical);
   cards.forEach((card) => {
@@ -1221,6 +1417,7 @@ function updateSpriteCardsForPokemon(canonical, { animateReveal = false } = {}) 
 
   refreshGroupedGenerationHeaders();
   state.recentlyFound.delete(canonical);
+  return true;
 }
 
 function highlightPokemon(canonical) {
@@ -1262,8 +1459,13 @@ function scheduleFilterMetadataHydration(generationPromise, typePromise) {
       refreshWeeklyChallengeCatalog();
       populateGenChips(generationData.entries);
       populateTypeChips(typeData.entries);
+      multiplayerFiltersController?.populateGenChips(generationData.entries);
+      multiplayerFiltersController?.populateTypeChips(typeData.entries);
       setChipGroupSelections(genFilter, state.restoredFilterSelections.gens);
       setChipGroupSelections(typeFilter, state.restoredFilterSelections.types);
+      setChipGroupSelections(multiplayerGenFilter, state.restoredFilterSelections.gens);
+      setChipGroupSelections(multiplayerTypeFilter, state.restoredFilterSelections.types);
+      multiplayerFiltersController?.applyFilters({ force: true, persist: false });
       applyFilters();
       syncWeeklyChallengeState();
       refreshActiveDetailViews();
@@ -1288,10 +1490,6 @@ function populateTypeChips(entries) {
   return filtersController?.populateTypeChips(entries);
 }
 
-function onTypeChipChange(e) {
-  return filtersController?.onTypeChipChange(e);
-}
-
 function getSelectedTypes() {
   return filtersController?.getSelectedTypes() || [];
 }
@@ -1300,40 +1498,12 @@ function populateGenChips(entries) {
   return filtersController?.populateGenChips(entries);
 }
 
-function createChipWithHandler(label, value, checked, handler) {
-  return filtersController?.createChipWithHandler(label, value, checked, handler);
-}
-
-function onGenChipChange(e) {
-  return filtersController?.onGenChipChange(e);
-}
-
 function getSelectedGenerations() {
   return filtersController?.getSelectedGenerations() || [];
 }
 
-function getChipGroupBoxes(container) {
-  return filtersController?.getChipGroupBoxes(container) || { allBox: null, others: [] };
-}
-
-function handleChipGroupChange(container, e) {
-  return filtersController?.handleChipGroupChange(container, e);
-}
-
-function getSelectedFromChips(container) {
-  return filtersController?.getSelectedFromChips(container) || [];
-}
-
-function syncChipGroup(container) {
-  return filtersController?.syncChipGroup(container);
-}
-
 function setChipGroupSelections(container, selectedValues) {
   return filtersController?.setChipGroupSelections(container, selectedValues);
-}
-
-function summarizeFilterSelection(values, formatter) {
-  return filtersController?.summarizeFilterSelection(values, formatter) || "";
 }
 
 function updateFilterSummary() {
@@ -1344,12 +1514,30 @@ function setFiltersPanelExpanded(expanded, { persist = true } = {}) {
   return filtersController?.setFiltersPanelExpanded(expanded, { persist });
 }
 
-function applyFilters() {
-  return filtersController?.applyFilters();
+function applyFilters(options = {}) {
+  return filtersController?.applyFilters(options);
 }
 
-function filterNamesBySelectedIndex(names, selectedValues, indexMap) {
-  return filtersController?.filterNamesBySelectedIndex(names, selectedValues, indexMap) || [];
+function applyMultiplayerRoomSettings(settings) {
+  if (!settings) return;
+  const group = ["none", "generation", "type"].includes(settings.group) ? settings.group : "generation";
+  if (groupFilter) groupFilter.value = group;
+  if (multiplayerGroupFilter) multiplayerGroupFilter.value = group;
+  setChipGroupSelections(
+    multiplayerGenFilter,
+    Array.isArray(settings.generations) ? settings.generations : []
+  );
+  setChipGroupSelections(
+    multiplayerTypeFilter,
+    Array.isArray(settings.types) ? settings.types : []
+  );
+  if (typoModeSelect) typoModeSelect.value = settings.typoMode || DEFAULT_TYPO_MODE;
+  if (autocorrectToggle) autocorrectToggle.checked = settings.autocorrect !== false;
+  if (outlineToggle) outlineToggle.checked = !settings.outlinesOff;
+  document.body.classList.toggle("outlines-off", Boolean(settings.outlinesOff));
+  if (showDexToggle) showDexToggle.checked = Boolean(settings.showDex);
+  syncGameplaySettings();
+  multiplayerFiltersController?.applyFilters({ force: true, persist: false });
 }
 
 const pokemonBootstrap = createPokemonBootstrap({
@@ -1495,10 +1683,27 @@ inputEl.addEventListener("input", handleLiveMatch);
 resetBtn.addEventListener("click", confirmReset);
 if (resetBtnCompact) resetBtnCompact.addEventListener("click", confirmReset);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
-if (groupFilter) groupFilter.addEventListener("change", renderSprites);
-if (groupFilter) groupFilter.addEventListener("change", renderStudyPanel);
-if (groupFilter) groupFilter.addEventListener("change", updateFilterSummary);
-if (groupFilter) groupFilter.addEventListener("change", saveState);
+if (groupFilter) {
+  groupFilter.addEventListener("change", () => {
+    renderSprites();
+    renderStudyPanel();
+    updateFilterSummary();
+    saveState();
+  });
+}
+if (multiplayerGroupFilter) {
+  multiplayerGroupFilter.addEventListener("change", () => {
+    if (groupFilter) groupFilter.value = multiplayerGroupFilter.value;
+    renderSprites();
+    renderStudyPanel();
+    updateFilterSummary();
+    updateMultiplayerFilterSummary();
+    saveState();
+    if (multiplayerController?.isActive?.() && multiplayerController?.isHost?.()) {
+      multiplayerController?.configureRoom?.();
+    }
+  });
+}
 if (filtersPanelToggle) {
   filtersPanelToggle.addEventListener("click", () => {
     setFiltersPanelExpanded(filtersPanel ? filtersPanel.hidden : false);
@@ -1507,6 +1712,11 @@ if (filtersPanelToggle) {
 if (progressCopyBtn) {
   progressCopyBtn.addEventListener("click", () => {
     copyExistingProgressValue();
+  });
+}
+if (progressCopyCodeBtn) {
+  progressCopyCodeBtn.addEventListener("click", () => {
+    copyExistingProgressCode();
   });
 }
 if (progressQrBtn) {
@@ -1527,7 +1737,11 @@ if (outlineToggle) {
   document.body.classList.add("outlines-off");
   outlineToggle.addEventListener("change", () => {
     document.body.classList.toggle("outlines-off", !outlineToggle.checked);
+    renderSprites();
     saveSettings();
+    if (multiplayerController?.isActive() && multiplayerController?.isHost()) {
+      multiplayerController.configureRoom();
+    }
   });
 }
 
@@ -1581,6 +1795,33 @@ if (settingsModal) {
     if (event.target === settingsModal) closeSettingsModal();
   });
 }
+if (multiplayerOpenBtn) multiplayerOpenBtn.addEventListener("click", openMultiplayerModal);
+if (multiplayerOpenCompactBtn) {
+  multiplayerOpenCompactBtn.addEventListener("click", openMultiplayerModal);
+}
+if (multiplayerClose) multiplayerClose.addEventListener("click", closeMultiplayerModal);
+if (multiplayerFiltersPanelToggle) {
+  multiplayerFiltersPanelToggle.addEventListener("click", () => {
+    setMultiplayerFiltersPanelExpanded(
+      multiplayerFiltersPanel ? multiplayerFiltersPanel.hidden : false,
+      { persist: true }
+    );
+  });
+}
+if (multiplayerModal) {
+  multiplayerModal.addEventListener("click", (event) => {
+    if (event.target === multiplayerModal) closeMultiplayerModal();
+  });
+}
+if (multiplayerJoinClose) multiplayerJoinClose.addEventListener("click", closeMultiplayerJoinModal);
+if (multiplayerJoinCancel) {
+  multiplayerJoinCancel.addEventListener("click", closeMultiplayerJoinModal);
+}
+if (multiplayerJoinModal) {
+  multiplayerJoinModal.addEventListener("click", (event) => {
+    if (event.target === multiplayerJoinModal) closeMultiplayerJoinModal();
+  });
+}
 
 if (settingsPanelCard) {
   scheduleSettingsInfoTipsPlacement();
@@ -1603,6 +1844,9 @@ if (showDexToggle) {
   showDexToggle.addEventListener("change", () => {
     renderSprites();
     saveSettings();
+    if (multiplayerController?.isActive() && multiplayerController?.isHost()) {
+      multiplayerController.configureRoom();
+    }
   });
 }
 
@@ -1722,6 +1966,14 @@ document.addEventListener("keydown", (event) => {
       closeSettingsModal();
       return;
     }
+    if (multiplayerModal && !multiplayerModal.classList.contains("hidden")) {
+      closeMultiplayerModal();
+      return;
+    }
+    if (multiplayerJoinModal && !multiplayerJoinModal.classList.contains("hidden")) {
+      closeMultiplayerJoinModal();
+      return;
+    }
     if (achievementsModal && !achievementsModal.classList.contains("hidden")) {
       closeAchievementsModal();
       return;
@@ -1778,4 +2030,6 @@ document.addEventListener("visibilitychange", () => {
 syncTypoSettings();
 registerAppServiceWorker();
 installDebugCommands();
-loadPokemon();
+loadPokemon().then(() => {
+  multiplayerController?.restoreFromHashOrSession();
+});

@@ -81,7 +81,7 @@ export function createModalController({
     if (restoreEl && typeof restoreEl.focus === "function" && document.contains(restoreEl)) {
       try {
         restoreEl.focus({ preventScroll: true });
-      } catch (err) {
+      } catch {
         restoreEl.focus();
       }
     }

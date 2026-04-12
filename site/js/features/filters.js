@@ -5,9 +5,6 @@ export function createFiltersController({
   state,
   genFilter,
   typeFilter,
-  groupFilter,
-  filtersPanel,
-  filtersPanelToggle,
   formatGenerationLabel,
   generationOrder,
   prettifyName,
@@ -22,9 +19,11 @@ export function createFiltersController({
   buildGuessIndex,
   normalizeGuess,
   saveState,
+  onFiltersChanged = () => {},
   updateFilterSummary,
   setFiltersPanelExpanded,
-  syncWeeklyChallengeState
+  syncWeeklyChallengeState,
+  isFiltersLocked = () => false
 }) {
   function getChipGroupBoxes(container) {
     if (!container) return { allBox: null, others: [] };
@@ -137,6 +136,7 @@ export function createFiltersController({
   }
 
   function onTypeChipChange(e) {
+    if (isFiltersLocked()) return;
     handleChipGroupChange(typeFilter, e);
     applyFilters();
   }
@@ -168,6 +168,7 @@ export function createFiltersController({
   }
 
   function onGenChipChange(e) {
+    if (isFiltersLocked()) return;
     handleChipGroupChange(genFilter, e);
     applyFilters();
   }
@@ -176,19 +177,8 @@ export function createFiltersController({
     return getSelectedFromChips(genFilter);
   }
 
-  function summarizeFilterSelection(values, formatter) {
-    return summarizeFilterSelectionCore(values, formatter);
-  }
-
-  function setFiltersPanelExpandedWrapped(expanded, { persist = true } = {}) {
-    return setFiltersPanelExpanded(expanded, { persist });
-  }
-
-  function updateFilterSummaryWrapped() {
-    return updateFilterSummary();
-  }
-
-  function applyFilters() {
+  function applyFilters({ force = false, persist = true } = {}) {
+    if (!force && isFiltersLocked()) return;
     let filtered = state.allNames.slice();
 
     if (isWeeklyChallengeMode()) {
@@ -220,11 +210,8 @@ export function createFiltersController({
     syncChipGroup(genFilter);
     syncWeeklyChallengeState();
     updateFilterSummary();
-    saveState();
-  }
-
-  function filterNamesBySelectedIndex(names, selectedValues, indexMap) {
-    return filterNamesBySelectedIndexCore(names, selectedValues, indexMap);
+    if (persist) saveState();
+    if (persist) onFiltersChanged();
   }
 
   return {
@@ -240,10 +227,10 @@ export function createFiltersController({
     getSelectedFromChips,
     syncChipGroup,
     setChipGroupSelections,
-    summarizeFilterSelection,
-    updateFilterSummary: updateFilterSummaryWrapped,
-    setFiltersPanelExpanded: setFiltersPanelExpandedWrapped,
+    summarizeFilterSelection: summarizeFilterSelectionCore,
+    updateFilterSummary,
+    setFiltersPanelExpanded,
     applyFilters,
-    filterNamesBySelectedIndex
+    filterNamesBySelectedIndex: filterNamesBySelectedIndexCore
   };
 }
