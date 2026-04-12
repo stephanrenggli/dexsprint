@@ -22,37 +22,54 @@ export async function fetchResourcesInBatches(pokedex, urls, batchSize = 40) {
   return output;
 }
 
-export async function loadGenerations(pokedex) {
-  const generationMap = new Map();
+async function loadCatalogGroup(pokedex, {
+  listLoader,
+  listLimit,
+  filterItems = (items) => items,
+  buildEntry
+}) {
+  const indexMap = new Map();
   try {
-    const data = await pokedex.getGenerationsList({ limit: 40 });
-    const gens = data && data.results ? data.results : [];
-    const genDetails = await fetchResourcesInBatches(pokedex, gens.map((gen) => gen.url));
-    const hadFailures = Boolean(genDetails.hadFailures);
-    const entries = (genDetails || []).map((genData) => {
+    const data = await listLoader({ limit: listLimit });
+    const items = filterItems(data && data.results ? data.results : []);
+    const details = await fetchResourcesInBatches(pokedex, items.map((item) => item.url));
+    const hadFailures = Boolean(details.hadFailures);
+    const entries = (details || []).map((detail) => buildEntry(detail, indexMap));
+    return { entries: entries.filter(Boolean), indexMap, hadFailures };
+  } catch (error) {
+    return { entries: [], indexMap, hadFailures: true, error };
+  }
+}
+
+export async function loadGenerations(pokedex) {
+  const result = await loadCatalogGroup(pokedex, {
+    listLoader: (options) => pokedex.getGenerationsList(options),
+    listLimit: 40,
+    buildEntry: (genData, generationMap) => {
       if (!genData) return null;
       const species = genData.pokemon_species || [];
       const names = species.map((s) => normalizeName(s.name)).filter(Boolean);
       names.forEach((name) => generationMap.set(name, genData.name));
       return { name: genData.name, label: prettifyName(genData.name), names };
-    });
-    return { entries: entries.filter(Boolean), generationMap, hadFailures };
-  } catch (error) {
-    console.warn("Generation metadata failed to load", error);
-    return { entries: [], generationMap, hadFailures: true };
+    }
+  });
+  if (result.hadFailures || result.error) {
+    console.warn("Generation metadata failed to load", result.error || "partial failure");
   }
+  return {
+    entries: result.entries,
+    generationMap: result.indexMap,
+    hadFailures: result.hadFailures
+  };
 }
 
 export async function loadTypes(pokedex) {
-  const typeMap = new Map();
-  try {
-    const data = await pokedex.getTypesList({ limit: 40 });
-    const types = (data && data.results ? data.results : []).filter(
-      (type) => type.name !== "unknown" && type.name !== "shadow"
-    );
-    const typeDetails = await fetchResourcesInBatches(pokedex, types.map((type) => type.url));
-    const hadFailures = Boolean(typeDetails.hadFailures);
-    const entries = (typeDetails || []).map((typeData) => {
+  const result = await loadCatalogGroup(pokedex, {
+    listLoader: (options) => pokedex.getTypesList(options),
+    listLimit: 40,
+    filterItems: (items) =>
+      items.filter((type) => type.name !== "unknown" && type.name !== "shadow"),
+    buildEntry: (typeData, typeMap) => {
       if (!typeData) return null;
       const pokemon = typeData.pokemon || [];
       const names = pokemon
@@ -68,10 +85,14 @@ export async function loadTypes(pokedex) {
         names,
         id: typeData.id
       };
-    });
-    return { entries: entries.filter(Boolean), typeMap, hadFailures };
-  } catch (error) {
-    console.warn("Type metadata failed to load", error);
-    return { entries: [], typeMap, hadFailures: true };
+    }
+  });
+  if (result.hadFailures || result.error) {
+    console.warn("Type metadata failed to load", result.error || "partial failure");
   }
+  return {
+    entries: result.entries,
+    typeMap: result.indexMap,
+    hadFailures: result.hadFailures
+  };
 }
