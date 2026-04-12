@@ -227,16 +227,35 @@ export function createMultiplayerController({
     });
   }
 
+  function getVisibleRoomEvents(snapshot) {
+    if (!snapshot?.events?.length) return [];
+    return snapshot.events.filter((event) => {
+      if (snapshot.settings.mode !== "race") return true;
+      return event.type !== "guess_accepted" && event.type !== "room_completed";
+    });
+  }
+
+  function formatRoomEventMessage(event, player) {
+    const playerName = player?.name || "Player";
+    if (event.type === "guess_accepted" || event.type === "room_completed") {
+      return `${playerName} found ${event.label || event.canonical || "Pokemon"}`;
+    }
+    if (event.type === "room_started") {
+      return "Room started.";
+    }
+    if (event.type === "room_reset") {
+      return `${playerName} reset the room.`;
+    }
+    return `${playerName} joined.`;
+  }
+
   function renderEvents(snapshot = room) {
     if (!events) return;
     if (!snapshot || !snapshot.events.length) {
       renderStateMessage(events, "No multiplayer events yet.", "", "span");
       return;
     }
-    const visibleEvents = snapshot.events.filter((event) => {
-      if (snapshot.settings.mode !== "race") return true;
-      return event.type !== "guess_accepted" && event.type !== "room_completed";
-    });
+    const visibleEvents = getVisibleRoomEvents(snapshot);
     if (!visibleEvents.length) {
       renderStateMessage(
         events,
@@ -255,15 +274,7 @@ export function createMultiplayerController({
         item.classList.add("multiplayer-event--player");
         item.style.setProperty("--player-accent", getPlayerAccent(player.id));
       }
-      if (event.type === "guess_accepted" || event.type === "room_completed") {
-        item.textContent = `${player?.name || "Player"} found ${event.label || event.canonical || "Pokemon"}`;
-      } else if (event.type === "room_started") {
-        item.textContent = "Room started.";
-      } else if (event.type === "room_reset") {
-        item.textContent = `${player?.name || "Player"} reset the room.`;
-      } else {
-        item.textContent = `${player?.name || "Player"} joined.`;
-      }
+      item.textContent = formatRoomEventMessage(event, player);
       return item;
     });
   }
