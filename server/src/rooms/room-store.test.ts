@@ -53,6 +53,30 @@ test("RoomStore uses trainer names for blank player names", () => {
   assert.notEqual(joined?.snapshot.players[1]?.name, "Player 2");
 });
 
+test("RoomStore only lets the host configure room settings", () => {
+  const store = new RoomStore();
+  const created = store.createRoom(createCatalog(), { playerName: "Ash" });
+  const joined = store.joinRoom(created.roomCode, { playerName: "Misty" });
+  assert.ok(joined);
+
+  const room = store.getRoomById(created.roomId);
+  assert.ok(room);
+  const host = store.findPlayer(room, created.sessionToken);
+  const guest = store.findPlayer(room, joined.sessionToken);
+  assert.ok(host);
+  assert.ok(guest);
+
+  const before = store.snapshot(room);
+  const after = store.configureRoom(createCatalog(), room, guest, {
+    mode: "coop",
+    generations: ["generation-i"]
+  });
+
+  assert.deepEqual(after.settings, before.settings);
+  assert.equal(after.activeTotal, before.activeTotal);
+  assert.equal(after.status, before.status);
+});
+
 test("RoomStore accepts server-authoritative race guesses", () => {
   const catalog = createCatalog();
   const store = new RoomStore();
