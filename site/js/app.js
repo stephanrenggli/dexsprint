@@ -1108,6 +1108,13 @@ function saveSettings() {
   return settingsController?.saveSettings();
 }
 
+function saveSettingsAndSyncRoom() {
+  saveSettings();
+  if (multiplayerController?.isActive() && multiplayerController?.isHost()) {
+    multiplayerController.configureRoom();
+  }
+}
+
 function updateThemeColorMeta(color) {
   const themeColorMeta = document.querySelector('meta[name="theme-color"]');
   const resolvedColor =
@@ -1123,6 +1130,12 @@ function restoreSettings() {
 
 function renderStudyPanel() {
   return studyController.renderStudyPanel();
+}
+
+function refreshGameplayViews({ stats = true, sprites = true, study = true } = {}) {
+  if (stats) updateStats();
+  if (sprites) renderSprites();
+  if (study) renderStudyPanel();
 }
 
 function advanceStudyCard(options = {}) {
@@ -1298,9 +1311,7 @@ function resetQuiz() {
   setTimerText("00:00");
   inputEl.value = "";
   focusInput();
-  updateStats();
-  renderSprites();
-  renderStudyPanel();
+  refreshGameplayViews();
   clearState();
   if (progressCodeEl) progressCodeEl.value = "";
   setProgressFeedback("");
@@ -1587,9 +1598,8 @@ function unlockPokemonByCanonical(canonical, { refresh = true } = {}) {
     state.recentlyFound.add(canonical);
   }
   if (refresh) {
-    updateStats();
+    refreshGameplayViews({ sprites: false });
     updateSpriteCardsForPokemon(canonical, { animateReveal: isNew });
-    renderStudyPanel();
     saveState();
   }
   return isNew;
@@ -1603,9 +1613,7 @@ function unlockPokemonList(names) {
     }
   });
   if (!unlocked) return false;
-  updateStats();
-  renderSprites();
-  renderStudyPanel();
+  refreshGameplayViews();
   saveState();
   return true;
 }
@@ -1685,8 +1693,7 @@ if (resetBtnCompact) resetBtnCompact.addEventListener("click", confirmReset);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
 if (groupFilter) {
   groupFilter.addEventListener("change", () => {
-    renderSprites();
-    renderStudyPanel();
+    refreshGameplayViews({ stats: false });
     updateFilterSummary();
     saveState();
   });
@@ -1694,8 +1701,7 @@ if (groupFilter) {
 if (multiplayerGroupFilter) {
   multiplayerGroupFilter.addEventListener("change", () => {
     if (groupFilter) groupFilter.value = multiplayerGroupFilter.value;
-    renderSprites();
-    renderStudyPanel();
+    refreshGameplayViews({ stats: false });
     updateFilterSummary();
     updateMultiplayerFilterSummary();
     saveState();
@@ -1738,10 +1744,7 @@ if (outlineToggle) {
   outlineToggle.addEventListener("change", () => {
     document.body.classList.toggle("outlines-off", !outlineToggle.checked);
     renderSprites();
-    saveSettings();
-    if (multiplayerController?.isActive() && multiplayerController?.isHost()) {
-      multiplayerController.configureRoom();
-    }
+    saveSettingsAndSyncRoom();
   });
 }
 
@@ -1843,10 +1846,7 @@ if (criesToggle) {
 if (showDexToggle) {
   showDexToggle.addEventListener("change", () => {
     renderSprites();
-    saveSettings();
-    if (multiplayerController?.isActive() && multiplayerController?.isHost()) {
-      multiplayerController.configureRoom();
-    }
+    saveSettingsAndSyncRoom();
   });
 }
 

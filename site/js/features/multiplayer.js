@@ -122,6 +122,10 @@ export function createMultiplayerController({
     state.found = new Set(soloFound);
     soloFound = null;
     recalculateActiveFoundCount();
+    refreshLocalGameplayViews();
+  }
+
+  function refreshLocalGameplayViews() {
     updateStats();
     renderSprites();
     renderStudyPanel();
@@ -286,9 +290,7 @@ export function createMultiplayerController({
     }
     syncMultiplayerTimer(snapshot);
     if (!refreshRoomSettings) {
-      updateStats();
-      renderSprites();
-      renderStudyPanel();
+      refreshLocalGameplayViews();
     }
     render();
   }

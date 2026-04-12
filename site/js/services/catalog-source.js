@@ -15,17 +15,6 @@ export async function fetchResourcesInBatches(pokedex, urls, batchSize = 40) {
   return output;
 }
 
-export async function loadSpeciesList(pokedex, slowPokedex) {
-  try {
-    return await pokedex.getPokemonSpeciesList({ limit: 2000 });
-  } catch (error) {
-    const isTimeout = error && (error.name === "AbortError" || /timeout/i.test(error.message || ""));
-    if (!isTimeout) throw error;
-    console.warn("Primary PokeAPI species load timed out, retrying with a longer timeout.");
-    return slowPokedex.getPokemonSpeciesList({ limit: 2000 });
-  }
-}
-
 export async function loadGenerations(pokedex) {
   const data = await pokedex.getGenerationsList({ limit: 40 });
   const gens = data && data.results ? data.results : [];

@@ -85,6 +85,13 @@ export function createSettingsController({
     if (persist) saveSettings();
   }
 
+  function syncSettingsState() {
+    syncGameplaySettings();
+    updateFilterSummary();
+    syncWeeklyChallengeState();
+    syncProgressLinkPreview();
+  }
+
   function initThemes() {
     if (!themeChooser) return;
     themeChooser.innerHTML = "";
@@ -169,13 +176,11 @@ export function createSettingsController({
       groupFilter.value = group;
     }
 
-    syncGameplaySettings();
-    updateFilterSummary();
+    syncSettingsState();
 
     if (persist) {
       localStorage.setItem(storageSettingsKey, JSON.stringify(getSettingsPayload()));
     }
-    syncWeeklyChallengeState();
   }
 
   function saveSettings() {
@@ -226,9 +231,7 @@ export function createSettingsController({
       setChipGroupSelections(typeFilter, []);
       applyFilters();
     }
-    syncGameplaySettings();
-    syncWeeklyChallengeState();
-    syncProgressLinkPreview();
+    syncSettingsState();
   }
 
   async function confirmResetSettings() {

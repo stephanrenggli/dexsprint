@@ -3,6 +3,14 @@ import test from "node:test";
 import { buildGuessIndex, findExactGuess } from "./guess.js";
 import { normalizeGuess, normalizeName } from "./text.js";
 
+interface PokéApiSpeciesEntry {
+  name?: string;
+}
+
+interface PokéApiSpeciesListResponse {
+  results?: PokéApiSpeciesEntry[];
+}
+
 test("normalizeGuess handles casing, punctuation, diacritics, and gender symbols", () => {
   assert.equal(normalizeGuess("Flabébé"), "flabebe");
   assert.equal(normalizeGuess("Nidoran♀"), "nidoranf");
@@ -40,12 +48,12 @@ test("findExactGuess accepts the current PokéAPI species names and spaced varia
     });
     assert.equal(response.ok, true, `Expected PokéAPI species list to load, got ${response.status}`);
 
-    const payload = await response.json();
-    const species = Array.isArray(payload?.results) ? payload.results : [];
+    const payload = (await response.json()) as PokéApiSpeciesListResponse;
+    const species = Array.isArray(payload.results) ? payload.results : [];
     const normalized = new Map<string, string>();
     const index = buildGuessIndex(
       species.map((entry) => {
-        const name = typeof entry?.name === "string" ? entry.name : "";
+        const name = typeof entry.name === "string" ? entry.name : "";
         assert.ok(name, "Expected PokéAPI species entry to include a name");
         return {
           canonical: normalizeName(name),
@@ -56,7 +64,7 @@ test("findExactGuess accepts the current PokéAPI species names and spaced varia
     );
 
     species.forEach((entry) => {
-      const name = typeof entry?.name === "string" ? entry.name : "";
+      const name = typeof entry.name === "string" ? entry.name : "";
       const canonical = normalizeName(name);
       assert.ok(canonical, `Expected ${name} to normalize to a non-empty canonical name`);
 

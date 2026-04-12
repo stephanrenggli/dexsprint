@@ -62,6 +62,17 @@ export function createViewController({
     if (marker) flashElement(marker, "progress-milestone--pulse", 900);
   }
 
+  function getGroupProgress(items, isFound, groupName) {
+    const total = items.length;
+    const found = items.filter((item) => isFound(item)).length;
+    const percent = total === 0 ? 0 : Math.round((found / total) * 100);
+    const isComplete = percent === 100;
+    const isNewlyComplete =
+      (groupName && state.pendingProgressUnlocks.generations.has(groupName)) ||
+      (groupName && state.pendingProgressUnlocks.types.has(groupName));
+    return { total, found, percent, isComplete, isNewlyComplete };
+  }
+
   function renderBadges() {
     if (!badgeList) return;
     if (!state.groupMetadataReady) {
@@ -206,15 +217,12 @@ export function createViewController({
       const title = section.querySelector(".group-title");
       if (!title) return;
       const cards = [...section.querySelectorAll(".sprite-card")];
-      const total = cards.length;
-      const found = cards.filter((card) => !card.classList.contains("sprite-card--hidden")).length;
-      const percent = total === 0 ? 0 : Math.round((found / total) * 100);
       const groupName = section.dataset.groupName || title.textContent || "";
-      const isComplete = percent === 100;
-      const isNewlyComplete =
-        (groupFilter.value === "generation" &&
-          state.pendingProgressUnlocks.generations.has(groupName)) ||
-        (groupFilter.value === "type" && state.pendingProgressUnlocks.types.has(groupName));
+      const { percent, isComplete, isNewlyComplete } = getGroupProgress(
+        cards,
+        (card) => !card.classList.contains("sprite-card--hidden"),
+        groupName
+      );
       title.textContent =
         groupFilter.value === "generation" ? `${groupName} - ${percent}%` : groupName;
       title.classList.toggle("group-title--complete", isComplete);
@@ -266,15 +274,11 @@ export function createViewController({
       })
       .forEach((groupName) => {
         const entries = groups.get(groupName) || [];
-        const total = entries.length;
-        const found = entries.filter((entry) =>
-          state.found.has(entry.normalized)
-        ).length;
-        const percent = total === 0 ? 0 : Math.round((found / total) * 100);
-        const isComplete = percent === 100;
-        const isNewlyComplete =
-          (mode === "generation" && state.pendingProgressUnlocks.generations.has(groupName)) ||
-          (mode === "type" && state.pendingProgressUnlocks.types.has(groupName));
+        const { percent, isComplete, isNewlyComplete } = getGroupProgress(
+          entries,
+          (entry) => state.found.has(entry.normalized),
+          groupName
+        );
         const section = document.createElement("section");
         section.className = "group-card";
         if (isComplete) section.classList.add("group-card--complete");

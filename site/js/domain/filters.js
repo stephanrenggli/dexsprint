@@ -66,10 +66,12 @@ export function getGenerationSlugByInput(value) {
 export function getTypeSlugByInput(value, typeIndex) {
   const raw = String(value || "").trim().toLowerCase();
   if (!raw) return "";
-  const normalized = raw.replace(/\s+/g, "");
-  const byKey = [...typeIndex.keys()].find((key) => {
-    const label = prettifyName(key).toLowerCase();
-    return raw === key.toLowerCase() || raw === label || normalized === key.toLowerCase();
-  });
-  return byKey || "";
+  const normalized = normalizeName(raw);
+  return (
+    [...typeIndex.keys()].find((key) => {
+      const canonical = key.toLowerCase();
+      const label = prettifyName(key).toLowerCase();
+      return raw === canonical || raw === label || normalized === canonical;
+    }) || ""
+  );
 }
