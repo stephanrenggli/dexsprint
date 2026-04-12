@@ -165,46 +165,30 @@ export function createStudyController({
     studyName.classList.remove("study-card__name--reveal");
   }
 
-  function renderStudyPanel() {
-    if (!studyPanel) return;
-
-    const active = isStudyMode();
-    studyPanel.hidden = !active;
-    if (!active) {
-      clearStudyNameReveal();
-      syncInlineStatusVisibility();
-      return;
+  function renderStudyEmptyState() {
+    clearStudyNameReveal();
+    if (studyCard) studyCard.hidden = true;
+    if (studyActions) studyActions.hidden = true;
+    if (studySubtitle) {
+      studySubtitle.textContent = state.names.length
+        ? "Everything here is found."
+        : "Adjust your filters.";
     }
-
-    ensureStudyDeck();
-    const candidates = getStudyCandidates();
-    const currentName = state.studyCurrent;
-    const entry = currentName ? state.meta.get(currentName) : null;
-
-    if (!entry) {
-      clearStudyNameReveal();
-      if (studyCard) studyCard.hidden = true;
-      if (studyActions) studyActions.hidden = true;
-      if (studySubtitle) {
-        studySubtitle.textContent = state.names.length
-          ? "Everything here is found."
-          : "Adjust your filters.";
-      }
-      if (studyCounter) studyCounter.textContent = "0 Pokemon left";
-      if (studySprite) {
-        studySprite.removeAttribute("src");
-        studySprite.alt = "";
-      }
-      applyStudyScene(null);
-      renderStudyName("", { revealed: false });
-      setInputStatus(
-        state.names.length ? "All Pokemon in this filtered pool are already found." : DEFAULT_STATUS
-      );
-      renderStudyMeta(null);
-      renderStudyTypes(null);
-      return;
+    if (studyCounter) studyCounter.textContent = "0 Pokemon left";
+    if (studySprite) {
+      studySprite.removeAttribute("src");
+      studySprite.alt = "";
     }
+    applyStudyScene(null);
+    renderStudyName("", { revealed: false });
+    setInputStatus(
+      state.names.length ? "All Pokemon in this filtered pool are already found." : DEFAULT_STATUS
+    );
+    renderStudyMeta(null);
+    renderStudyTypes(null);
+  }
 
+  function renderStudyEntryState(entry, currentName, candidates) {
     if (studyCard) studyCard.hidden = false;
     if (studyActions) studyActions.hidden = false;
     if (studySubtitle) {
@@ -236,6 +220,29 @@ export function createStudyController({
     }
     if (studyRevealBtn) studyRevealBtn.disabled = state.studyRevealed;
     if (studyNextBtn) studyNextBtn.disabled = false;
+  }
+
+  function renderStudyPanel() {
+    if (!studyPanel) return;
+
+    const active = isStudyMode();
+    studyPanel.hidden = !active;
+    if (!active) {
+      clearStudyNameReveal();
+      syncInlineStatusVisibility();
+      return;
+    }
+
+    ensureStudyDeck();
+    const candidates = getStudyCandidates();
+    const currentName = state.studyCurrent;
+    const entry = currentName ? state.meta.get(currentName) : null;
+
+    if (!entry) {
+      renderStudyEmptyState();
+      return;
+    }
+    renderStudyEntryState(entry, currentName, candidates);
   }
 
   function advanceStudyCard({ markFound = false, repeat = false } = {}) {
@@ -277,6 +284,8 @@ export function createStudyController({
     renderStudyTypes,
     applyStudyScene,
     renderStudyName,
+    renderStudyEmptyState,
+    renderStudyEntryState,
     renderStudyPanel,
     advanceStudyCard,
     clearStudyNameReveal
