@@ -79,6 +79,15 @@ export function createInfoController({
     renderTypeChips(infoTypes, typeNames, getTypeId);
   }
 
+  function renderInfoState(container, message, className = "", tagName = "span") {
+    renderStateMessage(container, message, className, tagName);
+  }
+
+  function renderInfoGenus(message) {
+    if (!infoGenus) return;
+    infoGenus.textContent = message || "";
+  }
+
   function renderInfoStats(details) {
     if (!infoStats) return;
     const stats = [
@@ -98,7 +107,7 @@ export function createInfoController({
     if (!infoAbilities) return;
     const abilities = details.abilities || [];
     if (!abilities.length) {
-      renderStateMessage(infoAbilities, "No ability data available.", "", "span");
+      renderInfoState(infoAbilities, "No ability data available.");
       return;
     }
     renderTextChips(infoAbilities, abilities, "info-pill");
@@ -131,7 +140,7 @@ export function createInfoController({
     }
     renderInfoMeta(entry);
     renderInfoTypes();
-    if (infoGenus) infoGenus.textContent = loading ? "Loading details..." : "";
+    renderInfoGenus(loading ? "Loading details..." : "");
     [infoStats, infoAbilities, infoFacts].forEach(clearContainer);
   }
 
@@ -140,13 +149,13 @@ export function createInfoController({
     try {
       const details = await getPokedexInfo(entry);
       if (!details) return;
-      if (infoGenus) infoGenus.textContent = details.genus || "";
+      renderInfoGenus(details.genus || "");
       renderInfoStats(details);
       renderInfoAbilities(details);
       renderInfoFacts(details);
       renderInfoTypes(entry.types || []);
     } catch {
-      if (infoGenus) infoGenus.textContent = "Could not load details.";
+      renderInfoGenus("Could not load details.");
     }
   }
 
