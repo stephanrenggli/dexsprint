@@ -663,6 +663,31 @@ textarea {
   height: 17px;
 }
 
+.multiplayer-modal-card {
+  --filters-panel-columns: minmax(280px, 1fr) minmax(400px, 1.45fr);
+  --filters-panel-gap: 12px;
+  --filters-panel-align: stretch;
+  --chip-grid-generation-columns: 1fr;
+  --chip-grid-type-columns: repeat(2, minmax(0, 1fr));
+  --chip-grid-type-max-height: none;
+  --chip-grid-type-overflow: visible;
+  --chip-grid-type-padding-right: 0;
+  --filter-background: transparent;
+  --filter-border-color: var(--border);
+  --filter-shadow: none;
+  --filter-radius: 14px;
+  --filter-padding: 10px;
+  --filter-min-height: 0;
+  --chip-grid-background: transparent;
+  --chip-grid-border: 0;
+  --chip-grid-radius: 0;
+  --chip-grid-padding: 4px 2px;
+  --chip-background: color-mix(in srgb, var(--surface) 86%, transparent);
+  --chip-border-color: color-mix(in srgb, var(--border) 88%, transparent);
+  --chip-min-height: 30px;
+  --chip-type-min-height: 32px;
+}
+
 .multiplayer-modal-card #multiplayer-filters-panel {
   margin-top: 4px;
 }
@@ -671,90 +696,28 @@ textarea {
   margin-bottom: 2px;
 }
 
-.multiplayer-modal-card .filters-panel {
-  grid-template-columns: minmax(280px, 1fr) minmax(400px, 1.45fr);
-  gap: 12px;
-  align-items: stretch;
-}
-
 .multiplayer-modal-card .filter {
-  background: transparent;
-  border-color: var(--border);
-  box-shadow: none;
-  border-radius: 14px;
-  padding: 10px;
   height: 100%;
-  display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
 }
 
-.multiplayer-modal-card .chip-grid {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 4px 2px;
-  min-height: 0;
-}
-
-.multiplayer-modal-card .chip-grid--generations,
-.multiplayer-modal-card .chip-grid--types {
-  max-height: none;
-  overflow: visible;
-  padding-right: 0;
-}
-
-.multiplayer-modal-card .chip-grid--generations {
-  grid-template-columns: 1fr;
-}
-
-.multiplayer-modal-card .chip-grid--types {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  overflow: auto;
-  padding-right: 4px;
-  align-content: start;
-}
-
-.multiplayer-modal-card .chip {
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  border-color: color-mix(in srgb, var(--border) 88%, transparent);
-  min-height: 30px;
-  min-width: 0;
-}
-
-.multiplayer-modal-card .chip-grid--generations .chip span {
-  min-width: 0;
-  white-space: nowrap;
-  overflow-wrap: normal;
-}
-
-.multiplayer-modal-card .chip-grid--types .chip {
-  min-height: 32px;
-}
-
+.multiplayer-modal-card .chip-grid--generations .chip span,
 .multiplayer-modal-card .chip-grid--types .chip span {
   white-space: nowrap;
   overflow-wrap: normal;
 }
 
-.multiplayer-modal-card .chip:hover {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--surface-3) 72%, transparent);
-}
-
 @media (max-width: 1160px) {
-  .multiplayer-modal-card .filters-panel {
-    grid-template-columns: minmax(240px, 1fr) minmax(320px, 1.25fr);
+  .multiplayer-modal-card {
+    --filters-panel-columns: minmax(240px, 1fr) minmax(320px, 1.25fr);
   }
 }
 
 @media (max-width: 980px) {
-  .multiplayer-modal-card .filters-panel {
-    grid-template-columns: 1fr;
-  }
-
-  .multiplayer-modal-card .chip-grid--generations {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .multiplayer-modal-card {
+    --filters-panel-columns: 1fr;
+    --chip-grid-generation-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2625,73 +2588,100 @@ textarea {
   display: none;
 }
 
-.sprite-board-filters .filters-panel {
-  grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.35fr);
-  gap: 12px;
-  align-items: start;
+.filters-panel {
+  gap: var(--filters-panel-gap, 10px);
+  align-items: var(--filters-panel-align, stretch);
+  grid-template-columns: var(--filters-panel-columns, repeat(auto-fit, minmax(180px, 1fr)));
 }
 
-.sprite-board-filters .filter {
-  background: transparent;
-  border-color: var(--border);
-  box-shadow: none;
-  border-radius: 14px;
-  padding: 10px;
+:where(.sprite-board-filters .filter:not(.group-by-inline), .multiplayer-modal-card .filter) {
+  background: var(--filter-background, var(--surface));
+  border-color: var(--filter-border-color, var(--border));
+  box-shadow: var(--filter-shadow, var(--shadow));
+  border-radius: var(--filter-radius, 16px);
+  padding: var(--filter-padding, 10px 12px);
+  min-height: var(--filter-min-height, auto);
+  display: grid;
+  gap: 8px;
 }
 
-.sprite-board-filters .filter label {
-  font-size: 0.68rem;
-  letter-spacing: 1.5px;
+:where(.sprite-board-filters, .multiplayer-modal-card) .chip-grid {
+  background: var(--chip-grid-background, var(--surface));
+  border: var(--chip-grid-border, 1px solid var(--border));
+  border-radius: var(--chip-grid-radius, 16px);
+  padding: var(--chip-grid-padding, 4px 2px);
+  min-height: 0;
 }
 
-.sprite-board-filters .chip-grid {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding: 4px 2px;
-}
-
-.sprite-board-filters .chip-grid--generations,
-.sprite-board-filters .chip-grid--types {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+:where(.sprite-board-filters, .multiplayer-modal-card) .chip-grid--generations {
+  grid-template-columns: var(--chip-grid-generation-columns, repeat(2, minmax(0, 1fr)));
   max-height: none;
   overflow: visible;
   padding-right: 0;
 }
 
-.sprite-board-filters .chip-grid--types {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  max-height: 296px;
-  overflow: auto;
-  padding-right: 4px;
+:where(.sprite-board-filters, .multiplayer-modal-card) .chip-grid--types {
+  grid-template-columns: var(--chip-grid-type-columns, repeat(2, minmax(0, 1fr)));
+  max-height: var(--chip-grid-type-max-height, none);
+  overflow: var(--chip-grid-type-overflow, visible);
+  padding-right: var(--chip-grid-type-padding-right, 0);
   align-content: start;
 }
 
-.sprite-board-filters .chip {
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  border-color: color-mix(in srgb, var(--border) 88%, transparent);
-  min-height: 30px;
+:where(.sprite-board-filters, .multiplayer-modal-card) .chip {
+  background: var(--chip-background, var(--surface-3));
+  border-color: var(--chip-border-color, var(--border-strong));
+  min-height: var(--chip-min-height, 30px);
   min-width: 0;
 }
 
-.sprite-board-filters .chip-grid--generations .chip span {
+:where(.sprite-board-filters, .multiplayer-modal-card) .chip-grid--generations .chip span {
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
-.sprite-board-filters .chip-grid--types .chip {
-  min-height: 32px;
+:where(.sprite-board-filters, .multiplayer-modal-card) .chip-grid--types .chip {
+  min-height: var(--chip-type-min-height, 32px);
 }
 
-.sprite-board-filters .chip-grid--types .chip span {
+:where(.sprite-board-filters, .multiplayer-modal-card) .chip-grid--types .chip span {
   white-space: nowrap;
   overflow-wrap: normal;
 }
 
-.sprite-board-filters .chip:hover {
+:where(.sprite-board-filters, .multiplayer-modal-card) .chip:hover {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--surface-3) 72%, transparent);
+}
+
+.sprite-board-filters {
+  --filters-panel-columns: minmax(280px, 1fr) minmax(360px, 1.35fr);
+  --filters-panel-gap: 12px;
+  --filters-panel-align: start;
+  --chip-grid-generation-columns: repeat(2, minmax(0, 1fr));
+  --chip-grid-type-columns: repeat(4, minmax(0, 1fr));
+  --chip-grid-type-max-height: 296px;
+  --chip-grid-type-overflow: auto;
+  --chip-grid-type-padding-right: 4px;
+  --filter-background: transparent;
+  --filter-border-color: var(--border);
+  --filter-shadow: none;
+  --filter-radius: 14px;
+  --filter-padding: 10px;
+  --chip-grid-background: transparent;
+  --chip-grid-border: 0;
+  --chip-grid-radius: 0;
+  --chip-grid-padding: 4px 2px;
+  --chip-background: color-mix(in srgb, var(--surface) 86%, transparent);
+  --chip-border-color: color-mix(in srgb, var(--border) 88%, transparent);
+  --chip-min-height: 30px;
+  --chip-type-min-height: 32px;
+}
+
+.sprite-board-filters .filter label {
+  font-size: 0.68rem;
+  letter-spacing: 1.5px;
 }
 
 @media (max-width: 1280px) {
@@ -2701,8 +2691,8 @@ textarea {
 }
 
 @media (max-width: 1160px) {
-  .sprite-board-filters .filters-panel {
-    grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr);
+  .sprite-board-filters {
+    --filters-panel-columns: minmax(240px, 1fr) minmax(280px, 1.2fr);
   }
 
   .sprite-board-filters .chip-grid--types {
@@ -2711,8 +2701,8 @@ textarea {
 }
 
 @media (max-width: 980px) {
-  .sprite-board-filters .filters-panel {
-    grid-template-columns: 1fr;
+  .sprite-board-filters {
+    --filters-panel-columns: 1fr;
   }
 }
 
@@ -3429,13 +3419,12 @@ textarea {
     grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   }
 
-  .filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .filters-panel {
     align-items: start;
   }
 
-  .sprite-board-filters .filters-panel {
-    grid-template-columns: 1fr;
+  .sprite-board-filters {
+    --filters-panel-columns: 1fr;
   }
 
   .sprite-board-filters {

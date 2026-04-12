@@ -65,6 +65,7 @@ import { createViewController } from "./features/views.js";
 import { createMultiplayerController } from "./features/multiplayer.js";
 import { createMultiplayerClient } from "./services/multiplayer-client.js";
 import {
+  formatFilterSummary,
   getGenerationSlugByInput as getGenerationSlugByInputCore,
   getTypeSlugByInput as getTypeSlugByInputCore,
   summarizeFilterSelection as summarizeFilterSelectionCore
@@ -749,11 +750,7 @@ function setProgressFeedback(message) {
 
 function updateMultiplayerFilterSummary() {
   if (!multiplayerFilterSummary) return;
-  const groupLabels = {
-    none: "None",
-    generation: "Generations",
-    type: "Type"
-  };
+  const group = multiplayerGroupFilter?.value || "generation";
   const generationSummary = summarizeFilterSelectionCore(
     multiplayerFiltersController?.getSelectedGenerations() || [],
     (gen) => formatGenerationLabel(gen)
@@ -762,8 +759,11 @@ function updateMultiplayerFilterSummary() {
     multiplayerFiltersController?.getSelectedTypes() || [],
     (type) => prettifyName(type)
   );
-  const groupSummary = groupLabels[multiplayerGroupFilter?.value || "generation"] || "Generations";
-  multiplayerFilterSummary.textContent = `Group: ${groupSummary} - Generations: ${generationSummary} - Types: ${typeSummary}`;
+  multiplayerFilterSummary.textContent = formatFilterSummary({
+    group,
+    generationSummary,
+    typeSummary
+  });
 }
 
 function setMultiplayerFiltersPanelExpanded(expanded, { persist = false } = {}) {

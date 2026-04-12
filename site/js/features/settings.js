@@ -1,6 +1,10 @@
 import { DEFAULT_GAME_MODE, DEFAULT_TYPO_MODE } from "../core/app-state.js";
 import { formatGenerationLabel, prettifyName } from "../domain/text.js";
-import { summarizeFilterSelection } from "../domain/filters.js";
+import {
+  formatFilterSummary,
+  getFilterGroupLabel,
+  summarizeFilterSelection
+} from "../domain/filters.js";
 
 export function createSettingsController({
   state,
@@ -114,15 +118,14 @@ export function createSettingsController({
 
   function updateFilterSummary() {
     if (!filterSummary) return;
-    const groupMap = { none: "None", generation: "Generations", type: "Type" };
-    const groupLabel = groupMap[groupFilter ? groupFilter.value : "generation"] || "Generation";
+    const group = groupFilter ? groupFilter.value : "generation";
     if (getGameMode() === "weekly") {
       const theme = getWeeklyChallengeTheme ? getWeeklyChallengeTheme() : null;
       const themeLabel = theme ? theme.label : "Weekly Challenge";
       const readinessLabel = state.weeklyChallengeCatalogReady
         ? "Filters locked"
         : "Loading challenge data";
-      filterSummary.textContent = `Weekly Challenge: ${themeLabel} - Group: ${groupLabel} - ${readinessLabel}`;
+      filterSummary.textContent = `Weekly Challenge: ${themeLabel} - Group: ${getFilterGroupLabel(group)} - ${readinessLabel}`;
       return;
     }
     const generationSummary = summarizeFilterSelection(
@@ -133,7 +136,11 @@ export function createSettingsController({
       getSelectedTypes(),
       (type) => prettifyName(type)
     );
-    filterSummary.textContent = `Group: ${groupLabel} - Generations: ${generationSummary} - Types: ${typeSummary}`;
+    filterSummary.textContent = formatFilterSummary({
+      group,
+      generationSummary,
+      typeSummary
+    });
   }
 
   function applySettingsPayload(data, { persist = true } = {}) {

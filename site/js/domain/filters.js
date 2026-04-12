@@ -1,11 +1,29 @@
 import { formatGenerationLabel, normalizeName, prettifyName } from "./text.js";
 
+const FILTER_GROUP_LABELS = {
+  none: "None",
+  generation: "Generations",
+  type: "Type"
+};
+
 export function summarizeFilterSelection(values, formatter) {
   if (!values || !values.length) return "All";
   const labels = values.map(formatter).filter(Boolean);
   if (!labels.length) return "All";
   if (labels.length <= 2) return labels.join(", ");
   return `${labels[0]}, ${labels[1]} +${labels.length - 2}`;
+}
+
+export function getFilterGroupLabel(group) {
+  return FILTER_GROUP_LABELS[group] || "Generation";
+}
+
+export function formatFilterSummary({
+  group,
+  generationSummary,
+  typeSummary
+}) {
+  return `Group: ${getFilterGroupLabel(group)} - Generations: ${generationSummary} - Types: ${typeSummary}`;
 }
 
 export function filterNamesBySelectedIndex(names, selectedValues, indexMap) {
