@@ -266,6 +266,20 @@ function isMultiplayerModalOpen() {
   return Boolean(multiplayerModal && !multiplayerModal.classList.contains("hidden"));
 }
 
+function getMultiplayerAccessState(snapshot = null) {
+  const active = Boolean(snapshot);
+  const host = active && Boolean(multiplayerController?.isHost?.());
+  const inLobby = snapshot?.status === "lobby";
+  const settingsLocked = active && !inLobby;
+  return {
+    active,
+    host,
+    inLobby,
+    settingsLocked,
+    modalOpen: isMultiplayerModalOpen()
+  };
+}
+
 async function registerAppServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
@@ -822,13 +836,9 @@ function syncMultiplayerTimer(snapshot = null) {
 }
 
 function syncMultiplayerLockState(snapshot = null) {
-  const inRoom = Boolean(snapshot);
-  const host = inRoom && isMultiplayerHost();
-  const setupLocked = inRoom && snapshot?.status !== "lobby";
-  const filterInputsDisabled = inRoom ? setupLocked || !host : false;
-  const showModalFilters =
-    isMultiplayerModalOpen() &&
-    (!inRoom || host);
+  const { active: inRoom, host, settingsLocked, modalOpen } = getMultiplayerAccessState(snapshot);
+  const filterInputsDisabled = inRoom ? settingsLocked || !host : false;
+  const showModalFilters = modalOpen && (!inRoom || host);
 
   if (multiplayerGameplayLock) multiplayerGameplayLock.hidden = !inRoom;
   if (multiplayerGameplayControls) multiplayerGameplayControls.hidden = inRoom;
@@ -847,8 +857,8 @@ function syncMultiplayerLockState(snapshot = null) {
   if (spriteBoardFilters) {
     spriteBoardFilters.hidden = inRoom;
   }
-  if (multiplayerFiltersPanelToggle) multiplayerFiltersPanelToggle.disabled = inRoom ? setupLocked || !host : false;
-  if (multiplayerGroupFilter) multiplayerGroupFilter.disabled = inRoom ? setupLocked || !host : false;
+  if (multiplayerFiltersPanelToggle) multiplayerFiltersPanelToggle.disabled = inRoom ? settingsLocked || !host : false;
+  if (multiplayerGroupFilter) multiplayerGroupFilter.disabled = inRoom ? settingsLocked || !host : false;
   if (multiplayerFiltersSlot) {
     setCheckboxGroupDisabled(
       multiplayerFiltersSlot.querySelectorAll(".chip-grid input[type='checkbox']"),
@@ -951,7 +961,8 @@ function closeSettingsModal() {
 
 function openMultiplayerModal() {
   if (multiplayerGroupFilter && groupFilter) multiplayerGroupFilter.value = groupFilter.value;
-  setMultiplayerFiltersInModal(!isMultiplayerActive() || isMultiplayerHost());
+  const { active, host } = getMultiplayerAccessState();
+  setMultiplayerFiltersInModal(!active || host);
   syncGameplaySettings();
   updateMultiplayerFilterSummary();
   syncWeeklyChallengeState();
@@ -1328,8 +1339,9 @@ function resetQuiz() {
 }
 
 async function confirmReset() {
-  if (isMultiplayerActive()) {
-    if (!isMultiplayerHost()) return;
+  const { active, host } = getMultiplayerAccessState();
+  if (active) {
+    if (!host) return;
     const ok = await requestConfirmation(
       "Reset multiplayer progress? This will clear every player's found Pokemon and restart the room timer.",
       { title: "Reset Room", confirmLabel: "Reset" }
@@ -1740,7 +1752,8 @@ if (groupFilter) {
       updateFilterSummary();
       updateMultiplayerFilterSummary();
       saveState();
-      if (isMultiplayerActive() && isMultiplayerHost()) {
+      const { active, host } = getMultiplayerAccessState();
+      if (active && host) {
         multiplayerController?.configureRoom?.();
       }
     });
