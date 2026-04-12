@@ -2077,7 +2077,7 @@ textarea {
   padding: 18px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  width: min(540px, 92vw);
+  width: min(var(--modal-card-max-width, 540px), 92vw);
   display: grid;
   gap: 16px;
 }
@@ -2154,15 +2154,15 @@ textarea {
 }
 
 .modal-card--confirm {
-  width: min(420px, 92vw);
+  --modal-card-max-width: 420px;
 }
 
 .modal-card--achievements {
-  width: min(760px, 94vw);
+  --modal-card-max-width: 760px;
 }
 
 .modal-card--qr {
-  width: min(680px, 94vw);
+  --modal-card-max-width: 680px;
 }
 
 .qr-modal {
@@ -3639,7 +3639,7 @@ textarea {
 }
 
 .modal-card--changelog {
-  max-width: 760px;
+  --modal-card-max-width: 760px;
   max-height: min(80vh, 900px);
 }
 
