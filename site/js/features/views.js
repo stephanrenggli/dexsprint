@@ -228,7 +228,7 @@ export function createViewController({
     });
   }
 
-  function renderSpritesGrouped(fragment) {
+  function renderSpritesGrouped() {
     const mode = groupFilter ? groupFilter.value : "none";
     if (mode === "none") return;
     const groups = new Map();
@@ -264,41 +264,41 @@ export function createViewController({
       spriteGrid.style.removeProperty("--compact-cols");
     }
 
-    groupKeys
-      .sort((a, b) => {
-        if (mode !== "generation") return a.localeCompare(b);
-        return (genLabelOrder.get(a) || 999) - (genLabelOrder.get(b) || 999);
-      })
-      .forEach((groupName) => {
-        const entries = groups.get(groupName) || [];
-        const { percent, isComplete, isNewlyComplete } = getGroupProgress(
-          entries,
-          (entry) => state.found.has(entry.normalized),
-          groupName
-        );
-        const section = document.createElement("section");
-        section.className = "group-card";
-        if (isComplete) section.classList.add("group-card--complete");
-        if (isNewlyComplete) section.classList.add("group-card--just-complete");
-        section.dataset.groupName = groupName;
-        const title = document.createElement("h3");
-        title.className = "group-title";
-        if (isComplete) title.classList.add("group-title--complete");
-        title.textContent =
-          mode === "generation"
-            ? `${groupName} - ${percent}%`
-            : groupName;
-        const grid = document.createElement("div");
-        grid.className = "sprite-grid";
-        entries.forEach((entry) => {
-          const isFound = state.found.has(entry.normalized);
-          grid.appendChild(createSpriteCard(entry, isFound));
-        });
+    const sortedGroupKeys = groupKeys.sort((a, b) => {
+      if (mode !== "generation") return a.localeCompare(b);
+      return (genLabelOrder.get(a) || 999) - (genLabelOrder.get(b) || 999);
+    });
 
-        section.appendChild(title);
-        section.appendChild(grid);
-        fragment.appendChild(section);
+    renderNodeList(spriteGrid, sortedGroupKeys, (groupName) => {
+      const entries = groups.get(groupName) || [];
+      const { percent, isComplete, isNewlyComplete } = getGroupProgress(
+        entries,
+        (entry) => state.found.has(entry.normalized),
+        groupName
+      );
+      const section = document.createElement("section");
+      section.className = "group-card";
+      if (isComplete) section.classList.add("group-card--complete");
+      if (isNewlyComplete) section.classList.add("group-card--just-complete");
+      section.dataset.groupName = groupName;
+      const title = document.createElement("h3");
+      title.className = "group-title";
+      if (isComplete) title.classList.add("group-title--complete");
+      title.textContent =
+        mode === "generation"
+          ? `${groupName} - ${percent}%`
+          : groupName;
+      const grid = document.createElement("div");
+      grid.className = "sprite-grid";
+      renderNodeList(grid, entries, (entry) => {
+        const isFound = state.found.has(entry.normalized);
+        return createSpriteCard(entry, isFound);
       });
+
+      section.appendChild(title);
+      section.appendChild(grid);
+      return section;
+    });
     spriteGrid.className = "sprite-groups";
   }
 
@@ -306,9 +306,7 @@ export function createViewController({
     if (!spriteGrid) return;
     spriteGrid.className = "sprite-grid";
     if (groupFilter && groupFilter.value !== "none") {
-      const fragment = document.createDocumentFragment();
-      renderSpritesGrouped(fragment);
-      spriteGrid.replaceChildren(fragment);
+      renderSpritesGrouped();
     } else {
       renderNodeList(spriteGrid, state.names, (name) => {
         const entry = state.meta.get(name);

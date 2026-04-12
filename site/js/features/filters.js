@@ -1,5 +1,6 @@
 import { filterNamesBySelectedIndex as filterNamesBySelectedIndexCore, summarizeFilterSelection as summarizeFilterSelectionCore } from "../domain/filters.js";
 import { typeIconBase } from "../core/app-config.js";
+import { renderNodeList } from "../ui/dom.js";
 
 export function createFiltersController({
   state,
@@ -130,16 +131,24 @@ export function createFiltersController({
   function populateTypeChips(entries) {
     if (!typeFilter) return;
     typeFilter.innerHTML = "";
+    const chips = [
+      { kind: "all" },
+      ...entries
+        .slice()
+        .sort((a, b) => (a.id || 999) - (b.id || 999))
+        .map((entry) => ({ kind: "type", entry }))
+    ];
+    renderNodeList(
+      typeFilter,
+      chips,
+      (item) => {
+        if (item.kind === "all") {
+          return createChipWithHandler("All", "all", true, onTypeChipChange);
+        }
+        return createTypeChip(item.entry, onTypeChipChange);
+      }
+    );
 
-    const allChip = createChipWithHandler("All", "all", true, onTypeChipChange);
-    typeFilter.appendChild(allChip);
-
-    entries
-      .slice()
-      .sort((a, b) => (a.id || 999) - (b.id || 999))
-      .forEach((entry) => {
-        typeFilter.appendChild(createTypeChip(entry, onTypeChipChange));
-      });
     syncChipGroup(typeFilter);
   }
 
@@ -156,22 +165,31 @@ export function createFiltersController({
   function populateGenChips(entries) {
     if (!genFilter) return;
     genFilter.innerHTML = "";
-
-    const allChip = createChipWithHandler("All", "all", true, onGenChipChange);
-    genFilter.appendChild(allChip);
-
-    entries
-      .slice()
-      .sort((a, b) => generationOrder(a.name) - generationOrder(b.name))
-      .forEach((entry) => {
-        const chip = createChipWithHandler(
-          formatGenerationLabel(entry.name),
-          entry.name,
+    const chips = [
+      { kind: "all" },
+      ...entries
+        .slice()
+        .sort((a, b) => generationOrder(a.name) - generationOrder(b.name))
+        .map((entry) => ({
+          kind: "generation",
+          entry
+        }))
+    ];
+    renderNodeList(
+      genFilter,
+      chips,
+      (item) => {
+        if (item.kind === "all") {
+          return createChipWithHandler("All", "all", true, onGenChipChange);
+        }
+        return createChipWithHandler(
+          formatGenerationLabel(item.entry.name),
+          item.entry.name,
           false,
           onGenChipChange
         );
-        genFilter.appendChild(chip);
-      });
+      }
+    );
     syncChipGroup(genFilter);
   }
 
