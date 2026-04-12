@@ -196,7 +196,7 @@ export function createStudyController({
         studySprite.alt = "";
       }
       applyStudyScene(null);
-      if (studyName) studyName.textContent = "";
+      renderStudyName("", { revealed: false });
       setInputStatus(
         state.names.length ? "All Pokemon in this filtered pool are already found." : DEFAULT_STATUS
       );
