@@ -1,6 +1,6 @@
 import { filterNamesBySelectedIndex as filterNamesBySelectedIndexCore, summarizeFilterSelection as summarizeFilterSelectionCore } from "../domain/filters.js";
 import { typeIconBase } from "../core/app-config.js";
-import { renderNodeList } from "../ui/dom.js";
+import { clearContainer, renderNodeList } from "../ui/dom.js";
 
 export function createFiltersController({
   state,
@@ -130,7 +130,7 @@ export function createFiltersController({
 
   function populateTypeChips(entries) {
     if (!typeFilter) return;
-    typeFilter.innerHTML = "";
+    clearContainer(typeFilter);
     const chips = [
       { kind: "all" },
       ...entries
@@ -164,7 +164,7 @@ export function createFiltersController({
 
   function populateGenChips(entries) {
     if (!genFilter) return;
-    genFilter.innerHTML = "";
+    clearContainer(genFilter);
     const chips = [
       { kind: "all" },
       ...entries

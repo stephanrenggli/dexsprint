@@ -5,7 +5,7 @@ import {
   getFilterGroupLabel,
   summarizeFilterSelection
 } from "../domain/filters.js";
-import { renderNodeList } from "../ui/dom.js";
+import { clearContainer, renderNodeList } from "../ui/dom.js";
 
 export function createSettingsController({
   state,
@@ -99,7 +99,7 @@ export function createSettingsController({
 
   function initThemes() {
     if (!themeChooser) return;
-    themeChooser.innerHTML = "";
+    clearContainer(themeChooser);
     renderNodeList(themeChooser, themes, (theme) => {
       const chip = document.createElement("button");
       chip.type = "button";
