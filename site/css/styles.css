@@ -3415,10 +3415,6 @@ textarea {
   }
 
   .sprite-board-filters {
-    --filters-panel-columns: 1fr;
-  }
-
-  .sprite-board-filters {
     padding: 10px;
   }
 
