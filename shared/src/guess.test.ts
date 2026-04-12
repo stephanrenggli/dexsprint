@@ -22,6 +22,8 @@ test("normalizeName preserves canonical Pokemon name forms", () => {
   assert.equal(normalizeName("Mr. Mime"), "mr-mime");
   assert.equal(normalizeName("Nidoran♀"), "nidoran-f");
   assert.equal(normalizeName("Nidoran♂"), "nidoran-m");
+  assert.equal(normalizeName("Type: Null"), "type-null");
+  assert.equal(normalizeName("Farfetch'd"), "farfetchd");
 });
 
 test("findExactGuess matches canonical labels and localized guesses", () => {
