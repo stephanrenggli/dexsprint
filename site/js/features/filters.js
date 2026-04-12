@@ -105,6 +105,28 @@ export function createFiltersController({
     return chip;
   }
 
+  function createTypeChip(entry, handler) {
+    const chip = document.createElement("label");
+    chip.className = "chip chip--type";
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = entry.name;
+    input.addEventListener("change", handler);
+
+    const icon = document.createElement("img");
+    icon.alt = `${entry.label} type`;
+    icon.src = `${typeIconBase}${entry.id}.png`;
+
+    const text = document.createElement("span");
+    text.textContent = entry.label;
+
+    chip.appendChild(input);
+    chip.appendChild(icon);
+    chip.appendChild(text);
+    return chip;
+  }
+
   function populateTypeChips(entries) {
     if (!typeFilter) return;
     typeFilter.innerHTML = "";
@@ -116,21 +138,7 @@ export function createFiltersController({
       .slice()
       .sort((a, b) => (a.id || 999) - (b.id || 999))
       .forEach((entry) => {
-        const chip = document.createElement("label");
-        chip.className = "chip chip--type";
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.value = entry.name;
-        const icon = document.createElement("img");
-        icon.alt = `${entry.label} type`;
-        icon.src = `${typeIconBase}${entry.id}.png`;
-        const text = document.createElement("span");
-        text.textContent = entry.label;
-        chip.appendChild(input);
-        chip.appendChild(icon);
-        chip.appendChild(text);
-        input.addEventListener("change", onTypeChipChange);
-        typeFilter.appendChild(chip);
+        typeFilter.appendChild(createTypeChip(entry, onTypeChipChange));
       });
     syncChipGroup(typeFilter);
   }
