@@ -1,3 +1,5 @@
+import { renderNodeList } from "../ui/dom.js";
+
 function resolveReleaseHref(value, githubRepo) {
   const href = String(value || "").trim();
   if (!href) return "#";
@@ -41,7 +43,7 @@ function renderGitHubReleases(releases, githubRepo) {
     return container;
   }
 
-  releases.forEach((release) => {
+  renderNodeList(container, releases, (release) => {
     const article = document.createElement("article");
     article.className = "changelog-release";
 
@@ -77,7 +79,7 @@ function renderGitHubReleases(releases, githubRepo) {
       article.appendChild(link);
     }
 
-    container.appendChild(article);
+    return article;
   });
 
   return container;
