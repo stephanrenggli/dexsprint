@@ -1488,7 +1488,12 @@ function scheduleFilterMetadataHydration(generationPromise, typePromise) {
     if (typeResult.status === "rejected") {
       console.warn("Type metadata hydration failed", typeResult.reason);
     }
-    if (generationResult.status === "rejected" || typeResult.status === "rejected") {
+    if (
+      generationResult.status === "rejected" ||
+      typeResult.status === "rejected" ||
+      generationData.hadFailures ||
+      typeData.hadFailures
+    ) {
       showStateToast({
         meta: "Loading",
         title: "Some PokéAPI metadata failed to load",

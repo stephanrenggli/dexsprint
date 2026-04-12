@@ -2,6 +2,7 @@ import { normalizeName, prettifyName } from "../domain/text.js";
 
 export async function fetchResourcesInBatches(pokedex, urls, batchSize = 40) {
   const output = [];
+  let hadFailures = false;
   for (let i = 0; i < urls.length; i += batchSize) {
     const batch = urls.slice(i, i + batchSize);
     if (!batch.length) continue;
@@ -13,9 +14,11 @@ export async function fetchResourcesInBatches(pokedex, urls, batchSize = 40) {
         output.push(batchResult);
       }
     } catch (error) {
+      hadFailures = true;
       console.warn("Failed to load a PokéAPI resource batch", error);
     }
   }
+  output.hadFailures = hadFailures;
   return output;
 }
 
@@ -25,6 +28,7 @@ export async function loadGenerations(pokedex) {
     const data = await pokedex.getGenerationsList({ limit: 40 });
     const gens = data && data.results ? data.results : [];
     const genDetails = await fetchResourcesInBatches(pokedex, gens.map((gen) => gen.url));
+    const hadFailures = Boolean(genDetails.hadFailures);
     const entries = (genDetails || []).map((genData) => {
       if (!genData) return null;
       const species = genData.pokemon_species || [];
@@ -32,10 +36,10 @@ export async function loadGenerations(pokedex) {
       names.forEach((name) => generationMap.set(name, genData.name));
       return { name: genData.name, label: prettifyName(genData.name), names };
     });
-    return { entries: entries.filter(Boolean), generationMap };
+    return { entries: entries.filter(Boolean), generationMap, hadFailures };
   } catch (error) {
     console.warn("Generation metadata failed to load", error);
-    return { entries: [], generationMap };
+    return { entries: [], generationMap, hadFailures: true };
   }
 }
 
@@ -47,6 +51,7 @@ export async function loadTypes(pokedex) {
       (type) => type.name !== "unknown" && type.name !== "shadow"
     );
     const typeDetails = await fetchResourcesInBatches(pokedex, types.map((type) => type.url));
+    const hadFailures = Boolean(typeDetails.hadFailures);
     const entries = (typeDetails || []).map((typeData) => {
       if (!typeData) return null;
       const pokemon = typeData.pokemon || [];
@@ -64,9 +69,9 @@ export async function loadTypes(pokedex) {
         id: typeData.id
       };
     });
-    return { entries: entries.filter(Boolean), typeMap };
+    return { entries: entries.filter(Boolean), typeMap, hadFailures };
   } catch (error) {
     console.warn("Type metadata failed to load", error);
-    return { entries: [], typeMap };
+    return { entries: [], typeMap, hadFailures: true };
   }
 }

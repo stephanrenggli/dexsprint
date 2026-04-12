@@ -82,7 +82,8 @@ export function scheduleLocalizedNameHydration({
   detailUrls,
   fetchResourcesInBatches,
   onComplete,
-  onError
+  onError,
+  onWarning
 }) {
   if (!detailUrls.length) {
     state.legendaryIndex = new Set();
@@ -97,6 +98,9 @@ export function scheduleLocalizedNameHydration({
       const speciesDetails = await fetchResourcesInBatches(pokedex, detailUrls, 40);
       hydrateLocalizedNames(state, speciesDetails);
       hydrateWeeklyChallengeIndex(state, speciesDetails);
+      if (speciesDetails?.hadFailures && typeof onWarning === "function") {
+        onWarning();
+      }
       if (typeof onComplete === "function") {
         onComplete();
       }

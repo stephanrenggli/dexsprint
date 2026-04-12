@@ -91,6 +91,11 @@ export function createPokemonBootstrap(deps) {
           onCatalogHydrated();
         }
       },
+      onWarning: () => {
+        if (typeof onLocalizedNameHydrationWarning === "function") {
+          onLocalizedNameHydrationWarning();
+        }
+      },
       onError: () => {
         if (typeof onLocalizedNameHydrationWarning === "function") {
           onLocalizedNameHydrationWarning();
