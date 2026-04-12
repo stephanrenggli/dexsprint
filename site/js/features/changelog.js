@@ -89,9 +89,19 @@ function renderGitHubReleases(releases, githubRepo) {
 export function createChangelogController({ githubRepo, changelogContent }) {
   let changelogMarkupLoaded = false;
 
+  function renderChangelogStatus(message) {
+    renderStateMessage(changelogContent, message, "changelog-state");
+  }
+
+  function setChangelogMarkup(releases) {
+    const parsed = renderGitHubReleases(releases, githubRepo);
+    changelogContent.replaceChildren(parsed);
+    changelogMarkupLoaded = true;
+  }
+
   async function ensureChangelogLoaded() {
     if (!changelogContent || changelogMarkupLoaded) return;
-    renderStateMessage(changelogContent, "Loading changelog...", "changelog-state");
+    renderChangelogStatus("Loading changelog...");
 
     try {
       if (!githubRepo) {
@@ -106,17 +116,10 @@ export function createChangelogController({ githubRepo, changelogContent }) {
         throw new Error(`Unable to load releases (${response.status})`);
       }
       const releases = await response.json();
-      const parsed = renderGitHubReleases(
-        Array.isArray(releases) ? releases.filter((release) => !release.draft) : [],
-        githubRepo
-      );
-      changelogContent.replaceChildren(parsed);
-      changelogMarkupLoaded = true;
+      setChangelogMarkup(Array.isArray(releases) ? releases.filter((release) => !release.draft) : []);
     } catch {
-      renderStateMessage(
-        changelogContent,
-        "The changelog is not available right now. Please try again after the next published GitHub release.",
-        "changelog-state"
+      renderChangelogStatus(
+        "The changelog is not available right now. Please try again after the next published GitHub release."
       );
     }
   }
