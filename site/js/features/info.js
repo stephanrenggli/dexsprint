@@ -2,6 +2,7 @@ import { normalizeName, prettifyName } from "../domain/text.js";
 import { TYPE_ID_MAP } from "../core/app-config.js";
 import {
   renderLabeledCards,
+  renderPokemonMetaChips,
   renderTextChips,
   renderTypeChips
 } from "../ui/chips.js";
@@ -70,14 +71,7 @@ export function createInfoController({
 
   function renderInfoMeta(entry) {
     if (!infoMeta) return;
-    const values = [];
-    if (entry?.dexId) {
-      values.push(`#${String(entry.dexId).padStart(4, "0")}`);
-    }
-    if (entry?.generation) {
-      values.push(entry.generation);
-    }
-    renderTextChips(infoMeta, values, "info-meta-chip");
+    renderPokemonMetaChips(infoMeta, entry, "info-meta-chip");
   }
 
   function renderInfoTypes(typeNames = []) {

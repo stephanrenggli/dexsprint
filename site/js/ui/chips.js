@@ -10,6 +10,18 @@ export function renderTextChips(container, values = [], className) {
   container.replaceChildren(fragment);
 }
 
+export function renderPokemonMetaChips(container, entry = null, className) {
+  if (!container) return;
+  const values = [];
+  if (entry?.dexId) {
+    values.push(`#${String(entry.dexId).padStart(4, "0")}`);
+  }
+  if (entry?.generation) {
+    values.push(entry.generation);
+  }
+  renderTextChips(container, values, className);
+}
+
 export function renderTypeChips(container, typeNames = [], getTypeId = () => 1) {
   if (!container) return;
   const fragment = document.createDocumentFragment();

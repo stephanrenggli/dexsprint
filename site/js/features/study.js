@@ -1,6 +1,6 @@
 import { TYPE_ID_MAP } from "../core/app-config.js";
 import { DEFAULT_STATUS } from "../core/app-state.js";
-import { renderTextChips, renderTypeChips } from "../ui/chips.js";
+import { renderPokemonMetaChips, renderTypeChips } from "../ui/chips.js";
 
 export function createStudyController({
   state,
@@ -66,14 +66,7 @@ export function createStudyController({
 
   function renderStudyMeta(entry) {
     if (!studyMeta) return;
-    const values = [];
-    if (entry?.dexId) {
-      values.push(`#${String(entry.dexId).padStart(4, "0")}`);
-    }
-    if (entry?.generation) {
-      values.push(entry.generation);
-    }
-    renderTextChips(studyMeta, values, "study-card__meta-chip");
+    renderPokemonMetaChips(studyMeta, entry, "study-card__meta-chip");
   }
 
   function renderStudyTypes(entry) {
