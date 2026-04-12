@@ -254,6 +254,17 @@ function setMultiplayerFiltersInModal(inModal) {
   multiplayerFiltersSlot.setAttribute("aria-hidden", inModal ? "false" : "true");
 }
 
+function setDisabledControl(el, disabled, { ariaDisabled = false, className = "" } = {}) {
+  if (!el) return;
+  el.disabled = disabled;
+  if (ariaDisabled) {
+    el.setAttribute("aria-disabled", disabled ? "true" : "false");
+  }
+  if (className) {
+    el.classList.toggle(className, disabled);
+  }
+}
+
 function isMultiplayerActive() {
   return multiplayerController?.isActive?.() || false;
 }
@@ -845,21 +856,19 @@ function syncMultiplayerLockState(snapshot = null) {
   if (multiplayerGameplayControls) multiplayerGameplayControls.hidden = inRoom;
   if (multiplayerProgressLock) multiplayerProgressLock.hidden = !inRoom;
   if (multiplayerProgressControls) multiplayerProgressControls.hidden = inRoom;
-  if (progressIncludeSettingsEl) progressIncludeSettingsEl.disabled = inRoom;
-  if (progressImportBtn) progressImportBtn.disabled = inRoom;
-  if (progressCopyBtn) progressCopyBtn.disabled = inRoom;
-  if (progressCopyCodeBtn) progressCopyCodeBtn.disabled = inRoom;
-  if (progressQrBtn) progressQrBtn.disabled = inRoom;
-  if (progressCodeEl) progressCodeEl.disabled = inRoom;
-  if (progressCodeEl) progressCodeEl.setAttribute("aria-disabled", inRoom ? "true" : "false");
-  if (progressCodeEl) progressCodeEl.classList.toggle("is-disabled", inRoom);
-  if (resetBtn) resetBtn.disabled = inRoom && !host;
-  if (resetBtnCompact) resetBtnCompact.disabled = inRoom && !host;
+  setDisabledControl(progressIncludeSettingsEl, inRoom);
+  setDisabledControl(progressImportBtn, inRoom);
+  setDisabledControl(progressCopyBtn, inRoom);
+  setDisabledControl(progressCopyCodeBtn, inRoom);
+  setDisabledControl(progressQrBtn, inRoom);
+  setDisabledControl(progressCodeEl, inRoom, { ariaDisabled: true, className: "is-disabled" });
+  setDisabledControl(resetBtn, inRoom && !host);
+  setDisabledControl(resetBtnCompact, inRoom && !host);
   if (spriteBoardFilters) {
     spriteBoardFilters.hidden = inRoom;
   }
-  if (multiplayerFiltersPanelToggle) multiplayerFiltersPanelToggle.disabled = inRoom ? settingsLocked || !host : false;
-  if (multiplayerGroupFilter) multiplayerGroupFilter.disabled = inRoom ? settingsLocked || !host : false;
+  setDisabledControl(multiplayerFiltersPanelToggle, inRoom ? settingsLocked || !host : false);
+  setDisabledControl(multiplayerGroupFilter, inRoom ? settingsLocked || !host : false);
   if (multiplayerFiltersSlot) {
     setCheckboxGroupDisabled(
       multiplayerFiltersSlot.querySelectorAll(".chip-grid input[type='checkbox']"),
@@ -867,14 +876,14 @@ function syncMultiplayerLockState(snapshot = null) {
       multiplayerFiltersSlot
     );
   }
-  if (groupFilter) groupFilter.disabled = inRoom;
-  if (filtersPanelToggle) filtersPanelToggle.disabled = inRoom;
+  setDisabledControl(groupFilter, inRoom);
+  setDisabledControl(filtersPanelToggle, inRoom);
   setCheckboxGroupDisabled(document.querySelectorAll(".chip-grid input[type='checkbox']"), filterInputsDisabled);
-  if (gameModeSelect) gameModeSelect.disabled = inRoom;
-  if (typoModeSelect) typoModeSelect.disabled = inRoom;
-  if (autocorrectToggle) autocorrectToggle.disabled = inRoom;
-  if (outlineToggle) outlineToggle.disabled = inRoom && !host;
-  if (showDexToggle) showDexToggle.disabled = inRoom && !host;
+  setDisabledControl(gameModeSelect, inRoom);
+  setDisabledControl(typoModeSelect, inRoom);
+  setDisabledControl(autocorrectToggle, inRoom);
+  setDisabledControl(outlineToggle, inRoom && !host);
+  setDisabledControl(showDexToggle, inRoom && !host);
   setMultiplayerFiltersInModal(showModalFilters);
 }
 
