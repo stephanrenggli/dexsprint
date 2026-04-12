@@ -86,3 +86,11 @@ export async function copyTextToClipboard(value) {
     return false;
   }
 }
+
+export function renderStateMessage(container, message, className = "", tagName = "p") {
+  if (!container) return;
+  const node = document.createElement(tagName);
+  if (className) node.className = className;
+  node.textContent = message || "";
+  container.replaceChildren(node);
+}

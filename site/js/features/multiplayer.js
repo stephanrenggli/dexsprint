@@ -1,6 +1,6 @@
 const SESSION_STORAGE_KEY = "dexsprint-multiplayer-session:v1";
 
-import { copyTextToClipboard, renderNodeList } from "../ui/dom.js";
+import { copyTextToClipboard, renderNodeList, renderStateMessage } from "../ui/dom.js";
 
 function formatRoomCode(value) {
   return (value || "").trim().toUpperCase();
@@ -204,9 +204,8 @@ export function createMultiplayerController({
 
   function renderPlayers(snapshot = room) {
     if (!players) return;
-    players.innerHTML = "";
     if (!snapshot) {
-      players.textContent = "No room joined.";
+      renderStateMessage(players, "No room joined.", "", "span");
       return;
     }
     renderNodeList(players, snapshot.players, (player) => {
@@ -221,11 +220,8 @@ export function createMultiplayerController({
 
   function renderEvents(snapshot = room) {
     if (!events) return;
-    events.innerHTML = "";
     if (!snapshot || !snapshot.events.length) {
-      const empty = document.createElement("span");
-      empty.textContent = "No multiplayer events yet.";
-      events.appendChild(empty);
+      renderStateMessage(events, "No multiplayer events yet.", "", "span");
       return;
     }
     const visibleEvents = snapshot.events.filter((event) => {
@@ -233,11 +229,14 @@ export function createMultiplayerController({
       return event.type !== "guess_accepted" && event.type !== "room_completed";
     });
     if (!visibleEvents.length) {
-      const empty = document.createElement("span");
-      empty.textContent = snapshot.settings.mode === "race"
-        ? "Race guesses are hidden."
-        : "No multiplayer events yet.";
-      events.appendChild(empty);
+      renderStateMessage(
+        events,
+        snapshot.settings.mode === "race"
+          ? "Race guesses are hidden."
+          : "No multiplayer events yet.",
+        "",
+        "span"
+      );
       return;
     }
     renderNodeList(events, visibleEvents.slice(0, 4), (event) => {

@@ -1,5 +1,5 @@
 import { BADGES } from "../core/app-state.js";
-import { renderNodeList } from "../ui/dom.js";
+import { renderNodeList, renderStateMessage } from "../ui/dom.js";
 
 export function createViewController({
   state,
@@ -76,10 +76,7 @@ export function createViewController({
   function renderBadges() {
     if (!badgeList) return;
     if (!state.groupMetadataReady) {
-      const loading = document.createElement("p");
-      loading.className = "badge-list__state";
-      loading.textContent = "Loading achievements...";
-      badgeList.replaceChildren(loading);
+      renderStateMessage(badgeList, "Loading achievements...", "badge-list__state");
       if (badgeHeading) {
         badgeHeading.textContent = "Achievements";
       }

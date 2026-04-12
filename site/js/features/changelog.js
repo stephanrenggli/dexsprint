@@ -1,4 +1,4 @@
-import { renderNodeList } from "../ui/dom.js";
+import { renderNodeList, renderStateMessage } from "../ui/dom.js";
 
 function resolveReleaseHref(value, githubRepo) {
   const href = String(value || "").trim();
@@ -36,10 +36,11 @@ function renderGitHubReleases(releases, githubRepo) {
   container.className = "changelog-content";
 
   if (!releases.length) {
-    const empty = document.createElement("p");
-    empty.className = "changelog-state";
-    empty.textContent = "No published releases are available yet.";
-    container.appendChild(empty);
+    renderStateMessage(
+      container,
+      "No published releases are available yet.",
+      "changelog-state"
+    );
     return container;
   }
 
@@ -90,11 +91,7 @@ export function createChangelogController({ githubRepo, changelogContent }) {
 
   async function ensureChangelogLoaded() {
     if (!changelogContent || changelogMarkupLoaded) return;
-    changelogContent.innerHTML = "";
-    const loading = document.createElement("p");
-    loading.className = "changelog-state";
-    loading.textContent = "Loading changelog...";
-    changelogContent.appendChild(loading);
+    renderStateMessage(changelogContent, "Loading changelog...", "changelog-state");
 
     try {
       if (!githubRepo) {
@@ -116,12 +113,11 @@ export function createChangelogController({ githubRepo, changelogContent }) {
       changelogContent.replaceChildren(parsed);
       changelogMarkupLoaded = true;
     } catch {
-      changelogContent.innerHTML = "";
-      const fallback = document.createElement("p");
-      fallback.className = "changelog-state";
-      fallback.textContent =
-        "The changelog is not available right now. Please try again after the next published GitHub release.";
-      changelogContent.appendChild(fallback);
+      renderStateMessage(
+        changelogContent,
+        "The changelog is not available right now. Please try again after the next published GitHub release.",
+        "changelog-state"
+      );
     }
   }
 
