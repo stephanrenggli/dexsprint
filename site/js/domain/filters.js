@@ -26,6 +26,14 @@ export function formatFilterSummary({
   return `Group: ${getFilterGroupLabel(group)} - Generations: ${generationSummary} - Types: ${typeSummary}`;
 }
 
+export function formatWeeklyChallengeFilterSummary({
+  group,
+  themeLabel,
+  readinessLabel
+}) {
+  return `Weekly Challenge: ${themeLabel} - Group: ${getFilterGroupLabel(group)} - ${readinessLabel}`;
+}
+
 export function filterNamesBySelectedIndex(names, selectedValues, indexMap) {
   if (!selectedValues.length) return names;
   const union = new Set();

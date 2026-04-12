@@ -2,7 +2,7 @@ import { DEFAULT_GAME_MODE, DEFAULT_TYPO_MODE } from "../core/app-state.js";
 import { formatGenerationLabel, prettifyName } from "../domain/text.js";
 import {
   formatFilterSummary,
-  getFilterGroupLabel,
+  formatWeeklyChallengeFilterSummary,
   summarizeFilterSelection
 } from "../domain/filters.js";
 import { clearContainer, renderNodeList } from "../ui/dom.js";
@@ -130,7 +130,11 @@ export function createSettingsController({
       const readinessLabel = state.weeklyChallengeCatalogReady
         ? "Filters locked"
         : "Loading challenge data";
-      filterSummary.textContent = `Weekly Challenge: ${themeLabel} - Group: ${getFilterGroupLabel(group)} - ${readinessLabel}`;
+      filterSummary.textContent = formatWeeklyChallengeFilterSummary({
+        group,
+        themeLabel,
+        readinessLabel
+      });
       return;
     }
     const generationSummary = summarizeFilterSelection(
