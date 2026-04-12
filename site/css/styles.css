@@ -2242,6 +2242,14 @@ textarea {
   color: var(--ink);
 }
 
+.info-stat-card,
+.info-fact,
+.badge,
+.changelog-release {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+}
+
 .confirm-actions {
   display: flex;
   justify-content: flex-end;
@@ -2317,8 +2325,6 @@ textarea {
   gap: 4px;
   padding: 12px 14px;
   border-radius: 16px;
-  background: var(--surface-3);
-  border: 1px solid var(--border);
 }
 
 .info-stat-card__label {
@@ -2377,8 +2383,6 @@ textarea {
   gap: 12px;
   padding: 10px 12px;
   border-radius: 14px;
-  background: var(--surface-3);
-  border: 1px solid var(--border);
 }
 
 .info-fact__label {
@@ -2420,8 +2424,6 @@ textarea {
   align-items: start;
   padding: 12px 14px;
   border-radius: 16px;
-  border: 1px solid var(--border);
-  background: var(--surface-3);
   box-shadow: var(--shadow);
 }
 
@@ -3662,7 +3664,6 @@ textarea {
   display: grid;
   gap: 12px;
   padding: 18px;
-  border: 1px solid var(--border);
   border-radius: 18px;
   background: color-mix(in srgb, var(--surface-2) 86%, transparent);
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
