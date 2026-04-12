@@ -1,7 +1,7 @@
 import { normalizeName, prettifyName } from "../domain/text.js";
 
 export async function fetchResourcesInBatches(pokedex, urls, batchSize = 40) {
-  const output = [];
+  const items = [];
   let hadFailures = false;
   for (let i = 0; i < urls.length; i += batchSize) {
     const batch = urls.slice(i, i + batchSize);
@@ -9,17 +9,16 @@ export async function fetchResourcesInBatches(pokedex, urls, batchSize = 40) {
     try {
       const batchResult = await pokedex.resource(batch);
       if (Array.isArray(batchResult)) {
-        output.push(...batchResult);
+        items.push(...batchResult);
       } else if (batchResult) {
-        output.push(batchResult);
+        items.push(batchResult);
       }
     } catch (error) {
       hadFailures = true;
       console.warn("Failed to load a PokéAPI resource batch", error);
     }
   }
-  output.hadFailures = hadFailures;
-  return output;
+  return { items, hadFailures };
 }
 
 async function loadCatalogGroup(pokedex, {
@@ -32,8 +31,10 @@ async function loadCatalogGroup(pokedex, {
   try {
     const data = await listLoader({ limit: listLimit });
     const items = filterItems(data && data.results ? data.results : []);
-    const details = await fetchResourcesInBatches(pokedex, items.map((item) => item.url));
-    const hadFailures = Boolean(details.hadFailures);
+    const { items: details, hadFailures } = await fetchResourcesInBatches(
+      pokedex,
+      items.map((item) => item.url)
+    );
     const entries = (details || []).map((detail) => buildEntry(detail, indexMap));
     return { entries: entries.filter(Boolean), indexMap, hadFailures };
   } catch (error) {

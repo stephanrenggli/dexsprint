@@ -95,10 +95,14 @@ export function scheduleLocalizedNameHydration({
   }
   const hydrate = async () => {
     try {
-      const speciesDetails = await fetchResourcesInBatches(pokedex, detailUrls, 40);
+      const { items: speciesDetails, hadFailures } = await fetchResourcesInBatches(
+        pokedex,
+        detailUrls,
+        40
+      );
       hydrateLocalizedNames(state, speciesDetails);
       hydrateWeeklyChallengeIndex(state, speciesDetails);
-      if (speciesDetails?.hadFailures && typeof onWarning === "function") {
+      if (hadFailures && typeof onWarning === "function") {
         onWarning();
       }
       if (typeof onComplete === "function") {
