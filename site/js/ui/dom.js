@@ -94,3 +94,8 @@ export function renderStateMessage(container, message, className = "", tagName =
   node.textContent = message || "";
   container.replaceChildren(node);
 }
+
+export function clearContainer(container) {
+  if (!container) return;
+  container.replaceChildren();
+}

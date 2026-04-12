@@ -6,7 +6,7 @@ import {
   renderTextChips,
   renderTypeChips
 } from "../ui/chips.js";
-import { renderStateMessage } from "../ui/dom.js";
+import { clearContainer, renderStateMessage } from "../ui/dom.js";
 
 export function createInfoController({
   state,
@@ -132,9 +132,9 @@ export function createInfoController({
     renderInfoMeta(entry);
     renderInfoTypes();
     if (infoGenus) infoGenus.textContent = loading ? "Loading details..." : "";
-    if (infoStats) infoStats.innerHTML = "";
-    if (infoAbilities) infoAbilities.innerHTML = "";
-    if (infoFacts) infoFacts.innerHTML = "";
+    clearContainer(infoStats);
+    clearContainer(infoAbilities);
+    clearContainer(infoFacts);
   }
 
   async function loadInfoModalDetails(entry) {
