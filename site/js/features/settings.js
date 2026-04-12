@@ -81,13 +81,16 @@ export function createSettingsController({
       { id: defaultTheme };
     document.documentElement.dataset.theme = theme.id;
     updateThemeColorMeta();
-    if (themeChooser) {
-      const chips = [...themeChooser.querySelectorAll(".theme-chip")];
-      chips.forEach((chip) => {
-        chip.classList.toggle("is-selected", chip.dataset.theme === theme.id);
-      });
-    }
+    syncThemeChooserSelection(theme.id);
     if (persist) saveSettings();
+  }
+
+  function syncThemeChooserSelection(themeId) {
+    if (!themeChooser) return;
+    const chips = [...themeChooser.querySelectorAll(".theme-chip")];
+    chips.forEach((chip) => {
+      chip.classList.toggle("is-selected", chip.dataset.theme === themeId);
+    });
   }
 
   function syncSettingsState() {
@@ -114,6 +117,7 @@ export function createSettingsController({
       chip.addEventListener("click", () => setTheme(theme.id));
       return chip;
     });
+    syncThemeChooserSelection(defaultTheme);
     setTheme(defaultTheme, false);
   }
 
