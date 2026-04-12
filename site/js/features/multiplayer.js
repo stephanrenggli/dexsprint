@@ -190,25 +190,9 @@ export function createMultiplayerController({
     return next;
   }
 
-  function applyAttributionBadges() {
-    document.querySelectorAll(".sprite-card").forEach((card) => {
-      card.classList.remove("sprite-card--multiplayer-found");
-      card.style.removeProperty("--found-by-accent");
-      card.querySelector(".sprite-card__found-by")?.remove();
-      card.removeAttribute("title");
-      if (room?.settings.mode !== "coop") return;
-      const canonical = card.dataset.pokemon;
-      if (!canonical || card.classList.contains("sprite-card--hidden")) return;
-      const foundBy = attribution.get(canonical);
-      if (!foundBy) return;
-      card.classList.add("sprite-card--multiplayer-found");
-      card.style.setProperty("--found-by-accent", foundBy.accent);
-      card.title = `First found by ${foundBy.name}`;
-      const badge = document.createElement("span");
-      badge.className = "sprite-card__found-by";
-      badge.textContent = foundBy.name;
-      card.appendChild(badge);
-    });
+  function getSpriteCardBadge(canonical) {
+    if (room?.settings.mode !== "coop") return null;
+    return attribution.get(canonical) || null;
   }
 
   function renderPlayers(snapshot = room) {
@@ -564,6 +548,6 @@ export function createMultiplayerController({
     resetRoom,
     restoreFromHashOrSession,
     leaveRoom,
-    refreshAttributionBadges: applyAttributionBadges
+    getSpriteCardBadge
   };
 }

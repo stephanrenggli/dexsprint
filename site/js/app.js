@@ -615,6 +615,7 @@ viewController = createViewController({
   getProgressMilestoneEntries: getProgressMilestoneEntriesCore,
   getSpriteForEntry,
   getHiddenLabel,
+  getSpriteCardBadge: (canonical) => multiplayerController?.getSpriteCardBadge?.(canonical) || null,
   formatGenerationLabel,
   generationOrder
 });
@@ -1299,11 +1300,7 @@ function markPokemonFound(canonical) {
 }
 
 function renderSprites() {
-  const result = viewController?.renderSprites();
-  if (isMultiplayerActive()) {
-    multiplayerController?.refreshAttributionBadges?.();
-  }
-  return result;
+  return viewController?.renderSprites();
 }
 
 function resetQuiz() {
@@ -1421,30 +1418,11 @@ function updateSpriteCardsForPokemon(canonical, { animateReveal = false } = {}) 
 
   const isFound = state.found.has(canonical);
   cards.forEach((card) => {
-    const img = card.querySelector("img");
-    const label = card.querySelector(".sprite-card__name");
-    card.classList.toggle("sprite-card--hidden", !isFound);
-    if (isFound && animateReveal) {
-      card.classList.remove("sprite-card--revealed");
-      void card.offsetWidth;
-      card.classList.add("sprite-card--revealed");
-      if (!document.body.classList.contains("outlines-off")) {
-        card.classList.add("sprite-card--outline-reveal");
-      }
-      const spriteUrl = getSpriteForEntry(entry).replace(/"/g, '\\"');
-      card.style.setProperty("--reveal-sprite", `url("${spriteUrl}")`);
-    } else {
-      card.classList.remove("sprite-card--revealed");
-      card.classList.remove("sprite-card--outline-reveal");
-      card.style.removeProperty("--reveal-sprite");
-    }
-    if (img) {
-      img.src = getSpriteForEntry(entry);
-      img.alt = isFound ? entry.label : "Unknown Pokemon";
-    }
-    if (label) {
-      label.textContent = isFound ? entry.label : getHiddenLabel(entry);
-    }
+    viewController?.syncSpriteCardState?.(card, entry, {
+      isFound,
+      hiddenLabel: getHiddenLabel(entry),
+      animateReveal
+    });
   });
 
   refreshGroupedGenerationHeaders();

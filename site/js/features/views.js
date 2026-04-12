@@ -18,6 +18,7 @@ export function createViewController({
   getProgressMilestoneEntries,
   getSpriteForEntry,
   getHiddenLabel,
+  getSpriteCardBadge = () => null,
   formatGenerationLabel,
   generationOrder
 }) {
@@ -170,6 +171,24 @@ export function createViewController({
 
   function createSpriteCard(entry, isFound) {
     const card = document.createElement("div");
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.decoding = "async";
+
+    const label = document.createElement("span");
+    label.className = "sprite-card__name";
+
+    card.appendChild(img);
+    card.appendChild(label);
+    syncSpriteCardState(card, entry, {
+      isFound,
+      hiddenLabel: getHiddenLabel(entry)
+    });
+    return card;
+  }
+
+  function syncSpriteCardState(card, entry, { isFound, hiddenLabel = "???", animateReveal = false } = {}) {
+    if (!card || !entry) return false;
     const classes = ["sprite-card"];
     const isRevealedNow = isFound && state.recentlyFound.has(entry.normalized);
     if (!isFound) {
@@ -184,24 +203,52 @@ export function createViewController({
     card.className = classes.join(" ");
     card.dataset.pokemon = entry.normalized;
 
-    const img = document.createElement("img");
-    img.src = getSpriteForEntry(entry);
-    img.alt = isFound ? entry.label : "Unknown Pokemon";
-    img.loading = "lazy";
-    img.decoding = "async";
+    const img = card.querySelector("img");
+    if (img) {
+      img.src = getSpriteForEntry(entry);
+      img.alt = isFound ? entry.label : "Unknown Pokemon";
+    }
 
-    const label = document.createElement("span");
-    label.className = "sprite-card__name";
-    label.textContent = isFound ? entry.label : getHiddenLabel(entry);
+    const label = card.querySelector(".sprite-card__name");
+    if (label) {
+      label.textContent = isFound ? entry.label : hiddenLabel;
+    }
+
+    card.classList.remove("sprite-card--multiplayer-found");
+    card.style.removeProperty("--found-by-accent");
+    card.querySelector(".sprite-card__found-by")?.remove();
+    card.removeAttribute("title");
+    const foundBy = getSpriteCardBadge(entry.normalized);
+    if (foundBy && isFound) {
+      card.classList.add("sprite-card--multiplayer-found");
+      card.style.setProperty("--found-by-accent", foundBy.accent);
+      card.title = `First found by ${foundBy.name}`;
+      const badge = document.createElement("span");
+      badge.className = "sprite-card__found-by";
+      badge.textContent = foundBy.name;
+      card.appendChild(badge);
+    }
+
+    if (animateReveal && isFound) {
+      card.classList.remove("sprite-card--revealed");
+      void card.offsetWidth;
+      card.classList.add("sprite-card--revealed");
+      if (!document.body.classList.contains("outlines-off")) {
+        card.classList.add("sprite-card--outline-reveal");
+      }
+    } else if (!isFound) {
+      card.classList.remove("sprite-card--revealed");
+      card.classList.remove("sprite-card--outline-reveal");
+    }
 
     if (isRevealedNow) {
       const spriteUrl = getSpriteForEntry(entry).replace(/"/g, '\\"');
       card.style.setProperty("--reveal-sprite", `url("${spriteUrl}")`);
+    } else {
+      card.style.removeProperty("--reveal-sprite");
     }
 
-    card.appendChild(img);
-    card.appendChild(label);
-    return card;
+    return true;
   }
 
   function refreshGroupedGenerationHeaders() {
@@ -327,6 +374,7 @@ export function createViewController({
     triggerCompletionCelebration,
     clearCompletionCelebration,
     createSpriteCard,
+    syncSpriteCardState,
     renderSprites,
     renderSpritesGrouped,
     refreshGroupedGenerationHeaders
