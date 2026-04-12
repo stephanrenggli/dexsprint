@@ -132,9 +132,7 @@ export function createInfoController({
     renderInfoMeta(entry);
     renderInfoTypes();
     if (infoGenus) infoGenus.textContent = loading ? "Loading details..." : "";
-    clearContainer(infoStats);
-    clearContainer(infoAbilities);
-    clearContainer(infoFacts);
+    [infoStats, infoAbilities, infoFacts].forEach(clearContainer);
   }
 
   async function loadInfoModalDetails(entry) {
