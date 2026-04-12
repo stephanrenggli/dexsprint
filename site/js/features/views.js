@@ -1,4 +1,5 @@
 import { BADGES } from "../core/app-state.js";
+import { renderNodeList } from "../ui/dom.js";
 
 export function createViewController({
   state,
@@ -29,15 +30,14 @@ export function createViewController({
       progressMilestonesEl.children.length !== milestones.length;
 
     if (shouldRebuild) {
-      progressMilestonesEl.innerHTML = "";
-      milestones.forEach((entry) => {
+      renderNodeList(progressMilestonesEl, milestones, (entry) => {
         const marker = document.createElement("span");
         marker.className = "progress-milestone";
         marker.dataset.count = String(entry.count);
         marker.style.setProperty("--milestone-left", `${entry.percent}%`);
         marker.title = `${entry.percent}% complete`;
         marker.setAttribute("aria-hidden", "true");
-        progressMilestonesEl.appendChild(marker);
+        return marker;
       });
       progressMilestonesEl.dataset.signature = signature;
     }
@@ -86,11 +86,10 @@ export function createViewController({
       return;
     }
     const context = getBadgeContext();
-    const fragment = document.createDocumentFragment();
     let unlockedCount = 0;
     const unlockedIds = [];
 
-    BADGES.forEach((badge) => {
+    renderNodeList(badgeList, BADGES, (badge) => {
       const unlocked = badge.unlocked(context);
       const isNewlyUnlocked =
         unlocked && state.badgesPrimed && !state.isRestoring && !state.seenBadges.has(badge.id);
@@ -123,10 +122,8 @@ export function createViewController({
       copy.appendChild(description);
       item.appendChild(icon);
       item.appendChild(copy);
-      fragment.appendChild(item);
+      return item;
     });
-
-    badgeList.replaceChildren(fragment);
 
     if (badgeHeading) {
       badgeHeading.textContent = `Achievements (${unlockedCount}/${BADGES.length})`;
@@ -307,19 +304,19 @@ export function createViewController({
 
   function renderSprites() {
     if (!spriteGrid) return;
-    const fragment = document.createDocumentFragment();
     spriteGrid.className = "sprite-grid";
     if (groupFilter && groupFilter.value !== "none") {
+      const fragment = document.createDocumentFragment();
       renderSpritesGrouped(fragment);
+      spriteGrid.replaceChildren(fragment);
     } else {
-      state.names.forEach((name) => {
+      renderNodeList(spriteGrid, state.names, (name) => {
         const entry = state.meta.get(name);
         if (!entry) return;
         const isFound = state.found.has(name);
-        fragment.appendChild(createSpriteCard(entry, isFound));
+        return createSpriteCard(entry, isFound);
       });
     }
-    spriteGrid.replaceChildren(fragment);
     state.pendingProgressUnlocks = {
       generations: new Set(),
       types: new Set()

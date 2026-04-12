@@ -1,13 +1,12 @@
+import { renderNodeList } from "./dom.js";
+
 export function renderTextChips(container, values = [], className) {
-  if (!container) return;
-  const fragment = document.createDocumentFragment();
-  values.forEach((value) => {
+  renderNodeList(container, values, (value) => {
     const chip = document.createElement("span");
     chip.className = className;
     chip.textContent = value;
-    fragment.appendChild(chip);
+    return chip;
   });
-  container.replaceChildren(fragment);
 }
 
 export function renderPokemonMetaChips(container, entry = null, className) {
@@ -23,9 +22,7 @@ export function renderPokemonMetaChips(container, entry = null, className) {
 }
 
 export function renderTypeChips(container, typeNames = [], getTypeId = () => 1) {
-  if (!container) return;
-  const fragment = document.createDocumentFragment();
-  (typeNames || []).forEach((typeName) => {
+  renderNodeList(container, typeNames, (typeName) => {
     const chip = document.createElement("span");
     chip.className = "info-type-chip";
     const icon = document.createElement("img");
@@ -35,9 +32,8 @@ export function renderTypeChips(container, typeNames = [], getTypeId = () => 1) 
     text.textContent = typeName;
     chip.appendChild(icon);
     chip.appendChild(text);
-    fragment.appendChild(chip);
+    return chip;
   });
-  container.replaceChildren(fragment);
 }
 
 export function renderLabeledCards(

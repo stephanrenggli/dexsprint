@@ -65,3 +65,15 @@ export function setCheckboxGroupDisabled(inputs, disabled, container = null) {
     input.disabled = disabled;
   });
 }
+
+export function renderNodeList(container, items = [], createNode) {
+  if (!container) return;
+  const fragment = document.createDocumentFragment();
+  (items || []).forEach((item, index) => {
+    const node = createNode(item, index);
+    if (node) {
+      fragment.appendChild(node);
+    }
+  });
+  container.replaceChildren(fragment);
+}
