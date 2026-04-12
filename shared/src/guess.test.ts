@@ -29,3 +29,45 @@ test("findExactGuess matches canonical labels and localized guesses", () => {
   assert.equal(findExactGuess(index, "Bisasam"), "bulbasaur");
   assert.equal(findExactGuess(index, "missingno"), null);
 });
+
+test("findExactGuess accepts the current PokéAPI species names and spaced variants", async () => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const response = await fetch("https://pokeapi.co/api/v2/pokemon-species?limit=100000", {
+      signal: controller.signal
+    });
+    assert.equal(response.ok, true, `Expected PokéAPI species list to load, got ${response.status}`);
+
+    const payload = await response.json();
+    const species = Array.isArray(payload?.results) ? payload.results : [];
+    const normalized = new Map<string, string>();
+    const index = buildGuessIndex(
+      species.map((entry) => {
+        const name = typeof entry?.name === "string" ? entry.name : "";
+        assert.ok(name, "Expected PokéAPI species entry to include a name");
+        return {
+          canonical: normalizeName(name),
+          label: name.replace(/-/g, " "),
+          guesses: []
+        };
+      })
+    );
+
+    species.forEach((entry) => {
+      const name = typeof entry?.name === "string" ? entry.name : "";
+      const canonical = normalizeName(name);
+      assert.ok(canonical, `Expected ${name} to normalize to a non-empty canonical name`);
+
+      const previous = normalized.get(canonical);
+      assert.equal(previous, undefined, `Duplicate canonical name for ${name} and ${previous}`);
+      normalized.set(canonical, name);
+
+      assert.equal(findExactGuess(index, name), canonical);
+      assert.equal(findExactGuess(index, name.replace(/-/g, " ")), canonical);
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+});
