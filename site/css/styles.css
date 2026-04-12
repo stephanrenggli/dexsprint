@@ -2245,7 +2245,9 @@ textarea {
 .info-stat-card,
 .info-fact,
 .badge,
-.changelog-release {
+.changelog-release,
+.info-meta-chip,
+.info-pill {
   background: var(--surface-3);
   border: 1px solid var(--border);
 }
@@ -2274,8 +2276,6 @@ textarea {
   min-height: 28px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--surface-3);
-  border: 1px solid var(--border);
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 700;
@@ -2363,8 +2363,6 @@ textarea {
   align-items: center;
   padding: 6px 10px;
   border-radius: 999px;
-  background: var(--surface-3);
-  border: 1px solid var(--border);
   color: var(--ink);
   font-size: 0.85rem;
   font-weight: 600;
