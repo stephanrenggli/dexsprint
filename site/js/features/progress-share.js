@@ -51,6 +51,46 @@ export function createProgressShareController({
     })}`;
   }
 
+  function parseProgressInput(value) {
+    const raw = (value || "").trim();
+    if (!raw) return { code: "", isUrl: false };
+    if (raw.startsWith(progressCodePrefix) || raw.startsWith(legacyProgressCodePrefix)) {
+      return { code: raw, isUrl: false };
+    }
+
+    try {
+      const url = new URL(raw, window.location.href);
+      const hash = url.hash.replace(/^#/, "");
+      if (hash.startsWith("progress=")) {
+        return {
+          code: decodeURIComponent(hash.slice("progress=".length)),
+          isUrl: true
+        };
+      }
+      if (hash.startsWith(progressCodePrefix) || hash.startsWith(legacyProgressCodePrefix)) {
+        return { code: hash, isUrl: true };
+      }
+    } catch {
+      // ignore invalid URLs and try plain-text parsing below
+    }
+
+    if (raw.startsWith("#progress=")) {
+      return {
+        code: decodeURIComponent(raw.slice("#progress=".length)),
+        isUrl: true
+      };
+    }
+
+    if (raw.startsWith("progress=")) {
+      return {
+        code: decodeURIComponent(raw.slice("progress=".length)),
+        isUrl: true
+      };
+    }
+
+    return { code: raw, isUrl: false };
+  }
+
   function decodeFoundProgress(code) {
     const validPrefixes = [progressCodePrefix, legacyProgressCodePrefix];
     if (!code || !validPrefixes.some((prefix) => code.startsWith(prefix))) {
@@ -74,47 +114,11 @@ export function createProgressShareController({
   }
 
   function extractProgressCode(value) {
-    const raw = (value || "").trim();
-    if (!raw) return "";
-    if (raw.startsWith(progressCodePrefix) || raw.startsWith(legacyProgressCodePrefix)) {
-      return raw;
-    }
-
-    try {
-      const url = new URL(raw, window.location.href);
-      const hash = url.hash.replace(/^#/, "");
-      if (hash.startsWith("progress=")) {
-        return decodeURIComponent(hash.slice("progress=".length));
-      }
-      if (hash.startsWith(progressCodePrefix) || hash.startsWith(legacyProgressCodePrefix)) {
-        return hash;
-      }
-    } catch {
-      // ignore invalid URLs and try plain-text parsing below
-    }
-
-    if (raw.startsWith("#progress=")) {
-      return decodeURIComponent(raw.slice("#progress=".length));
-    }
-
-    if (raw.startsWith("progress=")) {
-      return decodeURIComponent(raw.slice("progress=".length));
-    }
-
-    return raw;
+    return parseProgressInput(value).code;
   }
 
   function isProgressUrlValue(value) {
-    const raw = (value || "").trim();
-    if (!raw) return false;
-
-    try {
-      const url = new URL(raw, window.location.href);
-      const hash = url.hash.replace(/^#/, "");
-      return hash.startsWith("progress=") || hash.startsWith(progressCodePrefix) || hash.startsWith(legacyProgressCodePrefix);
-    } catch {
-      return false;
-    }
+    return parseProgressInput(value).isUrl;
   }
 
   function scheduleImportedProgressCleanup() {
