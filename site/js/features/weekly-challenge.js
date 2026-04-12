@@ -7,9 +7,8 @@ export function createWeeklyChallengeController({
   filtersPanelToggle,
   setFiltersPanelExpanded,
   inputEl,
-  statusEl,
-  defaultStatus,
   setInputStatus,
+  clearInputStatusIf,
   formatGenerationLabel,
   generationOrder,
   prettifyName,
@@ -114,16 +113,12 @@ export function createWeeklyChallengeController({
         setInputStatus("Loading weekly challenge theme...");
       } else {
         inputEl.placeholder = defaultInputPlaceholder;
-        if (statusEl && statusEl.textContent === "Loading weekly challenge theme...") {
-          setInputStatus(defaultStatus);
-        }
+        clearInputStatusIf?.("Loading weekly challenge theme...");
       }
     }
   }
 
   return {
-    getWeeklyChallengeWeekIndex,
-    getWeeklyGenerationLabel,
     refreshWeeklyChallengeCatalog,
     getWeeklyChallengeTheme,
     isWeeklyChallengeReady,

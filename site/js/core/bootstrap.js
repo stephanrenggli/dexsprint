@@ -17,6 +17,7 @@ export function createPokemonBootstrap(deps) {
     restoreProgressFromHash,
     syncWeeklyChallengeState,
     setInputStatus,
+    clearInputStatusIf,
     inputEl,
     retryBtn,
     onCatalogHydrated,
@@ -100,7 +101,7 @@ export function createPokemonBootstrap(deps) {
       await restoreProgressFromHash();
       syncWeeklyChallengeState();
       if (!inputEl || !inputEl.disabled) {
-        setInputStatus("");
+        clearInputStatusIf?.("Loading Pokemon list...");
       }
     } catch (err) {
       console.error("loadPokemon failed", err);

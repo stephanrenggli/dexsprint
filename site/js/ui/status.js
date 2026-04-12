@@ -55,10 +55,18 @@ export function createStatusController({
     }, 1500);
   }
 
+  function clearInputStatusIf(message, replacement = "") {
+    if (!statusEl) return false;
+    if (statusEl.textContent !== message) return false;
+    setInputStatus(replacement);
+    return true;
+  }
+
   return {
     focusInput,
     setInputStatus,
     syncInlineStatusVisibility,
-    showStatusHint
+    showStatusHint,
+    clearInputStatusIf
   };
 }

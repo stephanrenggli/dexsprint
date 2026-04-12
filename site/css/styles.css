@@ -1371,6 +1371,10 @@ textarea {
   caret-color: transparent;
 }
 
+#name-input.input-status-active::placeholder {
+  color: transparent;
+}
+
 .reveal-pill {
   position: absolute;
   right: 8px;

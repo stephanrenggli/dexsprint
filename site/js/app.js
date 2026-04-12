@@ -400,6 +400,7 @@ weeklyChallengeController = createWeeklyChallengeController({
   statusEl,
   defaultStatus: DEFAULT_STATUS,
   setInputStatus,
+  clearInputStatusIf: statusController.clearInputStatusIf,
   formatGenerationLabel,
   generationOrder,
   prettifyName,
@@ -1594,6 +1595,7 @@ const pokemonBootstrap = createPokemonBootstrap({
   restoreProgressFromHash,
   syncWeeklyChallengeState,
   setInputStatus,
+  clearInputStatusIf: statusController.clearInputStatusIf,
   inputEl,
   retryBtn,
   onCatalogHydrated: () => {
