@@ -6,6 +6,7 @@ import {
   renderTextChips,
   renderTypeChips
 } from "../ui/chips.js";
+import { renderStateMessage } from "../ui/dom.js";
 
 export function createInfoController({
   state,
@@ -97,7 +98,7 @@ export function createInfoController({
     if (!infoAbilities) return;
     const abilities = details.abilities || [];
     if (!abilities.length) {
-      infoAbilities.textContent = "No ability data available.";
+      renderStateMessage(infoAbilities, "No ability data available.", "", "span");
       return;
     }
     renderTextChips(infoAbilities, abilities, "info-pill");

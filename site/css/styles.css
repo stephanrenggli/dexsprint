@@ -2203,9 +2203,6 @@ textarea {
   width: min(560px, 100%);
 }
 
-.qr-modal__link {
-}
-
 .confirm-copy {
   display: grid;
   gap: 10px;
