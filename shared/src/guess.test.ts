@@ -1,12 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildGuessIndex, findExactGuess } from "./guess.js";
-import { normalizeGuess } from "./text.js";
+import { normalizeGuess, normalizeName } from "./text.js";
 
 test("normalizeGuess handles casing, punctuation, diacritics, and gender symbols", () => {
   assert.equal(normalizeGuess("Flabébé"), "flabebe");
   assert.equal(normalizeGuess("Nidoran♀"), "nidoranf");
   assert.equal(normalizeGuess("Mr. Mime"), "mrmime");
+});
+
+test("normalizeName preserves canonical Pokemon name forms", () => {
+  assert.equal(normalizeName("Ho-Oh"), "ho-oh");
+  assert.equal(normalizeName("Mr. Mime"), "mr-mime");
+  assert.equal(normalizeName("Nidoran♀"), "nidoran-f");
+  assert.equal(normalizeName("Nidoran♂"), "nidoran-m");
 });
 
 test("findExactGuess matches canonical labels and localized guesses", () => {

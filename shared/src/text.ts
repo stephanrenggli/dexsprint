@@ -13,7 +13,18 @@ export function normalizeGuess(value: string): string {
 }
 
 export function normalizeName(value: string): string {
-  return normalizeGuess(value);
+  if (!value) return "";
+  let name = value
+    .toLowerCase()
+    .trim()
+    .replace(/[’']/g, "")
+    .replace(/♀/g, "-f")
+    .replace(/♂/g, "-m")
+    .replace(/\s+/g, "-")
+    .replace(/\.+/g, "")
+    .replace(/[^a-z0-9-]/g, "");
+  name = name.replace(/-+/g, "-");
+  return name;
 }
 
 export function prettifyName(value: string): string {
