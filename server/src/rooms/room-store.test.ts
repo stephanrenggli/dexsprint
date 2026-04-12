@@ -185,6 +185,29 @@ test("RoomStore marks players disconnected on disconnect and preserves room stat
   });
 
   assert.ok(rejoined);
+  assert.equal(rejoined?.snapshot.players[0]?.id, host.id);
+  assert.equal(rejoined?.snapshot.players[0]?.host, true);
   assert.equal(rejoined?.snapshot.players[0]?.status, "connected");
   assert.equal(rejoined?.snapshot.players[0]?.name, "Ash");
+});
+
+test("RoomStore only lets the host start the room", () => {
+  const store = new RoomStore();
+  const created = store.createRoom(createCatalog(), { playerName: "Ash" });
+  const joined = store.joinRoom(created.roomCode, { playerName: "Misty" });
+
+  assert.ok(joined);
+  const room = store.getRoomById(created.roomId);
+  assert.ok(room);
+  const host = store.findPlayer(room, created.sessionToken);
+  const guest = store.findPlayer(room, joined.sessionToken);
+  assert.ok(host);
+  assert.ok(guest);
+
+  const before = store.snapshot(room);
+  const after = store.startRoom(room, guest);
+
+  assert.equal(after.status, before.status);
+  assert.equal(after.timerStartedAt, before.timerStartedAt);
+  assert.deepEqual(after.events, before.events);
 });
