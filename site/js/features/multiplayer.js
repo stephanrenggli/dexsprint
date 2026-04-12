@@ -106,6 +106,14 @@ export function createMultiplayerController({
     return Boolean(room?.players.find((player) => player.id === playerId)?.host);
   }
 
+  function canHostControlRoom() {
+    return isActive() && isHost();
+  }
+
+  function canSyncRoomSettings() {
+    return canHostControlRoom() && room?.status === "lobby";
+  }
+
   function getPlayerName() {
     return (playerNameInput?.value || "").trim();
   }
@@ -428,13 +436,14 @@ export function createMultiplayerController({
   }
 
   function startRoom() {
+    if (!canHostControlRoom()) return;
     client.send({ type: "room:start" });
     closeRoomModal();
     focusInput();
   }
 
   function resetRoom() {
-    if (!isActive() || !isHost()) return;
+    if (!canHostControlRoom()) return;
     client.send({ type: "room:reset" });
     closeRoomModal();
     focusInput();
@@ -463,9 +472,11 @@ export function createMultiplayerController({
   }
 
   function configureRoom() {
-    if (!isActive() || !room || !isHost()) return;
+    if (!canSyncRoomSettings()) return;
     client.send({ type: "room:configure", settings: getRoomSettings() });
   }
+
+  const syncRoomSettings = configureRoom;
 
   async function copyRoomLink() {
     if (!room) return;
@@ -536,7 +547,10 @@ export function createMultiplayerController({
   return {
     isActive,
     isHost,
+    canHostControlRoom,
+    canSyncRoomSettings,
     configureRoom,
+    syncRoomSettings,
     submitGuess,
     resetRoom,
     restoreFromHashOrSession,

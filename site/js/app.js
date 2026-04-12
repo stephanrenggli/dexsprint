@@ -1120,9 +1120,7 @@ function saveSettings() {
 
 function saveSettingsAndSyncRoom() {
   saveSettings();
-  if (isMultiplayerActive() && isMultiplayerHost()) {
-    multiplayerController.configureRoom();
-  }
+  multiplayerController?.syncRoomSettings();
 }
 
 function updateThemeColorMeta(color) {
