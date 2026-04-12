@@ -1,8 +1,10 @@
+import { clearContainer } from "./dom.js";
+
 export function createInfoTipContent(tip) {
   const label = tip.dataset.tipLabel || "Help";
   const text = tip.dataset.tip || "";
   const tipId = tip.dataset.tipId || "";
-  tip.replaceChildren();
+  clearContainer(tip);
 
   const button = document.createElement("button");
   button.className = "info-tip__button";
