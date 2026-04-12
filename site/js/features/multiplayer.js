@@ -272,7 +272,6 @@ export function createMultiplayerController({
     if (copyCodeBtn) copyCodeBtn.hidden = !snapshot;
     renderPlayers(snapshot);
     renderEvents(snapshot);
-    onRoomStateChange(snapshot);
     if (snapshot) {
       setStatus(`Room ${snapshot.roomCode} - ${snapshot.status} - ${snapshot.settings.mode}`);
     } else {
@@ -293,6 +292,7 @@ export function createMultiplayerController({
       refreshLocalGameplayViews();
     }
     render();
+    onRoomStateChange(snapshot);
   }
 
   function applyAcceptedGuess(message) {
@@ -529,6 +529,7 @@ export function createMultiplayerController({
   if (inviteAcceptBtn) inviteAcceptBtn.addEventListener("click", joinInviteRoom);
 
   render(null);
+  onRoomStateChange(null);
 
   return {
     isActive,

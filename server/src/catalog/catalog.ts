@@ -1,5 +1,5 @@
 import { buildGuessIndex, type GuessEntry, type GuessIndex } from "../../../shared/src/guess.js";
-import { normalizeName, prettifyName } from "../../../shared/src/text.js";
+import { normalizeName } from "../../../shared/src/text.js";
 import type { RoomSettings } from "../../../shared/src/protocol.js";
 
 interface PokeApiListResponse {
@@ -27,6 +27,11 @@ export interface CatalogSnapshot {
 
 const POKEAPI_BASE = "https://pokeapi.co/api/v2";
 const SUPPORTED_LANGUAGES = new Set(["en", "de", "es"]);
+
+function getSpeciesDisplayName(detail: PokeApiSpeciesDetail | undefined, fallback: string): string {
+  const englishName = detail?.names?.find((entry) => entry.language?.name === "en")?.name;
+  return englishName || fallback;
+}
 
 function dexIdFromSpeciesUrl(url: string): number {
   const match = url.match(/\/pokemon-species\/(\d+)\/?$/);
@@ -72,7 +77,7 @@ export async function loadCatalog(): Promise<CatalogSnapshot> {
 
       return {
         canonical,
-        label: prettifyName(entry.name),
+        label: getSpeciesDisplayName(detail, entry.name),
         guesses,
         dexId: dexIdFromSpeciesUrl(entry.url),
         generation: detail?.generation?.name || "unknown",

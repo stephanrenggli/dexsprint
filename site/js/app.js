@@ -253,6 +253,18 @@ function setMultiplayerFiltersInModal(inModal) {
   multiplayerFiltersSlot.setAttribute("aria-hidden", inModal ? "false" : "true");
 }
 
+function isMultiplayerActive() {
+  return multiplayerController?.isActive?.() || false;
+}
+
+function isMultiplayerHost() {
+  return multiplayerController?.isHost?.() || false;
+}
+
+function isMultiplayerModalOpen() {
+  return Boolean(multiplayerModal && !multiplayerModal.classList.contains("hidden"));
+}
+
 async function registerAppServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
@@ -444,7 +456,7 @@ multiplayerFiltersController = createFiltersController({
   updateFilterSummary: updateMultiplayerFilterSummary,
   setFiltersPanelExpanded: setMultiplayerFiltersPanelExpanded,
   syncWeeklyChallengeState,
-  isFiltersLocked: () => multiplayerController?.isActive() && !multiplayerController?.isHost?.()
+  isFiltersLocked: () => isMultiplayerActive() && !isMultiplayerHost()
 });
 
 debugController = createDebugController({
@@ -538,7 +550,7 @@ settingsController = createSettingsController({
   getGameMode,
   getWeeklyChallengeTheme,
   requestConfirmation: (...args) => modalController.requestConfirmation(...args),
-  isFiltersLocked: () => multiplayerController?.isActive() || false
+  isFiltersLocked: () => isMultiplayerActive()
 });
 
 studyController = createStudyController({
@@ -659,7 +671,7 @@ multiplayerController = createMultiplayerController({
   syncMultiplayerTimer,
   applyRoomSettings: applyMultiplayerRoomSettings,
   restoreLocalSettings: restoreSettings,
-  isFiltersLocked: () => multiplayerController?.isActive() || false,
+  isFiltersLocked: () => isMultiplayerActive(),
   onRoomStateChange: syncMultiplayerLockState,
   openJoinPrompt: openMultiplayerJoinModal,
   closeJoinPrompt: closeMultiplayerJoinModal,
@@ -687,13 +699,13 @@ quizController = createQuizController({
   startTimer,
   highlightPokemon,
   syncInlineStatusVisibility,
-  isMultiplayerActive: () => multiplayerController?.isActive() || false,
+  isMultiplayerActive: () => isMultiplayerActive(),
   submitMultiplayerGuess: (value) => multiplayerController?.submitGuess(value) || false
 });
 const handleSubmit = quizController.handleSubmit;
 
 function getGameMode() {
-  if ((multiplayerModal && !multiplayerModal.classList.contains("hidden")) || multiplayerController?.isActive()) {
+  if (isMultiplayerModalOpen() || isMultiplayerActive()) {
     return DEFAULT_GAME_MODE;
   }
   return gameModeSelect ? gameModeSelect.value : DEFAULT_GAME_MODE;
@@ -810,11 +822,11 @@ function syncMultiplayerTimer(snapshot = null) {
 
 function syncMultiplayerLockState(snapshot = null) {
   const inRoom = Boolean(snapshot);
-  const host = inRoom && Boolean(multiplayerController?.isHost?.());
+  const host = inRoom && isMultiplayerHost();
   const setupLocked = inRoom && snapshot?.status !== "lobby";
   const filterInputsDisabled = inRoom ? setupLocked || !host : false;
   const showModalFilters =
-    Boolean(multiplayerModal && !multiplayerModal.classList.contains("hidden")) &&
+    isMultiplayerModalOpen() &&
     (!inRoom || host);
 
   if (multiplayerGameplayLock) multiplayerGameplayLock.hidden = !inRoom;
@@ -940,7 +952,7 @@ function closeSettingsModal() {
 
 function openMultiplayerModal() {
   if (multiplayerGroupFilter && groupFilter) multiplayerGroupFilter.value = groupFilter.value;
-  setMultiplayerFiltersInModal(!multiplayerController?.isActive() || multiplayerController?.isHost());
+  setMultiplayerFiltersInModal(!isMultiplayerActive() || isMultiplayerHost());
   syncGameplaySettings();
   updateMultiplayerFilterSummary();
   syncWeeklyChallengeState();
@@ -1062,7 +1074,7 @@ function flushStateSave() {
 
 function saveState({ immediate = false } = {}) {
   if (state.isRestoring) return;
-  if (multiplayerController?.isActive?.()) return;
+  if (isMultiplayerActive()) return;
   if (immediate) {
     flushStateSave();
     return;
@@ -1110,7 +1122,7 @@ function saveSettings() {
 
 function saveSettingsAndSyncRoom() {
   saveSettings();
-  if (multiplayerController?.isActive() && multiplayerController?.isHost()) {
+  if (isMultiplayerActive() && isMultiplayerHost()) {
     multiplayerController.configureRoom();
   }
 }
@@ -1280,7 +1292,7 @@ function markPokemonFound(canonical) {
 
 function renderSprites() {
   const result = viewController?.renderSprites();
-  if (multiplayerController?.isActive?.()) {
+  if (isMultiplayerActive()) {
     multiplayerController?.refreshAttributionBadges?.();
   }
   return result;
@@ -1319,8 +1331,8 @@ function resetQuiz() {
 }
 
 async function confirmReset() {
-  if (multiplayerController?.isActive?.()) {
-    if (!multiplayerController?.isHost?.()) return;
+  if (isMultiplayerActive()) {
+    if (!isMultiplayerHost()) return;
     const ok = await requestConfirmation(
       "Reset multiplayer progress? This will clear every player's found Pokemon and restart the room timer.",
       { title: "Reset Room", confirmLabel: "Reset" }
@@ -1555,7 +1567,6 @@ const pokemonBootstrap = createPokemonBootstrap({
   state,
   pokedex,
   normalizeName,
-  prettifyName,
   initThemes,
   restoreSettings,
   restoreState,
@@ -1698,18 +1709,18 @@ if (groupFilter) {
     saveState();
   });
 }
-if (multiplayerGroupFilter) {
-  multiplayerGroupFilter.addEventListener("change", () => {
-    if (groupFilter) groupFilter.value = multiplayerGroupFilter.value;
-    refreshGameplayViews({ stats: false });
-    updateFilterSummary();
-    updateMultiplayerFilterSummary();
-    saveState();
-    if (multiplayerController?.isActive?.() && multiplayerController?.isHost?.()) {
-      multiplayerController?.configureRoom?.();
-    }
-  });
-}
+  if (multiplayerGroupFilter) {
+    multiplayerGroupFilter.addEventListener("change", () => {
+      if (groupFilter) groupFilter.value = multiplayerGroupFilter.value;
+      refreshGameplayViews({ stats: false });
+      updateFilterSummary();
+      updateMultiplayerFilterSummary();
+      saveState();
+      if (isMultiplayerActive() && isMultiplayerHost()) {
+        multiplayerController?.configureRoom?.();
+      }
+    });
+  }
 if (filtersPanelToggle) {
   filtersPanelToggle.addEventListener("click", () => {
     setFiltersPanelExpanded(filtersPanel ? filtersPanel.hidden : false);
@@ -1966,7 +1977,7 @@ document.addEventListener("keydown", (event) => {
       closeSettingsModal();
       return;
     }
-    if (multiplayerModal && !multiplayerModal.classList.contains("hidden")) {
+    if (isMultiplayerModalOpen()) {
       closeMultiplayerModal();
       return;
     }

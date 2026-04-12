@@ -5,7 +5,6 @@ export function createPokemonBootstrap(deps) {
     state,
     pokedex,
     normalizeName,
-    prettifyName,
     initThemes,
     restoreSettings,
     restoreState,
@@ -46,7 +45,6 @@ export function createPokemonBootstrap(deps) {
         const normalized = normalizeName(entry.name);
         if (!normalized) return;
         names.push(normalized);
-        const label = prettifyName(entry.name);
         let sprite = "";
         if (entry.url) {
           const match = entry.url.match(/\/pokemon-species\/(\d+)\//);
@@ -56,7 +54,7 @@ export function createPokemonBootstrap(deps) {
           }
         }
         state.meta.set(normalized, {
-          label,
+          label: entry.name,
           sprite,
           cryId: entry.cryId || "",
           dexId: entry.cryId || "",

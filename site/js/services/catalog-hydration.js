@@ -39,6 +39,8 @@ export function hydrateLocalizedNames(state, speciesDetails) {
     if (!detail || !detail.name) return;
     const canonical = normalizeName(detail.name);
     if (!canonical) return;
+    const displayName =
+      (detail.names || []).find((nameEntry) => nameEntry?.language?.name === "en")?.name || "";
     const namesByLang = new Map();
     (detail.names || []).forEach((nameEntry) => {
       if (!nameEntry || !nameEntry.language) return;
@@ -53,6 +55,9 @@ export function hydrateLocalizedNames(state, speciesDetails) {
       }
     });
     state.namesByLang.set(canonical, namesByLang);
+    if (displayName && state.meta.has(canonical)) {
+      state.meta.get(canonical).label = displayName;
+    }
   });
 }
 
