@@ -1,3 +1,4 @@
+import { copyTextToClipboard } from "../ui/dom.js";
 import { createQrCodeDataUrl } from "../services/qr-code.js";
 
 export function createProgressShareController({
@@ -170,10 +171,9 @@ export function createProgressShareController({
       setProgressFeedback("Open a quiz to generate a QR code.");
       return;
     }
-    try {
-      await navigator.clipboard.writeText(value);
+    if (await copyTextToClipboard(value)) {
       setProgressFeedback("Progress link copied.");
-    } catch {
+    } else {
       setProgressFeedback("Progress link ready to copy.");
     }
   }
@@ -244,10 +244,9 @@ export function createProgressShareController({
 
     selectProgressCode();
 
-    try {
-      await navigator.clipboard.writeText(value);
+    if (await copyTextToClipboard(value)) {
       setProgressFeedback("Progress link copied.");
-    } catch {
+    } else {
       setProgressFeedback("Progress link ready to copy.");
     }
   }
@@ -260,10 +259,9 @@ export function createProgressShareController({
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(code);
+    if (await copyTextToClipboard(code)) {
       setProgressFeedback("Progress code copied.");
-    } catch {
+    } else {
       progressCodeEl.value = code;
       selectProgressCode();
       setProgressFeedback("Progress code ready to copy.");

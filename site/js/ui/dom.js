@@ -77,3 +77,12 @@ export function renderNodeList(container, items = [], createNode) {
   });
   container.replaceChildren(fragment);
 }
+
+export async function copyTextToClipboard(value) {
+  try {
+    await navigator.clipboard.writeText(String(value || ""));
+    return true;
+  } catch {
+    return false;
+  }
+}

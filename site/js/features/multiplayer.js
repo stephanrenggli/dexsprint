@@ -1,6 +1,6 @@
 const SESSION_STORAGE_KEY = "dexsprint-multiplayer-session:v1";
 
-import { renderNodeList } from "../ui/dom.js";
+import { copyTextToClipboard, renderNodeList } from "../ui/dom.js";
 
 function formatRoomCode(value) {
   return (value || "").trim().toUpperCase();
@@ -482,20 +482,18 @@ export function createMultiplayerController({
     if (!room) return;
     const url = new URL(window.location.href);
     url.hash = `room=${encodeURIComponent(room.roomCode)}`;
-    try {
-      await navigator.clipboard.writeText(url.toString());
+    if (await copyTextToClipboard(url.toString())) {
       setStatus("Room link copied.");
-    } catch {
+    } else {
       setStatus(`Room code: ${room.roomCode}`);
     }
   }
 
   async function copyRoomCode() {
     if (!room) return;
-    try {
-      await navigator.clipboard.writeText(room.roomCode);
+    if (await copyTextToClipboard(room.roomCode)) {
       setStatus("Room code copied.");
-    } catch {
+    } else {
       setStatus(`Room code: ${room.roomCode}`);
     }
   }
