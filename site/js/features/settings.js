@@ -5,6 +5,7 @@ import {
   getFilterGroupLabel,
   summarizeFilterSelection
 } from "../domain/filters.js";
+import { renderNodeList } from "../ui/dom.js";
 
 export function createSettingsController({
   state,
@@ -99,7 +100,7 @@ export function createSettingsController({
   function initThemes() {
     if (!themeChooser) return;
     themeChooser.innerHTML = "";
-    themes.forEach((theme) => {
+    renderNodeList(themeChooser, themes, (theme) => {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "theme-chip";
@@ -111,7 +112,7 @@ export function createSettingsController({
       chip.appendChild(swatch);
       chip.appendChild(text);
       chip.addEventListener("click", () => setTheme(theme.id));
-      themeChooser.appendChild(chip);
+      return chip;
     });
     setTheme(defaultTheme, false);
   }

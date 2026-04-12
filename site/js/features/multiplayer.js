@@ -1,5 +1,7 @@
 const SESSION_STORAGE_KEY = "dexsprint-multiplayer-session:v1";
 
+import { renderNodeList } from "../ui/dom.js";
+
 function formatRoomCode(value) {
   return (value || "").trim().toUpperCase();
 }
@@ -199,13 +201,13 @@ export function createMultiplayerController({
       players.textContent = "No room joined.";
       return;
     }
-    snapshot.players.forEach((player) => {
+    renderNodeList(players, snapshot.players, (player) => {
       const item = document.createElement("span");
       item.className = "multiplayer-player";
       item.style.setProperty("--player-accent", getPlayerAccent(player.id));
       item.textContent = `${player.name}${player.host ? " (host)" : ""}: ${player.foundCount}/${snapshot.activeTotal}`;
       if (player.status === "disconnected") item.classList.add("is-disconnected");
-      players.appendChild(item);
+      return item;
     });
   }
 
@@ -230,7 +232,7 @@ export function createMultiplayerController({
       events.appendChild(empty);
       return;
     }
-    visibleEvents.slice(0, 4).forEach((event) => {
+    renderNodeList(events, visibleEvents.slice(0, 4), (event) => {
       const item = document.createElement("span");
       const player = snapshot.players.find((entry) => entry.id === event.playerId);
       if (player) {
@@ -246,7 +248,7 @@ export function createMultiplayerController({
       } else {
         item.textContent = `${player?.name || "Player"} joined.`;
       }
-      events.appendChild(item);
+      return item;
     });
   }
 
