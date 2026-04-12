@@ -50,8 +50,17 @@ async function fetchSpeciesDetails(urls: string[], batchSize = 40): Promise<Poke
   const details: PokeApiSpeciesDetail[] = [];
   for (let index = 0; index < urls.length; index += batchSize) {
     const batch = urls.slice(index, index + batchSize);
-    const result = await Promise.all(batch.map((url) => fetchJson<PokeApiSpeciesDetail>(url)));
-    details.push(...result);
+    const result = await Promise.allSettled(batch.map((url) => fetchJson<PokeApiSpeciesDetail>(url)));
+    result.forEach((entry, batchIndex) => {
+      if (entry.status === "fulfilled") {
+        details.push(entry.value);
+        return;
+      }
+      console.warn("Skipping failed PokéAPI species detail", {
+        url: batch[batchIndex],
+        reason: entry.reason
+      });
+    });
   }
   return details;
 }
