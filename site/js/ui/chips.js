@@ -48,7 +48,6 @@ export function renderLabeledCards(
   } = {}
 ) {
   if (!container) return;
-  const fragment = document.createDocumentFragment();
   const list = items || [];
   if (!list.length) {
     if (hideWhenEmpty) {
@@ -60,7 +59,7 @@ export function renderLabeledCards(
   }
 
   container.classList.remove("hidden");
-  list.forEach((item) => {
+  renderNodeList(container, list, (item) => {
     const card = document.createElement("div");
     card.className = cardClass;
 
@@ -74,7 +73,6 @@ export function renderLabeledCards(
 
     card.appendChild(label);
     card.appendChild(value);
-    fragment.appendChild(card);
+    return card;
   });
-  container.replaceChildren(fragment);
 }
