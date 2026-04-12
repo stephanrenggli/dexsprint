@@ -123,6 +123,15 @@ export function createMultiplayerController({
     if (status) status.textContent = statusMessage;
   }
 
+  async function copyRoomText(value, successMessage, fallbackMessage) {
+    if (await copyTextToClipboard(value)) {
+      setStatus(successMessage);
+      return true;
+    }
+    setStatus(fallbackMessage);
+    return false;
+  }
+
   function saveSoloProgressSnapshot() {
     if (!soloFound) soloFound = new Set(state.found);
   }
@@ -481,20 +490,12 @@ export function createMultiplayerController({
     if (!room) return;
     const url = new URL(window.location.href);
     url.hash = `room=${encodeURIComponent(room.roomCode)}`;
-    if (await copyTextToClipboard(url.toString())) {
-      setStatus("Room link copied.");
-    } else {
-      setStatus(`Room code: ${room.roomCode}`);
-    }
+    await copyRoomText(url.toString(), "Room link copied.", `Room code: ${room.roomCode}`);
   }
 
   async function copyRoomCode() {
     if (!room) return;
-    if (await copyTextToClipboard(room.roomCode)) {
-      setStatus("Room code copied.");
-    } else {
-      setStatus(`Room code: ${room.roomCode}`);
-    }
+    await copyRoomText(room.roomCode, "Room code copied.", `Room code: ${room.roomCode}`);
   }
 
   async function restoreFromHashOrSession() {

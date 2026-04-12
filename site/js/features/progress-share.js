@@ -136,6 +136,16 @@ export function createProgressShareController({
     if (qrLink) qrLink.value = qrLinkValue;
   }
 
+  async function copyProgressText(value, successMessage, fallbackMessage, onFallback = () => {}) {
+    if (await copyTextToClipboard(value)) {
+      setProgressFeedback(successMessage);
+      return true;
+    }
+    onFallback();
+    setProgressFeedback(fallbackMessage);
+    return false;
+  }
+
   function openQrModal() {
     if (!qrModal) return false;
     const shareLink = syncProgressLinkPreview({ preserveSelection: true }).trim();
@@ -171,11 +181,7 @@ export function createProgressShareController({
       setProgressFeedback("Open a quiz to generate a QR code.");
       return;
     }
-    if (await copyTextToClipboard(value)) {
-      setProgressFeedback("Progress link copied.");
-    } else {
-      setProgressFeedback("Progress link ready to copy.");
-    }
+    await copyProgressText(value, "Progress link copied.", "Progress link ready to copy.");
   }
 
   function buildProgressShareLink() {
@@ -241,14 +247,9 @@ export function createProgressShareController({
       setProgressFeedback("Open a quiz to generate a progress link.");
       return;
     }
-
-    selectProgressCode();
-
-    if (await copyTextToClipboard(value)) {
-      setProgressFeedback("Progress link copied.");
-    } else {
-      setProgressFeedback("Progress link ready to copy.");
-    }
+    await copyProgressText(value, "Progress link copied.", "Progress link ready to copy.", () => {
+      selectProgressCode();
+    });
   }
 
   async function copyExistingProgressCode() {
@@ -258,14 +259,10 @@ export function createProgressShareController({
       setProgressFeedback("Open a quiz to generate a progress code.");
       return;
     }
-
-    if (await copyTextToClipboard(code)) {
-      setProgressFeedback("Progress code copied.");
-    } else {
+    await copyProgressText(code, "Progress code copied.", "Progress code ready to copy.", () => {
       progressCodeEl.value = code;
       selectProgressCode();
-      setProgressFeedback("Progress code ready to copy.");
-    }
+    });
   }
 
   async function importProgressValue(value, { fromHash = false } = {}) {
