@@ -195,13 +195,22 @@ export function createMultiplayerController({
     return attribution.get(canonical) || null;
   }
 
+  function renderRoomList(container, items, emptyMessage, createNode) {
+    if (!container) return;
+    if (!items.length) {
+      renderStateMessage(container, emptyMessage, "", "span");
+      return;
+    }
+    renderNodeList(container, items, createNode);
+  }
+
   function renderPlayers(snapshot = room) {
     if (!players) return;
     if (!snapshot) {
       renderStateMessage(players, "No room joined.", "", "span");
       return;
     }
-    renderNodeList(players, snapshot.players, (player) => {
+    renderRoomList(players, snapshot.players, "No room players yet.", (player) => {
       const item = document.createElement("span");
       item.className = "multiplayer-player";
       item.style.setProperty("--player-accent", getPlayerAccent(player.id));
@@ -235,7 +244,11 @@ export function createMultiplayerController({
 
   function renderEvents(snapshot = room) {
     if (!events) return;
-    if (!snapshot || !snapshot.events.length) {
+    if (!snapshot) {
+      renderStateMessage(events, "No room joined.", "", "span");
+      return;
+    }
+    if (!snapshot.events.length) {
       renderStateMessage(events, "No multiplayer events yet.", "", "span");
       return;
     }
@@ -251,7 +264,7 @@ export function createMultiplayerController({
       );
       return;
     }
-    renderNodeList(events, visibleEvents.slice(0, 4), (event) => {
+    renderRoomList(events, visibleEvents.slice(0, 4), "No multiplayer events yet.", (event) => {
       const item = document.createElement("span");
       const player = snapshot.players.find((entry) => entry.id === event.playerId);
       if (player) {
