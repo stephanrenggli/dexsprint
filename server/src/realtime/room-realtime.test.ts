@@ -114,6 +114,32 @@ test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnect
   assert.equal(guestSocket.messages[1]?.type, "room:snapshot");
   assert.equal(hostSocket.messages[2]?.snapshot.players[1]?.status, "connected");
 
+  await hostSocket.emit(
+    "message",
+    Buffer.from(
+      JSON.stringify({
+        type: "room:configure",
+        settings: { mode: "coop", outlinesOff: true }
+      })
+    )
+  );
+  const configuredRoom = roomStore.getRoomById(created.roomId);
+  assert.equal(configuredRoom?.settings.mode, "coop");
+  assert.equal(configuredRoom?.settings.outlinesOff, true);
+
+  await guestSocket.emit(
+    "message",
+    Buffer.from(
+      JSON.stringify({
+        type: "room:configure",
+        settings: { mode: "race", outlinesOff: false }
+      })
+    )
+  );
+  const afterGuestConfigure = roomStore.getRoomById(created.roomId);
+  assert.equal(afterGuestConfigure?.settings.mode, "coop");
+  assert.equal(afterGuestConfigure?.settings.outlinesOff, true);
+
   await hostSocket.emit("message", Buffer.from(JSON.stringify({ type: "room:start" })));
   assert.equal(hostSocket.messages.at(-1)?.type, "room:snapshot");
   assert.equal(hostSocket.messages.at(-1)?.snapshot.status, "active");
