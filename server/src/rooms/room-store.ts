@@ -1,4 +1,6 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { findExactGuess } from "../../../shared/src/guess.js";
 import {
   defaultRoomSettings,
@@ -17,6 +19,7 @@ import { filterCatalogEntries, type CatalogSnapshot } from "../catalog/catalog.j
 const ROOM_CODE_BYTES = 4;
 const MAX_EVENTS = 25;
 const DEFAULT_ROOM_TTL_MS = 60 * 60 * 1000;
+const DEFAULT_PERSISTENCE_DELAY_MS = 50;
 const TRAINER_NAMES = [
   "Ash",
   "Misty",
@@ -56,6 +59,40 @@ interface RoomRecord {
   foundBy: Map<string, string>;
   players: Map<string, PlayerRecord>;
   events: RoomEvent[];
+}
+
+interface PersistedPlayerRecord {
+  id: string;
+  sessionToken: string;
+  name: string;
+  host: boolean;
+  connected: boolean;
+  found: string[];
+}
+
+interface PersistedRoomRecord {
+  id: string;
+  code: string;
+  status: RoomRecord["status"];
+  createdAt: string;
+  lastActivityAt: string;
+  timerStartedAt: string | null;
+  settings: RoomSettings;
+  activeNames: string[];
+  sharedFound: string[];
+  foundBy: Record<string, string>;
+  players: PersistedPlayerRecord[];
+  events: RoomEvent[];
+}
+
+interface PersistedRoomStore {
+  version: 1;
+  rooms: PersistedRoomRecord[];
+}
+
+export interface RoomStoreOptions {
+  persistencePath?: string | null;
+  persistenceDelayMs?: number;
 }
 
 export interface GuessAcceptedResult {
@@ -119,11 +156,187 @@ function pushEvent(room: RoomRecord, event: Omit<RoomEvent, "id" | "createdAt">)
   room.events = room.events.slice(0, MAX_EVENTS);
 }
 
+function isRoomStatus(value: unknown): value is RoomRecord["status"] {
+  return value === "lobby" || value === "active" || value === "complete" || value === "closed";
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === "string");
+}
+
+function isRoomEvent(value: unknown): value is RoomEvent {
+  if (!value || typeof value !== "object") return false;
+  const event = value as Partial<RoomEvent>;
+  return (
+    typeof event.id === "string" &&
+    typeof event.createdAt === "string" &&
+    (event.type === "guess_accepted" ||
+      event.type === "room_started" ||
+      event.type === "room_completed" ||
+      event.type === "room_reset" ||
+      event.type === "player_joined")
+  );
+}
+
+function serializeRoom(room: RoomRecord): PersistedRoomRecord {
+  return {
+    id: room.id,
+    code: room.code,
+    status: room.status,
+    createdAt: room.createdAt.toISOString(),
+    lastActivityAt: room.lastActivityAt.toISOString(),
+    timerStartedAt: room.timerStartedAt ? room.timerStartedAt.toISOString() : null,
+    settings: room.settings,
+    activeNames: [...room.activeNames],
+    sharedFound: [...room.sharedFound],
+    foundBy: Object.fromEntries(room.foundBy),
+    players: [...room.players.values()].map((player) => ({
+      id: player.id,
+      sessionToken: player.sessionToken,
+      name: player.name,
+      host: player.host,
+      connected: player.connected,
+      found: [...player.found]
+    })),
+    events: room.events
+  };
+}
+
+function deserializeRoom(
+  record: PersistedRoomRecord,
+  now: number,
+  roomTtlMs: number
+): RoomRecord | null {
+  if (!record || typeof record !== "object") return null;
+  if (!isRoomStatus(record.status)) return null;
+  if (record.status === "closed") return null;
+  if (typeof record.id !== "string" || typeof record.code !== "string") return null;
+  if (typeof record.createdAt !== "string" || typeof record.lastActivityAt !== "string") return null;
+  const createdAt = new Date(record.createdAt);
+  const lastActivityAt = new Date(record.lastActivityAt);
+  if (Number.isNaN(createdAt.getTime()) || Number.isNaN(lastActivityAt.getTime())) return null;
+  if (now - lastActivityAt.getTime() >= roomTtlMs) return null;
+  if (!record.settings || typeof record.settings !== "object") return null;
+  if (!isStringArray(record.activeNames) || !isStringArray(record.sharedFound)) return null;
+  if (!record.foundBy || typeof record.foundBy !== "object") return null;
+  if (!Array.isArray(record.players) || !Array.isArray(record.events)) return null;
+
+  const players = new Map<string, PlayerRecord>();
+  record.players.forEach((player) => {
+    if (!player || typeof player !== "object") return;
+    if (
+      typeof player.id !== "string" ||
+      typeof player.sessionToken !== "string" ||
+      typeof player.name !== "string" ||
+      typeof player.host !== "boolean" ||
+      !isStringArray(player.found)
+    ) {
+      return;
+    }
+    players.set(player.id, {
+      id: player.id,
+      sessionToken: player.sessionToken,
+      name: player.name,
+      host: player.host,
+      connected: false,
+      found: new Set(player.found)
+    });
+  });
+
+  if (!players.size) return null;
+
+  const events = record.events.filter(isRoomEvent).slice(0, MAX_EVENTS);
+  const room: RoomRecord = {
+    id: record.id,
+    code: record.code,
+    status: record.status,
+    createdAt,
+    lastActivityAt,
+    timerStartedAt: record.timerStartedAt ? new Date(record.timerStartedAt) : null,
+    settings: record.settings as RoomSettings,
+    activeNames: new Set(record.activeNames),
+    sharedFound: new Set(record.sharedFound),
+    foundBy: new Map(
+      Object.entries(record.foundBy).filter((entry): entry is [string, string] => {
+        return typeof entry[0] === "string" && typeof entry[1] === "string";
+      })
+    ),
+    players,
+    events
+  };
+
+  if (room.timerStartedAt && Number.isNaN(room.timerStartedAt.getTime())) {
+    room.timerStartedAt = null;
+  }
+
+  return room;
+}
+
 export class RoomStore {
   #roomsById = new Map<string, RoomRecord>();
   #roomIdByCode = new Map<string, string>();
+  #persistPath: string | null;
+  #persistDelayMs: number;
+  #persistTimer: ReturnType<typeof setTimeout> | null = null;
+  #persistInFlight: Promise<void> | null = null;
+  #persistQueued = false;
 
-  constructor(private readonly roomTtlMs = DEFAULT_ROOM_TTL_MS) {}
+  constructor(
+    private readonly roomTtlMs = DEFAULT_ROOM_TTL_MS,
+    options: RoomStoreOptions = {}
+  ) {
+    this.#persistPath = options.persistencePath === undefined ? null : options.persistencePath;
+    this.#persistDelayMs = options.persistenceDelayMs ?? DEFAULT_PERSISTENCE_DELAY_MS;
+  }
+
+  async restorePersistedRooms(now = Date.now()): Promise<number> {
+    if (!this.#persistPath) return 0;
+    let text = "";
+    try {
+      text = await readFile(this.#persistPath, "utf8");
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return 0;
+      console.warn("Failed to read persisted multiplayer rooms", error);
+      return 0;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch (error) {
+      console.warn("Failed to parse persisted multiplayer rooms", error);
+      return 0;
+    }
+
+    if (!parsed || typeof parsed !== "object" || (parsed as PersistedRoomStore).version !== 1) {
+      return 0;
+    }
+
+    const snapshot = parsed as PersistedRoomStore;
+    this.#roomsById.clear();
+    this.#roomIdByCode.clear();
+
+    snapshot.rooms.forEach((record) => {
+      const room = deserializeRoom(record, now, this.roomTtlMs);
+      if (!room) return;
+      if (this.#roomsById.has(room.id) || this.#roomIdByCode.has(room.code)) return;
+      this.#roomsById.set(room.id, room);
+      this.#roomIdByCode.set(room.code, room.id);
+    });
+
+    await this.flushPersistence();
+    return this.#roomsById.size;
+  }
+
+  async flushPersistence(): Promise<void> {
+    if (!this.#persistPath) return;
+    if (this.#persistTimer) {
+      clearTimeout(this.#persistTimer);
+      this.#persistTimer = null;
+    }
+    this.#persistQueued = true;
+    await this.#drainPersistenceQueue();
+  }
 
   createRoom(catalog: CatalogSnapshot, request: CreateRoomRequest = {}): RoomJoinResponse {
     const roomId = randomUUID();
@@ -152,6 +365,7 @@ export class RoomStore {
     pushEvent(room, { type: "player_joined", playerId: player.id });
     this.#roomsById.set(room.id, room);
     this.#roomIdByCode.set(room.code, room.id);
+    this.#schedulePersistence();
 
     return this.#joinResponse(room, player);
   }
@@ -168,6 +382,7 @@ export class RoomStore {
     if (request.playerName) player.name = makePlayerName(request.playerName, room, room.players.size + 1);
     room.players.set(player.id, player);
     this.#touch(room);
+    this.#schedulePersistence();
 
     if (!existing) pushEvent(room, { type: "player_joined", playerId: player.id });
     return this.#joinResponse(room, player);
@@ -189,12 +404,14 @@ export class RoomStore {
   markConnected(room: RoomRecord, player: PlayerRecord, connected: boolean): RoomSnapshot {
     player.connected = connected;
     this.#touch(room);
+    this.#schedulePersistence();
     return this.snapshot(room);
   }
 
   updatePlayer(room: RoomRecord, player: PlayerRecord, name: string): RoomSnapshot {
     player.name = makePlayerName(name, room, room.players.size);
     this.#touch(room);
+    this.#schedulePersistence();
     return this.snapshot(room);
   }
 
@@ -213,6 +430,7 @@ export class RoomStore {
       });
     }
     this.#touch(room);
+    this.#schedulePersistence();
     return this.snapshot(room);
   }
 
@@ -221,6 +439,7 @@ export class RoomStore {
       room.status = "active";
       pushEvent(room, { type: "room_started", playerId: player.id });
       this.#touch(room);
+      this.#schedulePersistence();
     }
     return this.snapshot(room);
   }
@@ -237,6 +456,7 @@ export class RoomStore {
     room.timerStartedAt = null;
     if (room.status !== "lobby") room.status = "active";
     this.#touch(room);
+    this.#schedulePersistence();
     return this.snapshot(room);
   }
 
@@ -281,6 +501,7 @@ export class RoomStore {
       label
     });
     this.#touch(room);
+    this.#schedulePersistence();
 
     return {
       accepted: true,
@@ -328,6 +549,7 @@ export class RoomStore {
       this.#roomIdByCode.delete(room.code);
       removed += 1;
     }
+    if (removed > 0) this.#schedulePersistence();
     return removed;
   }
 
@@ -354,6 +576,50 @@ export class RoomStore {
 
   #touch(room: RoomRecord): void {
     room.lastActivityAt = new Date();
+  }
+
+  #schedulePersistence(): void {
+    if (!this.#persistPath) return;
+    this.#persistQueued = true;
+    if (this.#persistTimer || this.#persistInFlight) return;
+    this.#persistTimer = setTimeout(() => {
+      this.#persistTimer = null;
+      void this.#drainPersistenceQueue();
+    }, this.#persistDelayMs);
+  }
+
+  async #drainPersistenceQueue(): Promise<void> {
+    if (!this.#persistPath || !this.#persistQueued) return;
+    if (this.#persistInFlight) {
+      await this.#persistInFlight;
+      return this.#drainPersistenceQueue();
+    }
+    this.#persistQueued = false;
+    this.#persistInFlight = this.#writePersistedRooms()
+      .catch((error) => {
+        console.warn("Failed to persist multiplayer rooms", error);
+      })
+      .finally(() => {
+        this.#persistInFlight = null;
+      });
+    await this.#persistInFlight;
+    if (this.#persistQueued) {
+      return this.#drainPersistenceQueue();
+    }
+  }
+
+  async #writePersistedRooms(): Promise<void> {
+    if (!this.#persistPath) return;
+    const snapshot: PersistedRoomStore = {
+      version: 1,
+      rooms: [...this.#roomsById.values()]
+        .map((room) => serializeRoom(room))
+        .sort((left, right) => left.code.localeCompare(right.code))
+    };
+    await mkdir(path.dirname(this.#persistPath), { recursive: true });
+    const tempPath = `${this.#persistPath}.${process.pid}.${Date.now()}.tmp`;
+    await writeFile(tempPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
+    await rename(tempPath, this.#persistPath);
   }
 
   #isComplete(room: RoomRecord): boolean {

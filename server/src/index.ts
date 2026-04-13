@@ -10,10 +10,11 @@ import type { CreateRoomRequest, JoinRoomRequest } from "../../shared/src/protoc
 const siteRoot = process.env.SITE_ROOT || path.resolve(process.cwd(), "site");
 const port = Number.parseInt(process.env.PORT || "3000", 10);
 const host = process.env.HOST || "0.0.0.0";
+const roomsPersistencePath = path.resolve(process.cwd(), ".cache", "rooms.json");
 
 const app = Fastify({ logger: true });
 const catalogStore = new CatalogStore();
-const roomStore = new RoomStore();
+const roomStore = new RoomStore(undefined, { persistencePath: roomsPersistencePath });
 
 await app.register(fastifyWebsocket);
 
@@ -69,6 +70,9 @@ setInterval(() => {
 }, 5 * 60 * 1000).unref();
 
 try {
+  await roomStore.restorePersistedRooms().catch((error) => {
+    app.log.warn({ error }, "restoring persisted multiplayer rooms failed");
+  });
   void catalogStore.getCatalog().catch((error) => {
     app.log.warn({ error }, "initial catalog warmup failed");
   });
