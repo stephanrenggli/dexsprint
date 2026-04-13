@@ -478,7 +478,7 @@ export function createMultiplayerController({
 
   function leaveRoom({ restoreSolo = true } = {}) {
     client.send({ type: "room:leave" });
-    client.disconnect();
+    client.disconnect({ silent: true });
     updateSessionRecord({ autoReconnect: false });
     room = null;
     playerId = "";

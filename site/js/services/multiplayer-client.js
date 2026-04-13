@@ -1,5 +1,7 @@
 export function createMultiplayerClient({ apiBase = "" } = {}) {
   let socket = null;
+  let disconnecting = false;
+  let disconnectWasSilent = false;
 
   function getWebSocketUrl(roomId, sessionToken) {
     const base = new URL(apiBase || window.location.href, window.location.href);
@@ -37,6 +39,8 @@ export function createMultiplayerClient({ apiBase = "" } = {}) {
     disconnect();
     let opened = false;
     let reportedFailure = false;
+    disconnecting = false;
+    disconnectWasSilent = false;
     try {
       socket = new WebSocket(getWebSocketUrl(roomId, sessionToken));
     } catch {
@@ -58,7 +62,9 @@ export function createMultiplayerClient({ apiBase = "" } = {}) {
     });
     socket.addEventListener("close", () => {
       socket = null;
+      if (disconnecting && disconnectWasSilent) return;
       if (!opened) {
+        if (disconnecting) return;
         if (!reportedFailure && typeof onError === "function") {
           reportedFailure = true;
           onError("Could not connect to the multiplayer room.");
@@ -80,8 +86,10 @@ export function createMultiplayerClient({ apiBase = "" } = {}) {
     return true;
   }
 
-  function disconnect() {
+  function disconnect(options = {}) {
     if (!socket) return;
+    disconnecting = true;
+    disconnectWasSilent = Boolean(options.silent);
     const current = socket;
     socket = null;
     current.close();
