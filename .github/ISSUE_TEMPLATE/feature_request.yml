@@ -16,24 +16,6 @@ body:
     validations:
       required: true
 
-  - type: input
-    id: browser
-    attributes:
-      label: Browser
-      description: Which browser (and version) are you using?
-      placeholder: e.g. Chrome 124, Firefox 125, Safari 17
-    validations:
-      required: true
-
-  - type: input
-    id: device
-    attributes:
-      label: Device
-      description: What device are you using?
-      placeholder: e.g. Desktop (Windows 11), iPhone 15, Samsung Galaxy S23
-    validations:
-      required: true
-
   - type: textarea
     id: problem
     attributes:
@@ -50,14 +32,6 @@ body:
       description: A clear and concise description of the feature you'd like to see.
     validations:
       required: true
-
-  - type: textarea
-    id: alternatives
-    attributes:
-      label: Alternatives Considered
-      description: Have you considered any alternative solutions or workarounds?
-    validations:
-      required: false
 
   - type: textarea
     id: additional
