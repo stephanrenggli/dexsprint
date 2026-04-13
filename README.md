@@ -1,143 +1,86 @@
 # DexSprint
 
-A browser-based Pokemon name quiz inspired by [pkmnquiz.com](https://pkmnquiz.com/).
+DexSprint is a browser-based Pokémon name quiz inspired by [pkmnquiz.com](https://pkmnquiz.com/). Type Pokémon names, reveal sprites as you find them, and keep filling out the Pokédex at your own pace.
 
-Disclaimer: This project was full vibe-coded with Codex. It is an unofficial fan project and is not affiliated with or endorsed by Nintendo, Creatures Inc., GAME FREAK, The Pokemon Company, PokeAPI, or the maintainers of the linked asset repositories.
+This project was fully vibe-coded using Codex. Review the code carefully before relying on it.
 
-You type Pokemon names and reveal their sprites as you find them. The app supports multiple layouts, persistent progress, configurable settings in a modal, multilingual guessing, themed UI modes, multiplayer rooms, and detail popups backed by PokeAPI data.
+## What You Can Do
 
-The browser code is organized as ESM modules under `site/js/`, with `site/js/app.js` acting as the bootstrap entrypoint.
+- Guess Pokémon names in English, German, and Spanish
+- Choose how strict the typo handling should be
+- Turn close matches into suggestions, or auto-accept them
+- Play in Challenge, Weekly Challenge, or Practice mode
+- Filter and group Pokémon by generation/region and type
+- Reveal sprites, including shiny sprites if you want them
+- Switch on optional outlines, dark mode, Dex numbers, and themed color palettes
+- Open detailed Pokémon cards with types, stats, abilities, genus, cries, and related info
+- Track progress, milestones, and achievements
+- Save your progress and settings in the browser
+- Share progress with a link or QR code
+- Create or join private multiplayer rooms with host-controlled room settings and synchronized timers
+- Use compact mode for a denser layout on smaller screens
 
-See [ROADMAP.md](ROADMAP.md) for future improvements.
+## Getting Started
 
-## Features
+The browser app runs directly from `site/`. Serve that folder over HTTP and open it in your browser.
 
-- Guess Pokemon names in English, German, and Spanish at the same time
-- Configurable typo tolerance with strict, normal, and forgiving modes
-- Optional suggestion mode for close matches instead of auto-accepting them
-- Reveal sprites as you find each Pokemon
-- Normal mode and compact mode
-- Grouping and filtering by generation/region and type
-- Multiplayer rooms with host-controlled room settings, host-only reset, synchronized timers, room chat/events, and reconnectable sessions
-- Multiplayer modal controls for room mode, group-by, and room filters
-- Optional outlines, shiny sprites, Pokedex ID display, dark mode, and type-based themes
-- Pokemon cries with optional legacy cries
-- Persistent game state and settings via `localStorage`
-- Settings live in a modal with grouped gameplay, audio, appearance, and progress sections
-- Achievement badges in a modal with unlock notifications and progress cues
-- Weekly rotating challenge themes generated from the current dex data
-- Rich Pokemon detail modal with previous/next navigation, copy actions, replayable cries, sprite, types, genus, stat cards, abilities, and related species data
-- Mobile-friendly single-page UI
-
-## Tech
-
-- Plain HTML, CSS, and ESM JavaScript
-- [PokeAPI](https://pokeapi.co/) data via a vendored copy of [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper), with sprite assets from the [PokeAPI sprites](https://github.com/PokeAPI/sprites) repository and cry assets from the [PokeAPI cries](https://github.com/PokeAPI/cries) repository
-- `pokeapi-js-wrapper-sw.js` for service-worker-based caching support
-- Public Pokemon sprite assets from the [PokeAPI sprites repository](https://github.com/PokeAPI/sprites) and cry assets from the [PokeAPI cries repository](https://github.com/PokeAPI/cries)
-- Runtime modules are split by responsibility under `site/js/core/`, `site/js/domain/`, `site/js/features/`, `site/js/services/`, and `site/js/ui/`
-
-## Running Locally
-
-The current browser app still has no frontend build step.
-
-Because the app uses a service worker and ESM modules, you should run it through a local web server instead of opening `index.html` directly.
-
-The deployable app lives in `site/`.
-
-Static-site only example:
-
-```powershell
+```bash
 python -m http.server 8080 --directory site
 ```
 
-Then open:
+Then visit:
 
 ```text
 http://localhost:8080/
 ```
 
-The v2 multiplayer server is a TypeScript Node service that serves the same `site/` directory and exposes the room APIs/WebSocket endpoint.
-
-Install dependencies:
+If you want multiplayer, run the Node server instead:
 
 ```bash
 npm install
-```
-
-Run the server in development:
-
-```bash
 npm run dev:server
 ```
 
-Build and run the compiled server:
+The server listens on `http://localhost:3000`.
+
+## Development
+
+### Repository Layout
+
+- `site/` is the browser app and static assets
+- `site/js/app.js` is the browser bootstrap entrypoint
+- `site/js/core/` handles app state, persistence, timers, and startup
+- `site/js/domain/` contains pure guessing, text, and filter logic
+- `site/js/services/` handles data loading, audio, QR codes, and multiplayer client wiring
+- `site/js/features/` contains the gameplay, settings, modal, study, and multiplayer controllers
+- `site/js/ui/` holds reusable DOM and presentation helpers
+- `server/` is the TypeScript multiplayer server
+- `shared/` contains shared protocol and text logic used by the server and tests
+- `site/sw.js` caches the app shell for offline use and should be updated when browser modules move
+
+### Commands
 
 ```bash
-npm run build:server
-npm start
+npm install
+npm run dev:server       # start the TypeScript server in watch mode
+npm run build:server     # compile the server to dist/
+npm run typecheck        # type-check shared and server code
+npm run test:server      # run server and shared tests
+npm run release:dry-run  # preview the release automation
 ```
 
-By default the server listens on `http://localhost:3000`. The server loads a Pokemon catalog from PokeAPI on startup for server-authoritative multiplayer validation.
-
-To try multiplayer, open the app through the Node server, open Settings, and use the Multiplayer section to create or join a private room. The host controls the room filters and group-by settings from the multiplayer modal, and only the host can reset or start the room. Room links use a `#room=<code>` hash and reconnect with a session token stored in the browser. Players who leave are marked inactive instead of disappearing, and the room timer starts on the first accepted guess.
-
-## Deployment
-
-The current app can still be deployed as a static site on any basic web server, including Nginx.
-
-For Dokploy, set the static publish directory to `site`.
-
-Make sure:
-
-- the contents of `site/` are served over HTTP(S), not opened as local files
-- `site/index.html`, `site/js/app.js`, `site/css/styles.css`, `site/assets/favicon.svg`, and `site/js/vendor/pokeapi-js-wrapper-sw.js` are all published together at the same path
-- `site/js/vendor/pokeapi-js-wrapper.js` is published with the rest of the static assets
-- the service worker file remains reachable from the same scope as the app
-
-For v2 multiplayer, deploy the Node service instead of static-only hosting. The included `Dockerfile` builds the TypeScript server, installs production dependencies, and serves `site/` plus `/api/*` and `/ws/*` from one origin.
-
-Multiplayer notes:
-
-- the sprite-board filter bar is hidden while a room is active
-- the multiplayer modal owns the room filter and group-by controls
-- the host can configure room settings before start and can reset multiplayer progress
-- resetting a room clears the multiplayer event log and timer
-- same-device rejoin uses the stored session token for the room
-
-Useful server endpoints:
+### Multiplayer Endpoints
 
 - `GET /health`
 - `GET /api/catalog/version`
+- `GET /api/catalog`
 - `POST /api/rooms`
 - `POST /api/rooms/:code/join`
 - `GET /ws/rooms/:roomId?sessionToken=...`
 
-## Releases
+### Browser Debug Helpers
 
-Semantic Release is configured through `.github/workflows/release.yml` and `.releaserc.json`.
-
-When commits land on `main`, GitHub Actions will:
-
-- calculate the next semantic version from conventional commits
-- create or update `CHANGELOG.md`
-- bump the version in `package.json`
-- create a git tag like `v1.2.3`
-- publish a GitHub Release with release notes
-
-Notes:
-
-- the workflow uses the default `GITHUB_TOKEN`, so repository Actions permissions must allow creating and pushing contents
-- commit messages should keep using conventional commit prefixes like `feat:`, `fix:`, and `chore:`
-
-## Notes
-
-- Progress and settings persist in the browser until reset
-- The app fetches live Pokemon data from PokeAPI on load
-- If PokeAPI is unavailable, the app shows a retry action
-- A `window.dexsprintDebug` console API is available for local testing, including helpers to unlock Pokemon, types, generations, force weekly challenge modes, or clear save data
-
-Example console commands:
+Debug helpers available in the browser console:
 
 ```javascript
 dexsprintDebug.unlockGeneration("kanto")
@@ -151,11 +94,10 @@ dexsprintDebug.clearSave()
 ## Credits
 
 - Inspired by [pkmnquiz.com](https://pkmnquiz.com/)
-- Built using [PokeAPI](https://pokeapi.co/), [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper), [PokeAPI sprites](https://github.com/PokeAPI/sprites), and [PokeAPI cries](https://github.com/PokeAPI/cries)
-- Fully vibe-coded using Codex
+- Built with data and assets from [PokeAPI](https://pokeapi.co/), [`pokeapi-js-wrapper`](https://github.com/PokeAPI/pokeapi-js-wrapper), [PokeAPI sprites](https://github.com/PokeAPI/sprites), and [PokeAPI cries](https://github.com/PokeAPI/cries)
 
 ## Disclaimer
 
-Pokemon and Pokemon character names are trademarks of Nintendo, Creatures Inc., and GAME FREAK Inc.
+Pokémon and Pokémon character names are trademarks of Nintendo, Creatures Inc., GAME FREAK Inc. and The Pokémon Company.
 
-This is a fan-made derivative project.
+This is an unofficial fan project. It is not affiliated with or endorsed by Nintendo, Creatures Inc., GAME FREAK Inc., The Pokémon Company, or PokeAPI.
