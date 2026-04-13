@@ -72,6 +72,12 @@ try {
   void catalogStore.getCatalog().catch((error) => {
     app.log.warn({ error }, "initial catalog warmup failed");
   });
+  setInterval(() => {
+    void catalogStore.refreshCatalog().then((catalog) => {
+      if (catalog) return;
+      app.log.warn("catalog refresh returned no data");
+    });
+  }, 6 * 60 * 60 * 1000).unref();
   await app.listen({ port, host });
 } catch (error) {
   app.log.error(error);

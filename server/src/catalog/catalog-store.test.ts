@@ -68,3 +68,48 @@ test("CatalogStore writes and reuses a cached snapshot", async () => {
     await rm(cacheDir, { recursive: true, force: true });
   }
 });
+
+test("CatalogStore refresh keeps the cached catalog when the network fails", async () => {
+  const cacheDir = await mkdtemp(path.join(os.tmpdir(), "dexsprint-catalog-refresh-"));
+  const cachePath = path.join(cacheDir, "catalog.json");
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (async (input: Parameters<typeof fetch>[0]) => {
+    const url = String(input);
+    if (url.endsWith("/pokemon-species?limit=2000")) {
+      return createJsonResponse({
+        results: [
+          { name: "bulbasaur", url: "https://pokeapi.co/api/v2/pokemon-species/1/" }
+        ]
+      });
+    }
+    if (url.endsWith("/pokemon-species/1/")) {
+      return createJsonResponse({
+        name: "bulbasaur",
+        names: [{ name: "Bulbasaur", language: { name: "en" } }],
+        generation: { name: "generation-i" }
+      });
+    }
+    if (url.endsWith("/type?limit=40")) {
+      return createJsonResponse({ results: [] });
+    }
+    throw new Error(`Unexpected fetch URL: ${url}`);
+  }) as typeof fetch;
+
+  try {
+    const store = new CatalogStore({ cachePath });
+    const catalog = await store.getCatalog();
+    assert.equal(catalog.entries[0]?.canonical, "bulbasaur");
+
+    globalThis.fetch = (async () => {
+      throw new Error("network unavailable");
+    }) as typeof fetch;
+
+    const refreshed = await store.refreshCatalog();
+    assert.equal(refreshed?.entries[0]?.canonical, "bulbasaur");
+    assert.equal(store.getLoadedCatalog()?.entries[0]?.canonical, "bulbasaur");
+  } finally {
+    globalThis.fetch = originalFetch;
+    await rm(cacheDir, { recursive: true, force: true });
+  }
+});

@@ -35,7 +35,7 @@ function isCatalogSnapshotCache(value: unknown): value is CatalogSnapshotCache {
 export class CatalogStore {
   #catalog: CatalogSnapshot | null = null;
   #loading: Promise<CatalogSnapshot> | null = null;
-  #refreshing: Promise<void> | null = null;
+  #refreshing: Promise<CatalogSnapshot | null> | null = null;
   #cachePath: string;
 
   constructor(options: CatalogStoreOptions = {}) {
@@ -47,15 +47,11 @@ export class CatalogStore {
     const cached = await this.#readCachedCatalog();
     if (cached) {
       this.#catalog = cached;
-      void this.#refreshCatalog();
+      void this.refreshCatalog();
       return cached;
     }
     if (!this.#loading) {
-      this.#loading = loadCatalog().then(async (catalog) => {
-        this.#catalog = catalog;
-        await this.#writeCachedCatalog(catalog);
-        return catalog;
-      }).finally(() => {
+      this.#loading = this.#loadAndCacheCatalog().finally(() => {
         this.#loading = null;
       });
     }
@@ -64,6 +60,26 @@ export class CatalogStore {
 
   getLoadedCatalog(): CatalogSnapshot | null {
     return this.#catalog;
+  }
+
+  async refreshCatalog(): Promise<CatalogSnapshot | null> {
+    if (this.#loading) {
+      return this.#loading.then(() => this.#catalog);
+    }
+    if (this.#refreshing) return this.#refreshing;
+    this.#refreshing = this.#loadAndCacheCatalog()
+      .then((catalog) => {
+        this.#catalog = catalog;
+        return catalog;
+      })
+      .catch((error) => {
+        console.warn("Catalog refresh failed", error);
+        return this.#catalog;
+      })
+      .finally(() => {
+        this.#refreshing = null;
+      });
+    return this.#refreshing;
   }
 
   async #readCachedCatalog(): Promise<CatalogSnapshot | null> {
@@ -91,19 +107,10 @@ export class CatalogStore {
     }
   }
 
-  async #refreshCatalog(): Promise<void> {
-    if (this.#refreshing || this.#loading) return;
-    this.#refreshing = loadCatalog()
-      .then((catalog) => {
-        this.#catalog = catalog;
-        void this.#writeCachedCatalog(catalog);
-      })
-      .catch((error) => {
-        console.warn("Catalog refresh failed", error);
-      })
-      .finally(() => {
-        this.#refreshing = null;
-      });
-    await this.#refreshing;
+  async #loadAndCacheCatalog(): Promise<CatalogSnapshot> {
+    const catalog = await loadCatalog();
+    this.#catalog = catalog;
+    await this.#writeCachedCatalog(catalog);
+    return catalog;
   }
 }
