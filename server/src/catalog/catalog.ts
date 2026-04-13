@@ -12,6 +12,15 @@ interface PokeApiSpeciesDetail {
   generation?: { name?: string };
 }
 
+interface PokeApiTypeListResponse {
+  results?: Array<{ name: string; url: string }>;
+}
+
+interface PokeApiTypeDetail {
+  name?: string;
+  pokemon?: Array<{ pokemon?: { name?: string } }>;
+}
+
 export interface CatalogEntry extends GuessEntry {
   dexId: number;
   generation: string;
@@ -65,14 +74,56 @@ async function fetchSpeciesDetails(urls: string[], batchSize = 40): Promise<Poke
   return details;
 }
 
+async function fetchTypeDetails(urls: string[], batchSize = 40): Promise<PokeApiTypeDetail[]> {
+  const details: PokeApiTypeDetail[] = [];
+  for (let index = 0; index < urls.length; index += batchSize) {
+    const batch = urls.slice(index, index + batchSize);
+    const result = await Promise.allSettled(batch.map((url) => fetchJson<PokeApiTypeDetail>(url)));
+    result.forEach((entry, batchIndex) => {
+      if (entry.status === "fulfilled") {
+        details.push(entry.value);
+        return;
+      }
+      console.warn("Skipping failed PokéAPI type detail", {
+        url: batch[batchIndex],
+        reason: entry.reason
+      });
+    });
+  }
+  return details;
+}
+
 export async function loadCatalog(): Promise<CatalogSnapshot> {
   const list = await fetchJson<PokeApiListResponse>(`${POKEAPI_BASE}/pokemon-species?limit=2000`);
   const species = list.results || [];
   const detailsByName = new Map<string, PokeApiSpeciesDetail>();
+  const typesByName = new Map<string, Set<string>>();
 
-  const details = await fetchSpeciesDetails(species.map((entry) => entry.url));
+  const [details, typeList] = await Promise.all([
+    fetchSpeciesDetails(species.map((entry) => entry.url)),
+    fetchJson<PokeApiTypeListResponse>(`${POKEAPI_BASE}/type?limit=40`).catch((error) => {
+      console.warn("PokéAPI type list failed to load", error);
+      return { results: [] } satisfies PokeApiTypeListResponse;
+    })
+  ]);
   details.forEach((detail) => {
     if (detail.name) detailsByName.set(normalizeName(detail.name), detail);
+  });
+
+  const typeDetails = await fetchTypeDetails(
+    (typeList.results || [])
+      .filter((entry) => entry.name !== "unknown" && entry.name !== "shadow")
+      .map((entry) => entry.url)
+  );
+  typeDetails.forEach((detail) => {
+    const typeName = detail.name;
+    if (!typeName) return;
+    (detail.pokemon || []).forEach((pokemonEntry) => {
+      const canonical = normalizeName(pokemonEntry.pokemon?.name || "");
+      if (!canonical) return;
+      if (!typesByName.has(canonical)) typesByName.set(canonical, new Set());
+      typesByName.get(canonical)?.add(typeName);
+    });
   });
 
   const entries = species
@@ -90,7 +141,7 @@ export async function loadCatalog(): Promise<CatalogSnapshot> {
         guesses,
         dexId: dexIdFromSpeciesUrl(entry.url),
         generation: detail?.generation?.name || "unknown",
-        types: []
+        types: [...(typesByName.get(canonical) || [])].sort()
       };
     })
     .filter((entry) => entry.canonical && entry.dexId > 0);
