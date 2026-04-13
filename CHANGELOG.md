@@ -1,3 +1,9 @@
+## [2.0.3](https://github.com/stephanrenggli/dexsprint/compare/v2.0.2...v2.0.3) (2026-04-13)
+
+### Bug Fixes
+
+* seed catalog from snapshot ([47a16ba](https://github.com/stephanrenggli/dexsprint/commit/47a16ba315364c676ded18b57e52246fff48553b))
+
 ## [2.0.2](https://github.com/stephanrenggli/dexsprint/compare/v2.0.1...v2.0.2) (2026-04-13)
 
 ### Bug Fixes
