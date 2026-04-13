@@ -202,3 +202,113 @@ test("createMultiplayerController leaves silently and can rejoin after reconnect
     globalThis.document = originalDocument;
   }
 });
+
+test("createMultiplayerController marks the session as non-reconnecting after leave", async () => {
+  const elements = createControllerElements();
+  const disconnectCalls = [];
+  const originalLocalStorage = globalThis.localStorage;
+  const originalDocument = globalThis.document;
+  const localStorageState = new Map();
+  globalThis.document = {
+    createElement: (tagName) => createDomNode(tagName),
+    createDocumentFragment: () => ({
+      appendChild() {}
+    })
+  };
+  const client = {
+    async joinRoom() {
+      return {
+        roomId: "room-1",
+        roomCode: "ROOM1",
+        playerId: "player-1",
+        sessionToken: "session-1",
+        snapshot: {
+          roomId: "room-1",
+          roomCode: "ROOM1",
+          status: "lobby",
+          settings: {
+            mode: "race"
+          },
+          players: [
+            {
+              id: "player-1",
+              name: "Ash",
+              host: true,
+              foundCount: 0,
+              status: "connected"
+            }
+          ],
+          activeTotal: 1,
+          sharedFound: [],
+          playerFound: { "player-1": [] },
+          foundBy: {},
+          events: []
+        }
+      };
+    },
+    connect({ onOpen }) {
+      if (typeof onOpen === "function") onOpen();
+    },
+    send() {
+      return true;
+    },
+    disconnect(options = {}) {
+      disconnectCalls.push(options);
+    }
+  };
+
+  globalThis.localStorage = {
+    getItem(key) {
+      return localStorageState.has(key) ? localStorageState.get(key) : null;
+    },
+    setItem(key, value) {
+      localStorageState.set(key, value);
+    },
+    removeItem(key) {
+      localStorageState.delete(key);
+    }
+  };
+
+  try {
+    const controller = createMultiplayerController({
+      client,
+      state: { found: new Set() },
+      elements,
+      getRoomSettings: () => ({ mode: "race" }),
+      updateStats() {},
+      renderSprites() {},
+      renderStudyPanel() {},
+      showRevealPreview() {},
+      playCry() {},
+      showStatusHint() {},
+      focusInput() {},
+      applyRoomSettings() {},
+      restoreLocalSettings() {},
+      saveSoloTimerSnapshot() {},
+      restoreSoloTimerSnapshot() {},
+      syncMultiplayerTimer() {},
+      joinInvite: {
+        message: { textContent: "" },
+        playerNameInput: createInput(),
+        acceptBtn: createButton()
+      }
+    });
+
+    elements.roomCodeInput.value = "ROOM1";
+    await elements.joinBtn.click();
+    await elements.leaveBtn.click();
+
+    const record = JSON.parse(
+      globalThis.localStorage.getItem("dexsprint-multiplayer-session:v1") || "null"
+    );
+
+    assert.equal(controller.isActive(), false);
+    assert.deepEqual(disconnectCalls, [{ silent: true }]);
+    assert.equal(record.roomCode, "ROOM1");
+    assert.equal(record.sessionToken, "session-1");
+    assert.equal(record.autoReconnect, false);
+  } finally {
+    globalThis.localStorage = originalLocalStorage;
+    globalThis.document = originalDocument;
+  }
+});
