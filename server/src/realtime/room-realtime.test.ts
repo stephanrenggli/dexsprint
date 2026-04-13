@@ -62,14 +62,12 @@ function createFakeSocket() {
   return socket;
 }
 
-test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnects", async () => {
-  const catalog = createCatalog();
-  const roomStore = new RoomStore();
-  const created = roomStore.createRoom(catalog, { playerName: "Ash" });
-  const joined = roomStore.joinRoom(created.roomCode, { playerName: "Misty" });
-  assert.ok(joined);
+type RouteHandler = (socket: ReturnType<typeof createFakeSocket>, request: any) => Promise<void>;
 
-  type RouteHandler = (socket: ReturnType<typeof createFakeSocket>, request: any) => Promise<void>;
+function createRouteHandler(catalog: CatalogSnapshot, roomStore = new RoomStore()): {
+  handler: RouteHandler;
+  roomStore: RoomStore;
+} {
   let routeHandler: RouteHandler | null = null;
   const app = {
     get(_path: string, _options: unknown, handler: RouteHandler) {
@@ -91,7 +89,16 @@ test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnect
   if (!routeHandler) {
     throw new Error("Route handler was not registered.");
   }
-  const handler = routeHandler as RouteHandler;
+  return { handler: routeHandler, roomStore };
+}
+
+test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnects", async () => {
+  const catalog = createCatalog();
+  const roomStore = new RoomStore();
+  const created = roomStore.createRoom(catalog, { playerName: "Ash" });
+  const joined = roomStore.joinRoom(created.roomCode, { playerName: "Misty" });
+  assert.ok(joined);
+  const { handler } = createRouteHandler(catalog, roomStore);
   const room = roomStore.getRoomById(created.roomId);
   assert.ok(room);
 
@@ -161,4 +168,35 @@ test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnect
   hostSocket.close();
   assert.equal(guestSocket.messages.at(-1)?.type, "player:presence");
   assert.equal(guestSocket.messages.at(-1)?.snapshot.players[0]?.status, "disconnected");
+});
+
+test("registerRoomRealtime rejects malformed messages", async () => {
+  const catalog = createCatalog();
+  const roomStore = new RoomStore();
+  const created = roomStore.createRoom(catalog, { playerName: "Ash" });
+  const { handler } = createRouteHandler(catalog, roomStore);
+  const socket = createFakeSocket();
+
+  await handler(socket, {
+    params: { roomId: created.roomId },
+    query: { sessionToken: created.sessionToken }
+  });
+  await socket.emit("message", Buffer.from("not json"));
+
+  assert.equal(socket.messages.at(-1)?.type, "error");
+  assert.equal(socket.messages.at(-1)?.code, "BAD_MESSAGE");
+});
+
+test("registerRoomRealtime rejects connections for missing rooms", async () => {
+  const catalog = createCatalog();
+  const { handler } = createRouteHandler(catalog);
+  const socket = createFakeSocket();
+
+  await handler(socket, {
+    params: { roomId: "missing-room" },
+    query: { sessionToken: "missing-session" }
+  });
+
+  assert.equal(socket.messages[0]?.type, "error");
+  assert.equal(socket.messages[0]?.code, "ROOM_NOT_FOUND");
 });
