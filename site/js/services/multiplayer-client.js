@@ -35,14 +35,17 @@ export function createMultiplayerClient({ apiBase = "" } = {}) {
 
   function connect({ roomId, sessionToken, onMessage, onOpen, onClose, onError }) {
     disconnect();
+    let opened = false;
+    let reportedFailure = false;
     try {
       socket = new WebSocket(getWebSocketUrl(roomId, sessionToken));
     } catch {
       socket = null;
-      if (typeof onError === "function") onError();
+      if (typeof onError === "function") onError("Could not open a multiplayer connection.");
       return;
     }
     socket.addEventListener("open", () => {
+      opened = true;
       if (typeof onOpen === "function") onOpen();
     });
     socket.addEventListener("message", (event) => {
@@ -55,10 +58,19 @@ export function createMultiplayerClient({ apiBase = "" } = {}) {
     });
     socket.addEventListener("close", () => {
       socket = null;
-      if (typeof onClose === "function") onClose();
+      if (!opened) {
+        if (!reportedFailure && typeof onError === "function") {
+          reportedFailure = true;
+          onError("Could not connect to the multiplayer room.");
+        }
+        return;
+      }
+      if (typeof onClose === "function") onClose("Disconnected from multiplayer room.");
     });
     socket.addEventListener("error", () => {
-      if (typeof onError === "function") onError();
+      if (opened || reportedFailure || typeof onError !== "function") return;
+      reportedFailure = true;
+      onError("Could not connect to the multiplayer room.");
     });
   }
 

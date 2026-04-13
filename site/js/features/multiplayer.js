@@ -399,10 +399,10 @@ export function createMultiplayerController({
       sessionToken,
       onMessage: handleServerMessage,
       onOpen: () => setStatus(`Connected to room ${response.roomCode}.`),
-      onClose: () => {
-        if (room) setStatus("Disconnected from multiplayer room.");
+      onClose: (message) => {
+        if (room) setStatus(message || "Disconnected from multiplayer room.");
       },
-      onError: () => setStatus("Could not connect to multiplayer room.")
+      onError: (message) => setStatus(message || "Could not connect to multiplayer room.")
     });
   }
 
