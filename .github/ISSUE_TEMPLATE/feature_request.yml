@@ -1,0 +1,68 @@
+name: Feature Request
+description: Suggest a new feature or improvement for DexSprint
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement! Please describe your idea below.
+
+  - type: input
+    id: version
+    attributes:
+      label: DexSprint Version
+      description: Which version of DexSprint are you using? (visible in the app footer)
+      placeholder: e.g. 2.0.3
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+      description: Which browser (and version) are you using?
+      placeholder: e.g. Chrome 124, Firefox 125, Safari 17
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      description: What device are you using?
+      placeholder: e.g. Desktop (Windows 11), iPhone 15, Samsung Galaxy S23
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: e.g. I find it frustrating when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: A clear and concise description of the feature you'd like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, mockups, or screenshots about the feature request.
+    validations:
+      required: false
