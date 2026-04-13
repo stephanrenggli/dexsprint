@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import fastifyWebsocket from "@fastify/websocket";
 import { CatalogStore } from "./catalog/catalog-store.js";
+import { toBrowserCatalogSnapshot } from "./catalog/catalog.js";
 import { RoomStore } from "./rooms/room-store.js";
 import { registerRoomRealtime } from "./realtime/room-realtime.js";
 import type { CreateRoomRequest, JoinRoomRequest } from "../../shared/src/protocol.js";
@@ -31,6 +32,11 @@ app.get("/api/catalog/version", async () => {
     generatedAt: catalog.generatedAt,
     count: catalog.entries.length
   };
+});
+
+app.get("/api/catalog", async () => {
+  const catalog = await catalogStore.getCatalog();
+  return toBrowserCatalogSnapshot(catalog);
 });
 
 app.post("/api/rooms", async (request, reply) => {

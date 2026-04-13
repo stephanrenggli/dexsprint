@@ -2,7 +2,7 @@
 
 importScripts("./js/vendor/pokeapi-js-wrapper-sw.js");
 
-const CACHE_NAME = "dexsprint-shell-v20";
+const CACHE_NAME = "dexsprint-shell-v21";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -29,6 +29,7 @@ const APP_SHELL = [
   "./js/features/study.js",
   "./js/features/views.js",
   "./js/services/audio.js",
+  "./js/services/catalog-snapshot.js",
   "./js/services/catalog-source.js",
   "./js/services/catalog-hydration.js",
   "./js/services/multiplayer-client.js",
@@ -78,6 +79,11 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   if (request.mode === "navigate") {
     event.respondWith(

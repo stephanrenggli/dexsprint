@@ -34,6 +34,20 @@ export interface CatalogSnapshot {
   guessIndex: GuessIndex;
 }
 
+export interface BrowserCatalogEntry {
+  canonical: string;
+  label: string;
+  dexId: number;
+  generation: string;
+  types: string[];
+}
+
+export interface BrowserCatalogSnapshot {
+  version: string;
+  generatedAt: string;
+  entries: BrowserCatalogEntry[];
+}
+
 const POKEAPI_BASE = "https://pokeapi.co/api/v2";
 const SUPPORTED_LANGUAGES = new Set(["en", "de", "es"]);
 
@@ -171,4 +185,18 @@ export function filterCatalogEntries(catalog: CatalogSnapshot, settings: RoomSet
   }
 
   return entries;
+}
+
+export function toBrowserCatalogSnapshot(catalog: CatalogSnapshot): BrowserCatalogSnapshot {
+  return {
+    version: catalog.version,
+    generatedAt: catalog.generatedAt,
+    entries: catalog.entries.map((entry) => ({
+      canonical: entry.canonical,
+      label: entry.label,
+      dexId: entry.dexId,
+      generation: entry.generation,
+      types: [...entry.types]
+    }))
+  };
 }

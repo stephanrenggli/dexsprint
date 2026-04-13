@@ -1,4 +1,8 @@
 import { spriteBase } from "./app-config.js";
+import {
+  fetchServerCatalogSnapshot,
+  seedCatalogFromSnapshot
+} from "../services/catalog-snapshot.js";
 
 export function createPokemonBootstrap(deps) {
   const {
@@ -72,6 +76,17 @@ export function createPokemonBootstrap(deps) {
     };
   }
 
+  async function tryLoadServerCatalogSnapshot() {
+    try {
+      const snapshot = await fetchServerCatalogSnapshot();
+      if (!snapshot?.entries?.length) return null;
+      return snapshot;
+    } catch (error) {
+      console.warn("Server catalog snapshot failed to load", error);
+      return null;
+    }
+  }
+
   function applyInitialCatalogState() {
     initThemes();
     restoreSettings();
@@ -110,10 +125,19 @@ export function createPokemonBootstrap(deps) {
     try {
       const generationPromise = loadGenerations(pokedex);
       const typePromise = loadTypes(pokedex);
-      const speciesData = await pokedex.getPokemonSpeciesList({ limit: 2000 });
-      const speciesEntries = speciesData && speciesData.results ? speciesData.results : [];
       resetCatalogState();
-      const { names, detailUrls } = seedCatalogFromSpeciesEntries(speciesEntries);
+      const serverCatalog = await tryLoadServerCatalogSnapshot();
+      let seededCatalog = null;
+      if (serverCatalog) {
+        seededCatalog = seedCatalogFromSnapshot(state, serverCatalog);
+      }
+      if (!seededCatalog?.names?.length) {
+        const speciesData = await pokedex.getPokemonSpeciesList({ limit: 2000 });
+        const speciesEntries = speciesData && speciesData.results ? speciesData.results : [];
+        seededCatalog = seedCatalogFromSpeciesEntries(speciesEntries);
+      }
+
+      const { names, detailUrls } = seededCatalog;
       state.allNames = names;
       applyInitialCatalogState();
       scheduleCatalogHydration(detailUrls, generationPromise, typePromise);

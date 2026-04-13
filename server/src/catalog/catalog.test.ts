@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { loadCatalog } from "./catalog.js";
 import { filterCatalogEntries } from "./catalog.js";
+import { toBrowserCatalogSnapshot } from "./catalog.js";
 import { defaultRoomSettings } from "../../../shared/src/protocol.js";
 
 function createJsonResponse(body: unknown, status = 200): Response {
@@ -132,4 +133,41 @@ test("loadCatalog includes type metadata for room filters", async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("toBrowserCatalogSnapshot preserves the browser boot fields", async () => {
+  const catalog = {
+    version: "1:1:1",
+    generatedAt: "2026-04-13T00:00:00.000Z",
+    entries: [
+      {
+        canonical: "bulbasaur",
+        label: "Bulbasaur",
+        guesses: ["Bulbasaur"],
+        dexId: 1,
+        generation: "generation-i",
+        types: ["grass"]
+      }
+    ],
+    guessIndex: {
+      exact: new Map(),
+      entries: new Map()
+    }
+  };
+
+  const snapshot = toBrowserCatalogSnapshot(catalog);
+
+  assert.deepEqual(snapshot, {
+    version: "1:1:1",
+    generatedAt: "2026-04-13T00:00:00.000Z",
+    entries: [
+      {
+        canonical: "bulbasaur",
+        label: "Bulbasaur",
+        dexId: 1,
+        generation: "generation-i",
+        types: ["grass"]
+      }
+    ]
+  });
 });
