@@ -62,14 +62,37 @@ function createFakeSocket() {
   return socket;
 }
 
+function createFakeLogger() {
+  const entries: Array<{ level: string; message: string; data: unknown }> = [];
+  const log = {
+    entries,
+    info(data: unknown, message?: string) {
+      entries.push({ level: "info", message: message || "", data });
+    },
+    warn(data: unknown, message?: string) {
+      entries.push({ level: "warn", message: message || "", data });
+    },
+    error(data: unknown, message?: string) {
+      entries.push({ level: "error", message: message || "", data });
+    },
+    debug(data: unknown, message?: string) {
+      entries.push({ level: "debug", message: message || "", data });
+    }
+  };
+  return log;
+}
+
 type RouteHandler = (socket: ReturnType<typeof createFakeSocket>, request: any) => Promise<void>;
 
 function createRouteHandler(catalog: CatalogSnapshot, roomStore = new RoomStore()): {
   handler: RouteHandler;
   roomStore: RoomStore;
+  log: ReturnType<typeof createFakeLogger>;
 } {
   let routeHandler: RouteHandler | null = null;
+  const log = createFakeLogger();
   const app = {
+    log,
     get(_path: string, _options: unknown, handler: RouteHandler) {
       routeHandler = handler;
     }
@@ -89,7 +112,7 @@ function createRouteHandler(catalog: CatalogSnapshot, roomStore = new RoomStore(
   if (!routeHandler) {
     throw new Error("Route handler was not registered.");
   }
-  return { handler: routeHandler, roomStore };
+  return { handler: routeHandler, roomStore, log };
 }
 
 test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnects", async () => {
@@ -99,7 +122,7 @@ test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnect
   const joined = roomStore.joinRoom(created.roomCode, { playerName: "Misty" });
   assert.ok(joined);
   assert.equal(created.snapshot.status, "active");
-  const { handler } = createRouteHandler(catalog, roomStore);
+  const { handler, log } = createRouteHandler(catalog, roomStore);
   const room = roomStore.getRoomById(created.roomId);
   assert.ok(room);
 
@@ -166,14 +189,43 @@ test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnect
   assert.equal(hostSocket.messages.at(-1)?.type, "room:complete");
   assert.equal(hostSocket.messages.at(-1)?.snapshot.status, "complete");
 
+  await guestSocket.emit("message", Buffer.from(JSON.stringify({ type: "room:reset" })));
+  assert.equal(log.entries.at(-1)?.message, "multiplayer room reset rejected");
+  assert.equal(log.entries.at(-1)?.level, "warn");
+
   await hostSocket.emit("message", Buffer.from(JSON.stringify({ type: "room:reset" })));
   assert.equal(hostSocket.messages.at(-1)?.type, "room:snapshot");
   assert.equal(hostSocket.messages.at(-1)?.snapshot.sharedFound.length, 0);
   assert.equal(hostSocket.messages.at(-1)?.snapshot.events.length, 0);
 
+  assert.ok(log.entries.some((entry) => entry.message === "multiplayer websocket connected"));
+  assert.ok(log.entries.some((entry) => entry.message === "multiplayer room configured"));
+  assert.ok(log.entries.some((entry) => entry.message === "multiplayer guess accepted"));
+  assert.ok(log.entries.some((entry) => entry.message === "multiplayer room reset"));
+
   hostSocket.close();
   assert.equal(guestSocket.messages.at(-1)?.type, "player:presence");
   assert.equal(guestSocket.messages.at(-1)?.snapshot.players[0]?.status, "disconnected");
+});
+
+test("registerRoomRealtime logs room leave before disconnect", async () => {
+  const catalog = createCatalog();
+  const roomStore = new RoomStore();
+  const created = roomStore.createRoom(catalog, { playerName: "Ash" });
+  const joined = roomStore.joinRoom(created.roomCode, { playerName: "Misty" });
+  assert.ok(joined);
+  const { handler, log } = createRouteHandler(catalog, roomStore);
+  const socket = createFakeSocket();
+
+  await handler(socket, {
+    params: { roomId: created.roomId },
+    query: { sessionToken: joined.sessionToken }
+  });
+
+  await socket.emit("message", Buffer.from(JSON.stringify({ type: "room:leave" })));
+
+  assert.ok(log.entries.some((entry) => entry.message === "multiplayer room leave"));
+  assert.ok(log.entries.some((entry) => entry.message === "multiplayer websocket disconnected"));
 });
 
 test("registerRoomRealtime rejects malformed messages", async () => {
