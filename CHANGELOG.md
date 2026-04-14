@@ -1,3 +1,15 @@
+## [2.1.0](https://github.com/stephanrenggli/dexsprint/compare/v2.0.5...v2.1.0) (2026-04-14)
+
+### Features
+
+* add versus multiplayer mode ([de14604](https://github.com/stephanrenggli/dexsprint/commit/de146041f6a07ba69ca88729914dd849f3dbc141))
+* add versus skip voting ([b60c1af](https://github.com/stephanrenggli/dexsprint/commit/b60c1af0d81e6d2dfebf70d904aebe9d36cc6bb8))
+
+### Bug Fixes
+
+* move multiplayer card above guess input ([43a9524](https://github.com/stephanrenggli/dexsprint/commit/43a9524ee198cb53c1ea26ee31387dc33aef1aaf))
+* remove versus study counter ([dca2e77](https://github.com/stephanrenggli/dexsprint/commit/dca2e7782ed375ccaf17aa23bf8c0f56b2840983))
+
 ## [2.0.5](https://github.com/stephanrenggli/dexsprint/compare/v2.0.4...v2.0.5) (2026-04-14)
 
 ### Bug Fixes
