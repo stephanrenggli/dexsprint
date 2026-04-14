@@ -1,3 +1,9 @@
+## [2.0.5](https://github.com/stephanrenggli/dexsprint/compare/v2.0.4...v2.0.5) (2026-04-14)
+
+### Bug Fixes
+
+* tighten multiplayer realtime logging ([78a0d2e](https://github.com/stephanrenggli/dexsprint/commit/78a0d2ecb36bfee50ec681c4bdc4e851a87eb0f2))
+
 ## [2.0.4](https://github.com/stephanrenggli/dexsprint/compare/v2.0.3...v2.0.4) (2026-04-14)
 
 ### Bug Fixes
