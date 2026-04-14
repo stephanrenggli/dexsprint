@@ -5,7 +5,7 @@
   --bg-3: #c0c09e;
   --ink: #1c1b19;
   --outline-filter: grayscale(1) saturate(0) brightness(0);
-  --outline-opacity: 0.2;
+  --outline-opacity: 0.7;
   --accent: #a8a878;
   --accent-2: #8a8a58;
   --accent-3: #f6c445;
@@ -417,7 +417,6 @@ textarea {
   --scrollbar-thumb-hover: color-mix(in srgb, var(--accent) 62%, var(--surface-4) 38%);
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
   --outline-filter: grayscale(1) saturate(0) brightness(0) invert(1);
-  --outline-opacity: 0.7;
   --pokeball: url("../assets/pokeball-dark.svg");
   background: radial-gradient(circle at top, var(--bg-1) 0%, var(--bg-2) 55%, var(--bg-3) 100%);
 }
