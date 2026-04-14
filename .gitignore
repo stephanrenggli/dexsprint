@@ -1,5 +1,7 @@
 node_modules/
 dist/
 .cache/
+.tmp/
+test-results/
 .DS_Store
 npm-debug.log*

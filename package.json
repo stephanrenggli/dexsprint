@@ -11,6 +11,8 @@
     "test:site": "node --import tsx --test \"site/**/*.test.js\"",
     "test:server": "node --import tsx --test \"shared/**/*.test.ts\" \"server/**/*.test.ts\"",
     "test": "npm run test:site && npm run test:server",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "start": "node dist/server/src/index.js",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.59.1",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/exec": "^7.1.0",
