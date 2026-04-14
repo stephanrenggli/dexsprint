@@ -1,3 +1,9 @@
+## [2.0.4](https://github.com/stephanrenggli/dexsprint/compare/v2.0.3...v2.0.4) (2026-04-14)
+
+### Bug Fixes
+
+* align multiplayer room state and controls ([bd36d4f](https://github.com/stephanrenggli/dexsprint/commit/bd36d4f6e586f76af211b6edd8cdeffeb8078b3b))
+
 ## [2.0.3](https://github.com/stephanrenggli/dexsprint/compare/v2.0.2...v2.0.3) (2026-04-13)
 
 ### Bug Fixes
