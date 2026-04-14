@@ -5,6 +5,7 @@ import { renderPokemonMetaChips, renderTypeChips } from "../ui/chips.js";
 export function createStudyController({
   state,
   studyPanel,
+  studyEyebrow,
   studyCard,
   studyActions,
   studySubtitle,
@@ -27,8 +28,19 @@ export function createStudyController({
   updateSpriteCardsForPokemon,
   showRevealPreview,
   saveState,
-  isStudyMode
+  isStudyMode,
+  isVersusMode = () => false,
+  getVersusSnapshot = () => null
 }) {
+  function isPracticeStyleMode() {
+    return isStudyMode() || isVersusMode();
+  }
+
+  function syncStudyModeLabel() {
+    if (!studyEyebrow) return;
+    studyEyebrow.textContent = isVersusMode() ? "Versus Mode" : "Practice Mode";
+  }
+
   function getStudyCandidates() {
     return state.names.filter((name) => !state.found.has(name));
   }
@@ -43,6 +55,7 @@ export function createStudyController({
   }
 
   function ensureStudyDeck() {
+    if (isVersusMode()) return;
     const candidates = getStudyCandidates();
     const candidateSet = new Set(candidates);
     state.studyDeck = state.studyDeck.filter((name) => candidateSet.has(name));
@@ -66,11 +79,15 @@ export function createStudyController({
 
   function renderStudyMeta(entry) {
     if (!studyMeta) return;
+    studyMeta.hidden = isVersusMode();
+    if (isVersusMode()) return;
     renderPokemonMetaChips(studyMeta, entry, "study-card__meta-chip");
   }
 
   function renderStudyTypes(entry) {
     if (!studyTypes) return;
+    studyTypes.hidden = isVersusMode();
+    if (isVersusMode()) return;
     renderTypeChips(studyTypes, entry?.types, getTypeId);
   }
 
@@ -100,6 +117,19 @@ export function createStudyController({
     studySpriteWrap.style.setProperty("--study-ground", palette.ground);
     studySpriteWrap.style.setProperty("--study-ground-2", palette.ground2);
     studySpriteWrap.style.setProperty("--study-shadow", palette.shadow);
+  }
+
+  function syncVersusCardState() {
+    if (studyCard) {
+      studyCard.classList.toggle("study-card--versus", isVersusMode());
+      studyCard.classList.toggle("study-card--versus-revealed", Boolean(state.studyRevealed));
+    }
+    if (studySprite) {
+      studySprite.classList.toggle(
+        "study-card__sprite--versus-hidden",
+        isVersusMode() && !state.studyRevealed
+      );
+    }
   }
 
   function getMaskedStudyName(label) {
@@ -167,12 +197,18 @@ export function createStudyController({
 
   function renderStudyEmptyState() {
     clearStudyNameReveal();
+    syncStudyModeLabel();
+    syncVersusCardState();
     if (studyCard) studyCard.hidden = true;
     if (studyActions) studyActions.hidden = true;
     if (studySubtitle) {
-      studySubtitle.textContent = state.names.length
-        ? "Everything here is found."
-        : "Adjust your filters.";
+      if (isVersusMode()) {
+        studySubtitle.textContent = "Waiting for the next Pokemon.";
+      } else {
+        studySubtitle.textContent = state.names.length
+          ? "Everything here is found."
+          : "Adjust your filters.";
+      }
     }
     if (studyCounter) studyCounter.textContent = "0 Pokemon left";
     if (studySprite) {
@@ -188,32 +224,44 @@ export function createStudyController({
     renderStudyTypes(null);
   }
 
-  function renderStudyEntryState(entry, currentName, candidates) {
+  function renderStudyEntryState(entry, currentName, candidates, revealed = false) {
+    syncStudyModeLabel();
+    syncVersusCardState();
     if (studyCard) studyCard.hidden = false;
-    if (studyActions) studyActions.hidden = false;
+    if (studyActions) studyActions.hidden = isVersusMode();
     if (studySubtitle) {
-      studySubtitle.textContent = state.studyRevealed
-        ? "Answer revealed"
-        : "Guess from the clues";
+      if (isVersusMode()) {
+        studySubtitle.textContent = revealed
+          ? "Answer revealed"
+          : "Guess the outline first.";
+      } else {
+        studySubtitle.textContent = state.studyRevealed
+          ? "Answer revealed"
+          : "Guess from the clues";
+      }
     }
     if (studyCounter) {
-      const remaining = new Set([...candidates, ...state.studyDeck, currentName]).size;
-      studyCounter.textContent = `${remaining} Pokemon left`;
+      if (isVersusMode()) {
+        studyCounter.textContent = "1 Pokemon in play";
+      } else {
+        const remaining = new Set([...candidates, ...state.studyDeck, currentName]).size;
+        studyCounter.textContent = `${remaining} Pokemon left`;
+      }
     }
     if (studySprite) {
       studySprite.src = getSpriteForEntry(entry);
-      studySprite.alt = state.studyRevealed ? entry.label : "Study Pokemon";
+      studySprite.alt = revealed ? entry.label : "Study Pokemon";
     }
     applyStudyScene(entry);
     renderStudyMeta(entry);
     renderStudyTypes(entry);
     if (studyName) {
-      const shouldAnimate = state.studyRevealed && studyName.dataset.lastReveal !== currentName;
+      const shouldAnimate = revealed && studyName.dataset.lastReveal !== currentName;
       renderStudyName(entry.label, {
-        revealed: state.studyRevealed,
+        revealed,
         animate: shouldAnimate
       });
-      studyName.dataset.lastReveal = state.studyRevealed ? currentName : "";
+      studyName.dataset.lastReveal = revealed ? currentName : "";
     }
     if (!inputEl?.value.trim()) {
       setInputStatus(DEFAULT_STATUS);
@@ -225,7 +273,8 @@ export function createStudyController({
   function renderStudyPanel() {
     if (!studyPanel) return;
 
-    const active = isStudyMode();
+    syncStudyModeLabel();
+    const active = isPracticeStyleMode();
     studyPanel.hidden = !active;
     if (!active) {
       clearStudyNameReveal();
@@ -233,19 +282,27 @@ export function createStudyController({
       return;
     }
 
+    const versusSnapshot = isVersusMode() ? getVersusSnapshot() : null;
+    if (versusSnapshot) {
+      state.studyCurrent = versusSnapshot.versusCurrent || null;
+      state.studyRevealed = Boolean(versusSnapshot.versusRevealed);
+    }
+
     ensureStudyDeck();
     const candidates = getStudyCandidates();
-    const currentName = state.studyCurrent;
+    const currentName = versusSnapshot ? versusSnapshot.versusCurrent || null : state.studyCurrent;
     const entry = currentName ? state.meta.get(currentName) : null;
+    const revealed = versusSnapshot ? Boolean(versusSnapshot.versusRevealed) : state.studyRevealed;
 
     if (!entry) {
       renderStudyEmptyState();
       return;
     }
-    renderStudyEntryState(entry, currentName, candidates);
+    renderStudyEntryState(entry, currentName, candidates, revealed);
   }
 
   function advanceStudyCard({ markFound = false, repeat = false } = {}) {
+    if (isVersusMode()) return;
     const currentName = state.studyCurrent;
     if (!currentName) return;
 

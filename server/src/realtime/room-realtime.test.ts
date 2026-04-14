@@ -208,6 +208,37 @@ test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnect
   assert.equal(guestSocket.messages.at(-1)?.snapshot.players[0]?.status, "disconnected");
 });
 
+test("registerRoomRealtime advances versus rooms after the reveal window", async () => {
+  const catalog = createCatalog();
+  const roomStore = new RoomStore();
+  const created = roomStore.createRoom(catalog, {
+    playerName: "Ash",
+    settings: { mode: "versus" }
+  });
+  const { handler } = createRouteHandler(catalog, roomStore);
+  const socket = createFakeSocket();
+
+  await handler(socket, {
+    params: { roomId: created.roomId },
+    query: { sessionToken: created.sessionToken }
+  });
+
+  const current = created.snapshot.versusCurrent;
+  assert.ok(current);
+  const guess = current === "bulbasaur" ? "Bulbasaur" : "Charmander";
+
+  await socket.emit("message", Buffer.from(JSON.stringify({ type: "guess:submit", value: guess })));
+  assert.equal(socket.messages.at(-1)?.type, "guess:accepted");
+  assert.equal(socket.messages.at(-1)?.snapshot.versusRevealed, true);
+
+  await new Promise((resolve) => setTimeout(resolve, 1300));
+
+  const latest = socket.messages.at(-1);
+  assert.equal(latest?.type, "room:snapshot");
+  assert.equal(latest?.snapshot.versusRevealed, false);
+  assert.notEqual(latest?.snapshot.versusCurrent, current);
+});
+
 test("registerRoomRealtime logs room leave before disconnect", async () => {
   const catalog = createCatalog();
   const roomStore = new RoomStore();

@@ -55,7 +55,9 @@ export function createMultiplayerController({
   showStatusHint,
   focusInput,
   saveSoloTimerSnapshot = () => {},
+  saveSoloStudySnapshot = () => {},
   restoreSoloTimerSnapshot = () => {},
+  restoreSoloStudySnapshot = () => {},
   syncMultiplayerTimer = () => {},
   applyRoomSettings = () => {},
   restoreLocalSettings = () => {},
@@ -151,6 +153,18 @@ export function createMultiplayerController({
     updateStats();
     renderSprites();
     renderStudyPanel();
+  }
+
+  function syncRoomStudyState(snapshot) {
+    if (snapshot?.settings.mode !== "versus") {
+      state.studyDeck = [];
+      state.studyCurrent = null;
+      state.studyRevealed = false;
+      return;
+    }
+    state.studyDeck = [];
+    state.studyCurrent = snapshot.versusCurrent || null;
+    state.studyRevealed = Boolean(snapshot.versusRevealed);
   }
 
   function getVisibleFound(snapshot) {
@@ -306,11 +320,12 @@ export function createMultiplayerController({
     attribution = buildAttribution(snapshot);
     state.found = new Set(getVisibleFound(snapshot));
     recalculateActiveFoundCount();
+    syncRoomStudyState(snapshot);
     if (refreshRoomSettings) {
       applyRoomSettings(snapshot.settings);
     }
     syncMultiplayerTimer(snapshot);
-    if (!refreshRoomSettings) {
+    if (!refreshRoomSettings || snapshot.settings.mode === "versus") {
       refreshLocalGameplayViews();
     }
     render();
@@ -321,14 +336,19 @@ export function createMultiplayerController({
     if (!message.snapshot) return;
     const wasFound = state.found.has(message.canonical);
     const shouldReveal =
-      message.snapshot.settings.mode === "coop" || message.playerId === playerId;
+      message.snapshot.settings.mode === "coop" ||
+      message.snapshot.settings.mode === "versus" ||
+      message.playerId === playerId;
     if (shouldReveal && !wasFound) {
       state.recentlyFound.add(message.canonical);
     }
     applySnapshot(message.snapshot, { refreshRoomSettings: false });
     if (!shouldReveal) return;
 
-    const isNew = !wasFound && state.found.has(message.canonical);
+    const isNew =
+      message.snapshot.settings.mode === "versus"
+        ? !wasFound
+        : !wasFound && state.found.has(message.canonical);
     if (isNew) {
       const entry = state.meta.get(message.canonical);
       if (entry) {
@@ -369,6 +389,7 @@ export function createMultiplayerController({
   function connectFromResponse(response) {
     saveSoloProgressSnapshot();
     saveSoloTimerSnapshot();
+    saveSoloStudySnapshot();
     playerId = response.playerId;
     sessionToken = response.sessionToken;
     writeSessionRecord({
@@ -467,8 +488,9 @@ export function createMultiplayerController({
     sessionToken = "";
     if (restoreSolo) restoreSoloProgressSnapshot();
     if (restoreSolo) restoreSoloTimerSnapshot();
-    onRoomStateChange(null);
     restoreLocalSettings();
+    if (restoreSolo) restoreSoloStudySnapshot();
+    onRoomStateChange(null);
     setStatus("Left multiplayer room.");
     render(null);
   }
@@ -545,6 +567,7 @@ export function createMultiplayerController({
   return {
     isActive,
     getRoomAccessState,
+    getRoomSnapshot: () => room,
     canHostControlRoom,
     configureRoom,
     syncRoomSettings,

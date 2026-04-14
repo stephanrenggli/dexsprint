@@ -1,4 +1,4 @@
-export type MultiplayerMode = "race" | "coop";
+export type MultiplayerMode = "race" | "coop" | "versus";
 export type RoomStatus = "lobby" | "active" | "complete" | "closed";
 export type PlayerConnectionStatus = "connected" | "disconnected";
 
@@ -51,6 +51,9 @@ export interface RoomSnapshot {
   sharedFound: string[];
   playerFound: Record<string, string[]>;
   foundBy: Record<string, string>;
+  versusCurrent: string | null;
+  versusRevealed: boolean;
+  versusAdvanceAt: string | null;
   events: RoomEvent[];
 }
 

@@ -11,6 +11,7 @@ interface RoomSocketClient {
 }
 
 const clientsByRoom = new Map<string, Set<RoomSocketClient>>();
+const versusTimersByRoom = new Map<string, ReturnType<typeof setTimeout>>();
 
 function summarizeRoom(roomStore: RoomStore, room: ReturnType<RoomStore["getRoomById"]>) {
   if (!room) return null;
@@ -40,6 +41,49 @@ function broadcast(roomId: string, message: ServerMessage): void {
   const clients = clientsByRoom.get(roomId);
   if (!clients) return;
   clients.forEach((client) => send(client.socket, message));
+}
+
+function clearVersusTimer(roomId: string): void {
+  const timer = versusTimersByRoom.get(roomId);
+  if (!timer) return;
+  clearTimeout(timer);
+  versusTimersByRoom.delete(roomId);
+}
+
+function scheduleVersusAdvance(
+  roomStore: RoomStore,
+  catalogStore: CatalogStore,
+  roomId: string,
+  snapshot: ReturnType<RoomStore["snapshot"]>
+): void {
+  clearVersusTimer(roomId);
+  const advanceAt = snapshot.versusAdvanceAt;
+  if (snapshot.settings.mode !== "versus" || !snapshot.versusRevealed || !advanceAt) {
+    return;
+  }
+
+  const delay = Date.parse(advanceAt) - Date.now();
+  const timer = setTimeout(async () => {
+    versusTimersByRoom.delete(roomId);
+    const room = roomStore.getRoomById(roomId);
+    if (!room || room.settings.mode !== "versus" || !room.versusRevealed || !room.versusAdvanceAt) {
+      return;
+    }
+    const scheduledAt = Date.parse(advanceAt);
+    if (Number.isFinite(scheduledAt) && room.versusAdvanceAt.getTime() !== scheduledAt) {
+      return;
+    }
+    const catalog = await catalogStore.getCatalog();
+    const nextSnapshot = roomStore.advanceVersusRound(catalog, room);
+    broadcast(roomId, { type: "room:snapshot", snapshot: nextSnapshot });
+    if (nextSnapshot.status === "complete") {
+      broadcast(roomId, { type: "room:complete", snapshot: nextSnapshot });
+    } else {
+      scheduleVersusAdvance(roomStore, catalogStore, roomId, nextSnapshot);
+    }
+  }, Math.max(0, delay));
+
+  versusTimersByRoom.set(roomId, timer);
 }
 
 function parseClientMessage(raw: Buffer | ArrayBuffer | Buffer[]): ClientMessage | null {
@@ -101,6 +145,7 @@ export function registerRoomRealtime({
     );
     broadcast(room.id, { type: "player:presence", snapshot });
     send(socket, { type: "room:snapshot", snapshot });
+    scheduleVersusAdvance(roomStore, catalogStore, room.id, snapshot);
 
     socket.on("message", async (raw) => {
       const message = parseClientMessage(raw);
@@ -179,6 +224,7 @@ export function registerRoomRealtime({
         if (nextSnapshot.status === "complete") {
           broadcast(currentRoom.id, { type: "room:complete", snapshot: nextSnapshot });
         }
+        scheduleVersusAdvance(roomStore, catalogStore, currentRoom.id, nextSnapshot);
         return;
       }
 
@@ -195,7 +241,8 @@ export function registerRoomRealtime({
           );
           return;
         }
-        const nextSnapshot = roomStore.resetRoom(currentRoom, currentPlayer);
+        const catalog = await catalogStore.getCatalog();
+        const nextSnapshot = roomStore.resetRoom(catalog, currentRoom, currentPlayer);
         log.info(
           {
             roomId: nextSnapshot.roomId,
@@ -207,6 +254,7 @@ export function registerRoomRealtime({
           "multiplayer room reset"
         );
         broadcast(currentRoom.id, { type: "room:snapshot", snapshot: nextSnapshot });
+        scheduleVersusAdvance(roomStore, catalogStore, currentRoom.id, nextSnapshot);
         return;
       }
 
@@ -252,6 +300,7 @@ export function registerRoomRealtime({
           label: result.label,
           snapshot: result.snapshot
         });
+        scheduleVersusAdvance(roomStore, catalogStore, currentRoom.id, result.snapshot);
 
         if (result.complete) {
           broadcast(currentRoom.id, { type: "room:complete", snapshot: result.snapshot });
@@ -291,6 +340,7 @@ export function registerRoomRealtime({
           "multiplayer websocket disconnected"
         );
         broadcast(currentRoom.id, { type: "player:presence", snapshot: nextSnapshot });
+        scheduleVersusAdvance(roomStore, catalogStore, currentRoom.id, nextSnapshot);
       }
     });
   });

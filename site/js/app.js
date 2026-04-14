@@ -198,6 +198,7 @@ const multiplayerProgressLock = document.getElementById("multiplayer-progress-lo
 const multiplayerProgressControls = document.getElementById("multiplayer-progress-controls");
 const guessForm = document.getElementById("guess-form");
 const studyPanel = document.getElementById("study-panel");
+const studyEyebrow = document.querySelector(".study-panel__eyebrow");
 const studySubtitle = document.getElementById("study-subtitle");
 const studyCounter = document.getElementById("study-counter");
 const studyCard = document.getElementById("study-card");
@@ -250,6 +251,7 @@ let viewController = null;
 let multiplayerFiltersController = null;
 let multiplayerController = null;
 let soloTimerSnapshot = null;
+let soloStudySnapshot = null;
 let multiplayerVisualSettings = null;
 let multiplayerSetupPreviewState = null;
 
@@ -354,6 +356,10 @@ function isMultiplayerTypoSettingsLocked() {
   return isMultiplayerActive();
 }
 
+function isMultiplayerVersusMode() {
+  return multiplayerController?.getRoomSnapshot?.()?.settings.mode === "versus";
+}
+
 function getMultiplayerRoomSettings() {
   const group = multiplayerGroupFilter && ["none", "generation", "type"].includes(multiplayerGroupFilter.value)
     ? multiplayerGroupFilter.value
@@ -363,7 +369,10 @@ function getMultiplayerRoomSettings() {
     showDex: showDexToggle ? showDexToggle.checked : false
   };
   return {
-    mode: multiplayerMode && multiplayerMode.value === "coop" ? "coop" : "race",
+    mode:
+      multiplayerMode && ["coop", "versus"].includes(multiplayerMode.value)
+        ? multiplayerMode.value
+        : "race",
     typoMode: multiplayerTypoModeSelect ? multiplayerTypoModeSelect.value : DEFAULT_TYPO_MODE,
     autocorrect: multiplayerAutocorrectToggle ? multiplayerAutocorrectToggle.checked : true,
     outlinesOff: visualSettings.outlinesOff,
@@ -647,6 +656,7 @@ settingsController = createSettingsController({
 studyController = createStudyController({
   state,
   studyPanel,
+  studyEyebrow,
   studyCard,
   studyActions,
   studySubtitle,
@@ -669,7 +679,9 @@ studyController = createStudyController({
   updateSpriteCardsForPokemon,
   showRevealPreview,
   saveState,
-  isStudyMode
+  isStudyMode,
+  isVersusMode: isMultiplayerVersusMode,
+  getVersusSnapshot: () => multiplayerController?.getRoomSnapshot?.()
 });
 
 viewController = createViewController({
@@ -759,7 +771,9 @@ multiplayerController = createMultiplayerController({
   showStatusHint,
   focusInput,
   saveSoloTimerSnapshot,
+  saveSoloStudySnapshot,
   restoreSoloTimerSnapshot,
+  restoreSoloStudySnapshot,
   syncMultiplayerTimer,
   applyRoomSettings: applyMultiplayerRoomSettings,
   restoreLocalSettings: restoreSettings,
@@ -877,6 +891,15 @@ function saveSoloTimerSnapshot() {
   };
 }
 
+function saveSoloStudySnapshot() {
+  if (soloStudySnapshot) return;
+  soloStudySnapshot = {
+    deck: [...state.studyDeck],
+    current: state.studyCurrent,
+    revealed: state.studyRevealed
+  };
+}
+
 function restoreSoloTimerSnapshot() {
   if (!soloTimerSnapshot) return;
   const snapshot = soloTimerSnapshot;
@@ -890,6 +913,16 @@ function restoreSoloTimerSnapshot() {
   } else {
     setTimerText(formatTime(state.savedElapsed || 0));
   }
+}
+
+function restoreSoloStudySnapshot() {
+  if (!soloStudySnapshot) return;
+  const snapshot = soloStudySnapshot;
+  soloStudySnapshot = null;
+  state.studyDeck = [...snapshot.deck];
+  state.studyCurrent = snapshot.current;
+  state.studyRevealed = snapshot.revealed;
+  refreshGameplayViews({ stats: false, sprites: false, study: true });
 }
 
 function syncMultiplayerTimer(snapshot = null) {

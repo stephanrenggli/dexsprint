@@ -22,6 +22,8 @@ const ROOM_CODE_BYTES = 4;
 const MAX_EVENTS = 25;
 const DEFAULT_ROOM_TTL_MS = 60 * 60 * 1000;
 const DEFAULT_PERSISTENCE_DELAY_MS = 50;
+const VERSUS_REVEAL_DELAY_MS = 1200;
+const VERSUS_WRONG_GUESS_MESSAGE = "Not quite, try again.";
 const TRAINER_NAMES = [
   "Ash",
   "Misty",
@@ -61,6 +63,11 @@ interface RoomRecord {
   foundBy: Map<string, string>;
   players: Map<string, PlayerRecord>;
   events: RoomEvent[];
+  versusDeck: string[];
+  versusCurrent: string | null;
+  versusRevealed: boolean;
+  versusAdvanceAt: Date | null;
+  versusTotal: number;
 }
 
 interface PersistedPlayerRecord {
@@ -85,10 +92,15 @@ interface PersistedRoomRecord {
   foundBy: Record<string, string>;
   players: PersistedPlayerRecord[];
   events: RoomEvent[];
+  versusDeck: string[];
+  versusCurrent: string | null;
+  versusRevealed: boolean;
+  versusAdvanceAt: string | null;
+  versusTotal: number;
 }
 
 interface PersistedRoomStore {
-  version: 1;
+  version: 1 | 2;
   rooms: PersistedRoomRecord[];
 }
 
@@ -134,7 +146,8 @@ function makePlayerName(name: string | undefined, room: RoomRecord | null, count
 
 function mergeSettings(settings?: Partial<RoomSettings>): RoomSettings {
   const defaults = defaultRoomSettings();
-  const mode: MultiplayerMode = settings?.mode === "coop" ? "coop" : "race";
+  const mode: MultiplayerMode =
+    settings?.mode === "coop" || settings?.mode === "versus" ? settings.mode : "race";
   return {
     ...defaults,
     ...settings,
@@ -146,6 +159,28 @@ function mergeSettings(settings?: Partial<RoomSettings>): RoomSettings {
     group: settings?.group || defaults.group,
     generations: Array.isArray(settings?.generations) ? settings.generations : defaults.generations,
     types: Array.isArray(settings?.types) ? settings.types : defaults.types
+  };
+}
+
+function shuffleEntries(entries: string[]): string[] {
+  const values = [...entries];
+  for (let index = values.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomBytes(1)[0] % (index + 1);
+    [values[index], values[swapIndex]] = [values[swapIndex], values[index]];
+  }
+  return values;
+}
+
+function createVersusState(activeEntries: string[]): {
+  deck: string[];
+  current: string | null;
+  total: number;
+} {
+  const deck = shuffleEntries(activeEntries);
+  return {
+    current: deck.shift() || null,
+    deck,
+    total: activeEntries.length
   };
 }
 
@@ -199,7 +234,12 @@ function serializeRoom(room: RoomRecord): PersistedRoomRecord {
       connected: player.connected,
       found: [...player.found]
     })),
-    events: room.events
+    events: room.events,
+    versusDeck: [...room.versusDeck],
+    versusCurrent: room.versusCurrent,
+    versusRevealed: room.versusRevealed,
+    versusAdvanceAt: room.versusAdvanceAt ? room.versusAdvanceAt.toISOString() : null,
+    versusTotal: room.versusTotal
   };
 }
 
@@ -246,6 +286,16 @@ function deserializeRoom(
 
   if (!players.size) return null;
 
+  const persisted = record as Partial<PersistedRoomRecord>;
+  const versusDeck = isStringArray(persisted.versusDeck) ? persisted.versusDeck : [];
+  const versusCurrent = typeof persisted.versusCurrent === "string" ? persisted.versusCurrent : null;
+  const versusRevealed = Boolean(persisted.versusRevealed);
+  const versusAdvanceAtRaw = persisted.versusAdvanceAt;
+  const versusAdvanceAt =
+    typeof versusAdvanceAtRaw === "string" ? new Date(versusAdvanceAtRaw) : null;
+  const versusTotal =
+    typeof persisted.versusTotal === "number" ? persisted.versusTotal : record.activeNames.length;
+
   const events = record.events.filter(isRoomEvent).slice(0, MAX_EVENTS);
   const room: RoomRecord = {
     id: record.id,
@@ -263,7 +313,12 @@ function deserializeRoom(
       })
     ),
     players,
-    events
+    events,
+    versusDeck,
+    versusCurrent,
+    versusRevealed,
+    versusAdvanceAt: versusAdvanceAt && !Number.isNaN(versusAdvanceAt.getTime()) ? versusAdvanceAt : null,
+    versusTotal
   };
 
   if (room.timerStartedAt && Number.isNaN(room.timerStartedAt.getTime())) {
@@ -309,7 +364,11 @@ export class RoomStore {
       return 0;
     }
 
-    if (!parsed || typeof parsed !== "object" || (parsed as PersistedRoomStore).version !== 1) {
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      !((parsed as PersistedRoomStore).version === 1 || (parsed as PersistedRoomStore).version === 2)
+    ) {
       return 0;
     }
 
@@ -348,6 +407,11 @@ export class RoomStore {
     const activeEntries = filterCatalogEntries(catalog, settings);
     const player = this.#createPlayer(request.playerName, null, true, 1);
     const now = new Date();
+    const versusState =
+      settings.mode === "versus"
+        ? createVersusState(activeEntries.map((entry) => entry.canonical))
+        : null;
+    const versusCurrent = versusState?.current || null;
     const room: RoomRecord = {
       id: roomId,
       code: roomCode,
@@ -356,12 +420,22 @@ export class RoomStore {
       lastActivityAt: now,
       timerStartedAt: null,
       settings,
-      activeNames: new Set(activeEntries.map((entry) => entry.canonical)),
+      activeNames:
+        settings.mode === "versus" ? new Set(versusCurrent ? [versusCurrent] : []) : new Set(activeEntries.map((entry) => entry.canonical)),
       sharedFound: new Set(),
       foundBy: new Map(),
       players: new Map([[player.id, player]]),
-      events: []
+      events: [],
+      versusDeck: versusState?.deck || [],
+      versusCurrent,
+      versusRevealed: false,
+      versusAdvanceAt: null,
+      versusTotal: versusState?.total || 0
     };
+
+    if (settings.mode === "versus" && !versusCurrent) {
+      room.status = "complete";
+    }
 
     pushEvent(room, { type: "player_joined", playerId: player.id });
     this.#roomsById.set(room.id, room);
@@ -418,32 +492,76 @@ export class RoomStore {
 
   configureRoom(catalog: CatalogSnapshot, room: RoomRecord, player: PlayerRecord, settings: Partial<RoomSettings>): RoomSnapshot {
     if (!player.host) return this.snapshot(room);
+    const previousMode = room.settings.mode;
     const previousStatus = room.status;
     room.settings = mergeSettings({ ...room.settings, ...settings });
-    room.activeNames = new Set(filterCatalogEntries(catalog, room.settings).map((entry) => entry.canonical));
-    const complete = this.#isComplete(room);
-    if (room.status !== "lobby") {
-      room.status = complete ? "complete" : "active";
-    }
-    if (complete && previousStatus !== "complete") {
-      pushEvent(room, { type: "room_completed", playerId: player.id });
+    const activeEntries = filterCatalogEntries(catalog, room.settings).map((entry) => entry.canonical);
+    if (room.settings.mode === "versus" && previousMode !== "versus") {
+      this.#resetVersusState(room, activeEntries);
+    } else if (room.settings.mode !== "versus") {
+      room.activeNames = new Set(activeEntries);
+      const complete = this.#isComplete(room);
+      if (room.status !== "lobby") {
+        room.status = complete ? "complete" : "active";
+      }
+      if (complete && previousStatus !== "complete") {
+        pushEvent(room, { type: "room_completed", playerId: player.id });
+      }
     }
     this.#touch(room);
     this.#schedulePersistence();
     return this.snapshot(room);
   }
 
-  resetRoom(room: RoomRecord, player: PlayerRecord): RoomSnapshot {
+  resetRoom(catalog: CatalogSnapshot, room: RoomRecord, player: PlayerRecord): RoomSnapshot {
     if (!player.host) return this.snapshot(room);
 
-    room.sharedFound.clear();
-    room.foundBy.clear();
-    room.events = [];
-    room.players.forEach((entry) => {
-      entry.found.clear();
-    });
-    room.timerStartedAt = null;
-    if (room.status !== "lobby") room.status = "active";
+    if (room.settings.mode === "versus") {
+      const activeEntries = filterCatalogEntries(catalog, room.settings).map((entry) => entry.canonical);
+      this.#resetVersusState(room, activeEntries);
+    } else {
+      room.sharedFound.clear();
+      room.foundBy.clear();
+      room.events = [];
+      room.players.forEach((entry) => {
+        entry.found.clear();
+      });
+      room.timerStartedAt = null;
+      if (room.status !== "lobby") room.status = "active";
+    }
+    this.#touch(room);
+    this.#schedulePersistence();
+    return this.snapshot(room);
+  }
+
+  advanceVersusRound(catalog: CatalogSnapshot, room: RoomRecord): RoomSnapshot {
+    if (room.settings.mode !== "versus") return this.snapshot(room);
+    if (!room.versusCurrent) return this.snapshot(room);
+
+    const current = room.versusCurrent;
+    const next = room.versusDeck.shift() || null;
+    room.versusCurrent = next;
+    room.versusRevealed = false;
+    room.versusAdvanceAt = null;
+    room.activeNames = new Set(next ? [next] : []);
+
+    if (next) {
+      room.status = "active";
+    } else {
+      room.status = "complete";
+      const winnerId = room.foundBy.get(current);
+      if (winnerId) {
+        const entry = catalog.guessIndex.entries.get(current);
+        const label = entry?.label || current;
+        pushEvent(room, {
+          type: "room_completed",
+          playerId: winnerId,
+          canonical: current,
+          label
+        });
+      }
+    }
+
     this.#touch(room);
     this.#schedulePersistence();
     return this.snapshot(room);
@@ -473,15 +591,28 @@ export class RoomStore {
       if (!room.settings.autocorrect) {
         const typoEntry = catalog.guessIndex.entries.get(typoMatch);
         const typoLabel = typoEntry?.label || typoMatch;
+        if (room.settings.mode === "versus" && !room.activeNames.has(typoMatch)) {
+          return this.#reject("filtered_out", VERSUS_WRONG_GUESS_MESSAGE);
+        }
         return this.#reject("unknown", `Did you mean ${typoLabel}?`);
       }
       if (!room.activeNames.has(typoMatch)) {
-        return this.#reject("filtered_out", "That Pokemon is filtered out for this room.");
+        return this.#reject(
+          "filtered_out",
+          room.settings.mode === "versus"
+            ? VERSUS_WRONG_GUESS_MESSAGE
+            : "That Pokemon is filtered out for this room."
+        );
       }
       return this.#acceptGuess(catalog, room, player, typoMatch);
     }
     if (!room.activeNames.has(canonical)) {
-      return this.#reject("filtered_out", "That Pokemon is filtered out for this room.");
+      return this.#reject(
+        "filtered_out",
+        room.settings.mode === "versus"
+          ? VERSUS_WRONG_GUESS_MESSAGE
+          : "That Pokemon is filtered out for this room."
+      );
     }
 
     return this.#acceptGuess(catalog, room, player, canonical);
@@ -493,6 +624,47 @@ export class RoomStore {
     player: PlayerRecord,
     canonical: string
   ): GuessResult {
+    if (room.settings.mode === "versus") {
+      const current = room.versusCurrent;
+      if (!current) {
+        return this.#reject("room_not_active", "The room has not started yet.");
+      }
+      if (room.foundBy.has(canonical) || player.found.has(canonical)) {
+        return this.#reject("duplicate", "That Pokemon is already found.");
+      }
+      if (canonical !== current) {
+        return this.#reject("filtered_out", VERSUS_WRONG_GUESS_MESSAGE);
+      }
+      player.found.add(canonical);
+      if (!room.timerStartedAt) {
+        room.timerStartedAt = new Date();
+      }
+      if (!room.foundBy.has(canonical)) {
+        room.foundBy.set(canonical, player.id);
+      }
+      const entry = catalog.guessIndex.entries.get(canonical);
+      const label = entry?.label || canonical;
+      room.versusRevealed = true;
+      room.versusAdvanceAt = new Date(Date.now() + VERSUS_REVEAL_DELAY_MS);
+      pushEvent(room, {
+        type: "guess_accepted",
+        playerId: player.id,
+        canonical,
+        label
+      });
+      this.#touch(room);
+      this.#schedulePersistence();
+
+      return {
+        accepted: true,
+        playerId: player.id,
+        canonical,
+        label,
+        complete: false,
+        snapshot: this.snapshot(room)
+      };
+    }
+
     const foundSet = room.settings.mode === "coop" ? room.sharedFound : player.found;
     if (foundSet.has(canonical)) {
       return this.#reject("duplicate", "That Pokemon is already found.");
@@ -549,12 +721,18 @@ export class RoomStore {
       lastActivityAt: room.lastActivityAt.toISOString(),
       timerStartedAt: room.timerStartedAt ? room.timerStartedAt.toISOString() : null,
       players,
-      activeTotal: room.activeNames.size,
+      activeTotal: room.settings.mode === "versus" ? room.versusTotal : room.activeNames.size,
       sharedFound: [...room.sharedFound],
       playerFound: Object.fromEntries(
         [...room.players.values()].map((player) => [player.id, [...player.found]])
       ),
       foundBy: Object.fromEntries(room.foundBy),
+      versusCurrent: room.settings.mode === "versus" ? room.versusCurrent : null,
+      versusRevealed: room.settings.mode === "versus" ? room.versusRevealed : false,
+      versusAdvanceAt:
+        room.settings.mode === "versus" && room.versusAdvanceAt
+          ? room.versusAdvanceAt.toISOString()
+          : null,
       events: room.events
     };
   }
@@ -629,7 +807,7 @@ export class RoomStore {
   async #writePersistedRooms(): Promise<void> {
     if (!this.#persistPath) return;
     const snapshot: PersistedRoomStore = {
-      version: 1,
+      version: 2,
       rooms: [...this.#roomsById.values()]
         .map((room) => serializeRoom(room))
         .sort((left, right) => left.code.localeCompare(right.code))
@@ -641,9 +819,30 @@ export class RoomStore {
   }
 
   #isComplete(room: RoomRecord): boolean {
+    if (room.settings.mode === "versus") {
+      return room.status === "complete";
+    }
     if (room.activeNames.size === 0) return false;
     if (room.settings.mode === "coop") return room.sharedFound.size >= room.activeNames.size;
     return [...room.players.values()].some((player) => player.found.size >= room.activeNames.size);
+  }
+
+  #resetVersusState(room: RoomRecord, activeEntries: string[]): void {
+    const versusState = createVersusState(activeEntries);
+    room.sharedFound.clear();
+    room.foundBy.clear();
+    room.events = [];
+    room.players.forEach((entry) => {
+      entry.found.clear();
+    });
+    room.timerStartedAt = null;
+    room.versusDeck = versusState.deck;
+    room.versusCurrent = versusState.current;
+    room.versusRevealed = false;
+    room.versusAdvanceAt = null;
+    room.versusTotal = versusState.total;
+    room.activeNames = new Set(versusState.current ? [versusState.current] : []);
+    room.status = versusState.current ? "active" : "complete";
   }
 
   #reject(reason: GuessRejectReason, message: string): GuessRejectedResult {

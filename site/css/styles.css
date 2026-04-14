@@ -1612,6 +1612,16 @@ textarea {
   image-rendering: pixelated;
 }
 
+.study-card--versus .study-card__sprite {
+  filter: var(--outline-filter);
+  opacity: var(--outline-opacity);
+}
+
+.study-card--versus-revealed .study-card__sprite {
+  filter: none;
+  opacity: 1;
+}
+
 .study-card__body {
   display: grid;
   gap: 10px;
@@ -1623,6 +1633,11 @@ textarea {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.study-card--versus .study-card__meta,
+.study-card--versus .study-card__types {
+  display: none;
 }
 
 .study-card__meta-chip {

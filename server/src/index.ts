@@ -21,7 +21,10 @@ const catalogRefreshIntervalMs = Number.parseInt(
 );
 
 const app = Fastify({ logger: true });
-const catalogStore = new CatalogStore({ cachePath: catalogCachePath });
+const catalogStore = new CatalogStore({
+  cachePath: catalogCachePath,
+  refreshOnRead: catalogRefreshIntervalMs > 0
+});
 const roomStore = new RoomStore(undefined, { persistencePath: roomsPersistencePath });
 
 await app.register(fastifyWebsocket);

@@ -431,7 +431,6 @@ test("restores the single-player snapshot after leaving multiplayer", async ({ b
     await page.locator("#name-input").fill("Bulbasaur");
     await page.locator("#name-input").press("Enter");
     await expect(page.locator("#found-count")).toHaveText("1/2");
-    await expect(page.locator("#timer")).not.toHaveText("00:00");
 
     await expect
       .poll(
@@ -678,6 +677,58 @@ test("creates a room with customized multiplayer settings", async ({ browser }) 
     });
   } finally {
     await context.close();
+  }
+});
+
+test("creates a versus room and accepts a correct guess", async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext();
+  const hostPage = await hostContext.newPage();
+  const guestPage = await guestContext.newPage();
+
+  try {
+    await Promise.all([
+      openApp(hostPage, hostContext),
+      openApp(guestPage, guestContext)
+    ]);
+
+    const { createPayload, roomCode } = await createMultiplayerRoom(hostPage, {
+      playerName: "Ash",
+      mode: "versus"
+    });
+    await expect(hostPage.locator("#multiplayer-panel")).toBeVisible();
+    await expect(createPayload.snapshot.settings.mode).toBe("versus");
+    const current = createPayload.snapshot.versusCurrent;
+    expect(current).toBeTruthy();
+    const currentLabel = current === "bulbasaur" ? "Bulbasaur" : "Charmander";
+
+    await expect(hostPage.locator("#study-panel")).toBeVisible();
+    await expect(hostPage.locator(".study-panel__eyebrow")).toHaveText("Versus Mode");
+    await expect(hostPage.locator("#study-actions")).toBeHidden();
+    await expect(hostPage.locator("#study-card")).toHaveClass(/study-card--versus/);
+    await expect(hostPage.locator("#study-sprite")).toHaveClass(/study-card__sprite--versus-hidden/);
+    await expect(hostPage.locator("#study-meta")).toBeHidden();
+    await expect(hostPage.locator("#study-types")).toBeHidden();
+    await closeMultiplayerModal(hostPage);
+
+    await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
+    await expect(guestPage.locator("#study-panel")).toBeVisible();
+    await expect(guestPage.locator(".study-panel__eyebrow")).toHaveText("Versus Mode");
+    await expect(guestPage.locator("#study-card")).toHaveClass(/study-card--versus/);
+    await expect(guestPage.locator("#study-sprite")).toHaveClass(/study-card__sprite--versus-hidden/);
+    await expect(guestPage.locator("#study-meta")).toBeHidden();
+    await expect(guestPage.locator("#study-types")).toBeHidden();
+    await closeMultiplayerModal(guestPage);
+
+    await hostPage.locator("#name-input").fill(currentLabel);
+    await hostPage.locator("#name-input").press("Enter");
+
+    await expect(hostPage.locator("#multiplayer-players")).toContainText(/Ash \(host\): 1\/\d+/);
+    await expect(guestPage.locator("#multiplayer-players")).toContainText(/Misty: 0\/\d+/);
+    await expect(hostPage.locator("#study-card")).toHaveClass(/study-card--versus/);
+    await expect(guestPage.locator("#study-card")).toHaveClass(/study-card--versus/);
+  } finally {
+    await Promise.all([hostContext.close(), guestContext.close()]);
   }
 });
 

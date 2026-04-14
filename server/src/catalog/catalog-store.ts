@@ -11,6 +11,7 @@ interface CatalogSnapshotCache {
 
 export interface CatalogStoreOptions {
   cachePath?: string;
+  refreshOnRead?: boolean;
 }
 
 const DEFAULT_CACHE_PATH = path.resolve(process.cwd(), ".cache", "catalog-snapshot.json");
@@ -37,9 +38,11 @@ export class CatalogStore {
   #loading: Promise<CatalogSnapshot> | null = null;
   #refreshing: Promise<CatalogSnapshot | null> | null = null;
   #cachePath: string;
+  #refreshOnRead: boolean;
 
   constructor(options: CatalogStoreOptions = {}) {
     this.#cachePath = options.cachePath || DEFAULT_CACHE_PATH;
+    this.#refreshOnRead = options.refreshOnRead ?? true;
   }
 
   async getCatalog(): Promise<CatalogSnapshot> {
@@ -47,7 +50,9 @@ export class CatalogStore {
     const cached = await this.#readCachedCatalog();
     if (cached) {
       this.#catalog = cached;
-      void this.refreshCatalog();
+      if (this.#refreshOnRead) {
+        void this.refreshCatalog();
+      }
       return cached;
     }
     if (!this.#loading) {

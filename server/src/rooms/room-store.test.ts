@@ -241,7 +241,7 @@ test("RoomStore resets multiplayer progress for the host", () => {
   const first = store.submitGuess(catalog, room, host, "Bulbasaur");
   assert.equal(first.accepted, true);
 
-  const reset = store.resetRoom(room, host);
+  const reset = store.resetRoom(catalog, room, host);
 
   assert.equal(reset.status, "active");
   assert.equal(reset.timerStartedAt, null);
@@ -285,6 +285,105 @@ test("RoomStore marks players disconnected on disconnect and preserves room stat
   assert.equal(rejoined?.snapshot.players[0]?.host, true);
   assert.equal(rejoined?.snapshot.players[0]?.status, "connected");
   assert.equal(rejoined?.snapshot.players[0]?.name, "Ash");
+});
+
+test("RoomStore creates versus rooms with a single active Pokemon", () => {
+  const store = new RoomStore();
+  const created = store.createRoom(createCatalog(), {
+    playerName: "Ash",
+    settings: { mode: "versus" }
+  });
+
+  assert.equal(created.snapshot.status, "active");
+  assert.equal(created.snapshot.settings.mode, "versus");
+  assert.equal(created.snapshot.activeTotal, 2);
+  assert.ok(created.snapshot.versusCurrent);
+  assert.equal(created.snapshot.versusRevealed, false);
+  assert.equal(created.snapshot.versusAdvanceAt, null);
+  assert.equal(created.snapshot.players[0]?.foundCount, 0);
+});
+
+test("RoomStore advances versus rounds one Pokemon at a time", () => {
+  const catalog = createCatalog();
+  const store = new RoomStore();
+  const created = store.createRoom(catalog, {
+    playerName: "Ash",
+    settings: { mode: "versus" }
+  });
+  const room = store.getRoomById(created.roomId);
+  assert.ok(room);
+  const host = store.findPlayer(room, created.sessionToken);
+  assert.ok(host);
+
+  const current = created.snapshot.versusCurrent;
+  assert.ok(current);
+  const guess = current === "bulbasaur" ? "Bulbasaur" : "Charmander";
+  const accepted = store.submitGuess(catalog, room, host, guess);
+
+  assert.equal(accepted.accepted, true);
+  assert.equal(accepted.complete, false);
+  assert.equal(accepted.accepted && accepted.snapshot.versusRevealed, true);
+  assert.ok(accepted.accepted && accepted.snapshot.versusAdvanceAt);
+  assert.equal(accepted.accepted && accepted.snapshot.players[0]?.foundCount, 1);
+
+  const next = store.advanceVersusRound(catalog, room);
+  assert.equal(next.status, "active");
+  assert.equal(next.versusRevealed, false);
+  assert.equal(next.versusAdvanceAt, null);
+  assert.ok(next.versusCurrent);
+  assert.notEqual(next.versusCurrent, current);
+  assert.equal(next.players[0]?.foundCount, 1);
+});
+
+test("RoomStore rejects non-current versus guesses with a mode-specific message", () => {
+  const catalog = createCatalog();
+  const store = new RoomStore();
+  const created = store.createRoom(catalog, {
+    playerName: "Ash",
+    settings: { mode: "versus" }
+  });
+  const room = store.getRoomById(created.roomId);
+  assert.ok(room);
+  const player = store.findPlayer(room, created.sessionToken);
+  assert.ok(player);
+
+  const current = created.snapshot.versusCurrent;
+  assert.ok(current);
+  const wrongGuess = current === "bulbasaur" ? "Charmander" : "Bulbasaur";
+
+  const rejected = store.submitGuess(catalog, room, player, wrongGuess);
+
+  assert.equal(rejected.accepted, false);
+  assert.equal(rejected.reason, "filtered_out");
+  assert.equal(rejected.message, "Not quite, try again.");
+});
+
+test("RoomStore keeps the current versus target when host settings change", () => {
+  const catalog = createCatalog();
+  const store = new RoomStore();
+  const created = store.createRoom(catalog, {
+    playerName: "Ash",
+    settings: { mode: "versus" }
+  });
+  const room = store.getRoomById(created.roomId);
+  assert.ok(room);
+  const host = store.findPlayer(room, created.sessionToken);
+  assert.ok(host);
+
+  const current = created.snapshot.versusCurrent;
+  assert.ok(current);
+
+  const updated = store.configureRoom(catalog, room, host, {
+    outlinesOff: true,
+    showDex: true
+  });
+
+  assert.equal(updated.settings.mode, "versus");
+  assert.equal(updated.settings.outlinesOff, true);
+  assert.equal(updated.settings.showDex, true);
+  assert.equal(updated.versusCurrent, current);
+  assert.equal(updated.versusRevealed, false);
+  assert.equal(updated.status, "active");
 });
 
 test("RoomStore starts rooms immediately when created", () => {
