@@ -38,8 +38,9 @@ test("RoomStore creates and joins private rooms", () => {
   const joined = store.joinRoom(created.roomCode, { playerName: "Misty" });
 
   assert.equal(created.snapshot.players.length, 1);
+  assert.equal(created.snapshot.status, "active");
   assert.equal(joined?.snapshot.players.length, 2);
-  assert.equal(joined?.snapshot.status, "lobby");
+  assert.equal(joined?.snapshot.status, "active");
 });
 
 test("RoomStore uses trainer names for blank player names", () => {
@@ -77,6 +78,104 @@ test("RoomStore only lets the host configure room settings", () => {
   assert.equal(after.status, before.status);
 });
 
+test("RoomStore lets the host update active-room settings", () => {
+  const store = new RoomStore();
+  const created = store.createRoom(createCatalog(), {
+    playerName: "Ash",
+    settings: { typoMode: "strict", autocorrect: false }
+  });
+  const room = store.getRoomById(created.roomId);
+  assert.ok(room);
+  const host = store.findPlayer(room, created.sessionToken);
+  assert.ok(host);
+
+  const before = store.snapshot(room);
+  const after = store.configureRoom(createCatalog(), room, host, {
+    typoMode: "forgiving",
+    autocorrect: true,
+    outlinesOff: true,
+    showDex: true
+  });
+
+  assert.equal(after.settings.typoMode, "forgiving");
+  assert.equal(after.settings.autocorrect, true);
+  assert.equal(after.settings.outlinesOff, true);
+  assert.equal(after.settings.showDex, true);
+  assert.equal(after.settings.mode, before.settings.mode);
+});
+
+test("RoomStore marks the room complete when live filters leave only found Pokemon", () => {
+  const catalog = createCatalog();
+  const store = new RoomStore();
+  const created = store.createRoom(catalog, {
+    playerName: "Ash",
+    settings: { mode: "coop" }
+  });
+  const room = store.getRoomById(created.roomId);
+  assert.ok(room);
+  const host = store.findPlayer(room, created.sessionToken);
+  assert.ok(host);
+
+  const first = store.submitGuess(catalog, room, host, "Bulbasaur");
+  assert.equal(first.accepted, true);
+
+  const after = store.configureRoom(catalog, room, host, {
+    types: ["grass"]
+  });
+
+  assert.equal(after.status, "complete");
+  assert.equal(after.events[0]?.type, "room_completed");
+  assert.equal(after.events[0]?.playerId, host.id);
+});
+
+test("RoomStore applies multiplayer typo settings to guess acceptance", () => {
+  const catalog = createCatalog();
+  const store = new RoomStore();
+  const created = store.createRoom(catalog, {
+    playerName: "Ash",
+    settings: { typoMode: "normal", autocorrect: true }
+  });
+  const room = store.getRoomById(created.roomId);
+  assert.ok(room);
+  const host = store.findPlayer(room, created.sessionToken);
+  assert.ok(host);
+
+  const accepted = store.submitGuess(catalog, room, host, "Bulbasar");
+
+  assert.equal(accepted.accepted, true);
+  assert.equal(accepted.accepted && accepted.canonical, "bulbasaur");
+
+  const strictRoom = store.createRoom(catalog, {
+    playerName: "Misty",
+    settings: { typoMode: "strict", autocorrect: false }
+  });
+  const strict = store.getRoomById(strictRoom.roomId);
+  assert.ok(strict);
+  const strictHost = store.findPlayer(strict, strictRoom.sessionToken);
+  assert.ok(strictHost);
+
+  const rejected = store.submitGuess(catalog, strict, strictHost, "Bulbasar");
+
+  assert.equal(rejected.accepted, false);
+  assert.equal(rejected.reason, "unknown");
+  assert.equal(rejected.message, "Too far off.");
+
+  const suggestRoom = store.createRoom(catalog, {
+    playerName: "Brock",
+    settings: { typoMode: "normal", autocorrect: false }
+  });
+  const suggest = store.getRoomById(suggestRoom.roomId);
+  assert.ok(suggest);
+  const suggestHost = store.findPlayer(suggest, suggestRoom.sessionToken);
+  assert.ok(suggestHost);
+
+  const suggestion = store.submitGuess(catalog, suggest, suggestHost, "Bulbasar");
+
+  assert.equal(suggestion.accepted, false);
+  assert.equal(suggestion.reason, "unknown");
+  assert.match(suggestion.message, /Did you mean/i);
+});
+
 test("RoomStore accepts server-authoritative race guesses", () => {
   const catalog = createCatalog();
   const store = new RoomStore();
@@ -86,7 +185,6 @@ test("RoomStore accepts server-authoritative race guesses", () => {
   const player = store.findPlayer(room, created.sessionToken);
   assert.ok(player);
 
-  store.startRoom(room, player);
   const result = store.submitGuess(catalog, room, player, "Bisasam");
 
   assert.equal(result.accepted, true);
@@ -112,7 +210,6 @@ test("RoomStore shares co-op progress across players", () => {
   assert.ok(host);
   assert.ok(guest);
 
-  store.startRoom(room, host);
   const first = store.submitGuess(catalog, room, host, "Bulbasaur");
   const duplicate = store.submitGuess(catalog, room, guest, "Bulbasaur");
 
@@ -141,7 +238,6 @@ test("RoomStore resets multiplayer progress for the host", () => {
   assert.ok(host);
   assert.ok(guest);
 
-  store.startRoom(room, host);
   const first = store.submitGuess(catalog, room, host, "Bulbasaur");
   assert.equal(first.accepted, true);
 
@@ -191,7 +287,7 @@ test("RoomStore marks players disconnected on disconnect and preserves room stat
   assert.equal(rejoined?.snapshot.players[0]?.name, "Ash");
 });
 
-test("RoomStore only lets the host start the room", () => {
+test("RoomStore starts rooms immediately when created", () => {
   const store = new RoomStore();
   const created = store.createRoom(createCatalog(), { playerName: "Ash" });
   const joined = store.joinRoom(created.roomCode, { playerName: "Misty" });
@@ -199,15 +295,10 @@ test("RoomStore only lets the host start the room", () => {
   assert.ok(joined);
   const room = store.getRoomById(created.roomId);
   assert.ok(room);
-  const host = store.findPlayer(room, created.sessionToken);
-  const guest = store.findPlayer(room, joined.sessionToken);
-  assert.ok(host);
-  assert.ok(guest);
-
-  const before = store.snapshot(room);
-  const after = store.startRoom(room, guest);
-
-  assert.equal(after.status, before.status);
-  assert.equal(after.timerStartedAt, before.timerStartedAt);
-  assert.deepEqual(after.events, before.events);
+  assert.equal(room.status, "active");
+  assert.equal(room.events.length, 2);
+  assert.deepEqual(
+    room.events.map((event) => event.type),
+    ["player_joined", "player_joined"]
+  );
 });

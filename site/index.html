@@ -257,12 +257,57 @@
           <div class="settings-actions multiplayer-actions">
             <button id="multiplayer-create" class="btn ghost btn-small" type="button">Create Room</button>
             <button id="multiplayer-join" class="btn ghost btn-small" type="button">Join Room</button>
-            <button id="multiplayer-start" class="btn btn-small" type="button" hidden>Start</button>
             <button id="multiplayer-copy" class="btn ghost btn-small" type="button" hidden>Copy Link</button>
             <button id="multiplayer-copy-code" class="btn ghost btn-small" type="button" hidden>Copy Code</button>
             <button id="multiplayer-leave" class="btn ghost btn-small btn-reset" type="button" hidden>Leave</button>
           </div>
           <p id="multiplayer-status" class="progress-feedback" aria-live="polite">Create or join a private room.</p>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section__copy">
+            <h3>Gameplay Options</h3>
+            <p class="settings-section__description">Adjust spelling help and room-wide reveal settings for this room.</p>
+          </div>
+          <div class="settings-grid">
+            <div class="settings-field">
+              <div class="settings-field__head">
+                <label for="multiplayer-typo-mode">Typo Tolerance</label>
+                <span class="info-tip" data-tip-label="Typo Tolerance" data-tip-id="multiplayer-typo-mode-tip" data-tip="Pick how much spelling help you want before a guess is accepted."></span>
+              </div>
+              <select id="multiplayer-typo-mode">
+                <option value="strict">Strict</option>
+                <option value="normal" selected>Normal</option>
+                <option value="forgiving">Forgiving</option>
+              </select>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="multiplayer-autocorrect-toggle" type="checkbox" checked />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Auto-Accept Close Matches</span>
+                <span class="info-tip" data-tip-label="Auto-Accept Close Matches" data-tip-id="multiplayer-autocorrect-tip" data-tip="Automatically accepts near-misses instead of leaving them as suggestions."></span>
+              </span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="multiplayer-outline-toggle" type="checkbox" />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Show Outlines</span>
+                <span class="info-tip" data-tip-label="Show Outlines" data-tip-id="multiplayer-outline-tip" data-tip="Keeps sprite outlines visible instead of flattening them."></span>
+              </span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input id="multiplayer-show-dex-toggle" type="checkbox" />
+              <span class="toggle-copy">
+                <span class="toggle-copy__title">Show Pokedex ID</span>
+                <span class="info-tip" data-tip-label="Show Pokedex ID" data-tip-id="multiplayer-show-dex-tip" data-tip="Adds each Pokemon's National Dex number to the reveal view."></span>
+              </span>
+            </label>
+          </div>
         </div>
         <div class="settings-section">
           <div class="settings-section__copy">

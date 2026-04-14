@@ -1136,12 +1136,58 @@ textarea {
   line-height: 1.2;
 }
 
-.toggle--disabled {
+.toggle.toggle--disabled {
   opacity: 0.5;
+  cursor: not-allowed !important;
 }
 
-.toggle--disabled span {
+.toggle.toggle--disabled *,
+.toggle.toggle--disabled input:disabled,
+.toggle.toggle--disabled span,
+.toggle.toggle--disabled .toggle-copy,
+.toggle.toggle--disabled .toggle-copy__title {
+  cursor: not-allowed !important;
+}
+
+.settings-field--disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.settings-field--disabled,
+.settings-field--disabled *,
+.settings-field--disabled input:disabled,
+.settings-field--disabled select:disabled,
+.settings-field--disabled button:disabled {
+  cursor: not-allowed !important;
+}
+
+.filter--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.filter--disabled,
+.filter--disabled *,
+.filter--disabled input:disabled,
+.filter--disabled select:disabled,
+.filter--disabled button:disabled {
+  cursor: not-allowed !important;
+}
+
+.chip--disabled {
+  cursor: not-allowed !important;
+}
+
+.chip--disabled,
+.chip--disabled input:disabled,
+.chip--disabled * {
+  cursor: not-allowed !important;
+}
+
+.chip--disabled:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
 }
 
 .hero-actions {
@@ -3075,6 +3121,10 @@ textarea {
   place-items: center;
   position: relative;
   overflow: visible;
+}
+
+.compact-mode .sprite-card.sprite-card--multiplayer-found:not(.sprite-card--hidden) {
+  background: none;
 }
 
 .compact-mode .sprite-card--revealed {

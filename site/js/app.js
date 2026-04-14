@@ -130,6 +130,10 @@ const multiplayerFiltersPanelToggle = document.getElementById("multiplayer-filte
 const multiplayerGroupFilter = document.getElementById("multiplayer-group-filter");
 const multiplayerGenFilter = document.getElementById("multiplayer-gen-filter");
 const multiplayerTypeFilter = document.getElementById("multiplayer-type-filter");
+const multiplayerTypoModeSelect = document.getElementById("multiplayer-typo-mode");
+const multiplayerAutocorrectToggle = document.getElementById("multiplayer-autocorrect-toggle");
+const multiplayerOutlineToggle = document.getElementById("multiplayer-outline-toggle");
+const multiplayerShowDexToggle = document.getElementById("multiplayer-show-dex-toggle");
 const multiplayerClose = document.getElementById("multiplayer-close");
 const multiplayerJoinModal = document.getElementById("multiplayer-join-modal");
 const multiplayerJoinClose = document.getElementById("multiplayer-join-close");
@@ -218,7 +222,6 @@ const multiplayerPlayerName = document.getElementById("multiplayer-player-name")
 const multiplayerMode = document.getElementById("multiplayer-mode");
 const multiplayerCreate = document.getElementById("multiplayer-create");
 const multiplayerJoin = document.getElementById("multiplayer-join");
-const multiplayerStart = document.getElementById("multiplayer-start");
 const multiplayerLeave = document.getElementById("multiplayer-leave");
 const multiplayerCopy = document.getElementById("multiplayer-copy");
 const multiplayerCopyCode = document.getElementById("multiplayer-copy-code");
@@ -247,6 +250,8 @@ let viewController = null;
 let multiplayerFiltersController = null;
 let multiplayerController = null;
 let soloTimerSnapshot = null;
+let multiplayerVisualSettings = null;
+let multiplayerSetupPreviewState = null;
 
 function setMultiplayerFiltersInModal(inModal) {
   if (!multiplayerFiltersSlot) return;
@@ -254,9 +259,17 @@ function setMultiplayerFiltersInModal(inModal) {
   multiplayerFiltersSlot.setAttribute("aria-hidden", inModal ? "false" : "true");
 }
 
+function syncSpriteBoardFiltersVisibility() {
+  if (!spriteBoardFilters) return;
+  spriteBoardFilters.hidden = isMultiplayerActive();
+}
+
 function setDisabledControl(el, disabled, { ariaDisabled = false, className = "" } = {}) {
   if (!el) return;
   el.disabled = disabled;
+  el.closest(".toggle")?.classList.toggle("toggle--disabled", disabled);
+  el.closest(".settings-field")?.classList.toggle("settings-field--disabled", disabled);
+  el.closest(".filter")?.classList.toggle("filter--disabled", disabled);
   if (ariaDisabled) {
     el.setAttribute("aria-disabled", disabled ? "true" : "false");
   }
@@ -276,9 +289,7 @@ function isMultiplayerModalOpen() {
 function getMultiplayerAccessState(snapshot = null) {
   const access = multiplayerController?.getRoomAccessState?.(snapshot) || {
     active: Boolean(snapshot),
-    host: false,
-    inLobby: snapshot?.status === "lobby",
-    settingsLocked: Boolean(snapshot) && snapshot?.status !== "lobby"
+    host: false
   };
   return {
     ...access,
@@ -339,20 +350,74 @@ function getShareableSettingsPayload() {
   return shareableSettings;
 }
 
+function isMultiplayerTypoSettingsLocked() {
+  return isMultiplayerActive();
+}
+
 function getMultiplayerRoomSettings() {
   const group = multiplayerGroupFilter && ["none", "generation", "type"].includes(multiplayerGroupFilter.value)
     ? multiplayerGroupFilter.value
     : "generation";
+  const visualSettings = multiplayerVisualSettings || {
+    outlinesOff: document.body.classList.contains("outlines-off"),
+    showDex: showDexToggle ? showDexToggle.checked : false
+  };
   return {
     mode: multiplayerMode && multiplayerMode.value === "coop" ? "coop" : "race",
-    typoMode: typoModeSelect ? typoModeSelect.value : DEFAULT_TYPO_MODE,
-    autocorrect: autocorrectToggle ? autocorrectToggle.checked : true,
-    outlinesOff: document.body.classList.contains("outlines-off"),
-    showDex: showDexToggle ? showDexToggle.checked : false,
+    typoMode: multiplayerTypoModeSelect ? multiplayerTypoModeSelect.value : DEFAULT_TYPO_MODE,
+    autocorrect: multiplayerAutocorrectToggle ? multiplayerAutocorrectToggle.checked : true,
+    outlinesOff: visualSettings.outlinesOff,
+    showDex: visualSettings.showDex,
     group,
     generations: multiplayerFiltersController?.getSelectedGenerations() || [],
     types: multiplayerFiltersController?.getSelectedTypes() || []
   };
+}
+
+function getEffectiveOutlinesOff() {
+  if (multiplayerVisualSettings) {
+    return Boolean(multiplayerVisualSettings.outlinesOff);
+  }
+  return document.body.classList.contains("outlines-off");
+}
+
+function getEffectiveShowDex() {
+  if (multiplayerVisualSettings) {
+    return Boolean(multiplayerVisualSettings.showDex);
+  }
+  return showDexToggle ? showDexToggle.checked : false;
+}
+
+function captureMultiplayerSetupPreviewState() {
+  if (multiplayerSetupPreviewState) return;
+  multiplayerSetupPreviewState = {
+    outlinesOff: document.body.classList.contains("outlines-off"),
+    showDex: showDexToggle ? showDexToggle.checked : false
+  };
+}
+
+function applyMultiplayerSetupPreview() {
+  if (isMultiplayerActive() || !isMultiplayerModalOpen()) return;
+  captureMultiplayerSetupPreviewState();
+  if (multiplayerOutlineToggle) {
+    document.body.classList.toggle("outlines-off", !multiplayerOutlineToggle.checked);
+  }
+  if (showDexToggle && multiplayerShowDexToggle) {
+    showDexToggle.checked = Boolean(multiplayerShowDexToggle.checked);
+  }
+  renderSprites();
+}
+
+function clearMultiplayerSetupPreview({ restore = true } = {}) {
+  if (!multiplayerSetupPreviewState) return;
+  if (restore) {
+    document.body.classList.toggle("outlines-off", Boolean(multiplayerSetupPreviewState.outlinesOff));
+    if (showDexToggle) {
+      showDexToggle.checked = Boolean(multiplayerSetupPreviewState.showDex);
+    }
+    renderSprites();
+  }
+  multiplayerSetupPreviewState = null;
 }
 
 timerController = createTimerController({
@@ -575,7 +640,8 @@ settingsController = createSettingsController({
   getGameMode,
   getWeeklyChallengeTheme,
   requestConfirmation: (...args) => modalController.requestConfirmation(...args),
-  isFiltersLocked: () => isMultiplayerActive()
+  isGameplayLocked: () => isMultiplayerActive(),
+  isTypoSettingsLocked: isMultiplayerTypoSettingsLocked
 });
 
 studyController = createStudyController({
@@ -625,6 +691,7 @@ viewController = createViewController({
   getSpriteForEntry,
   getHiddenLabel,
   getSpriteCardBadge: (canonical) => multiplayerController?.getSpriteCardBadge?.(canonical) || null,
+  isOutlinesOff: getEffectiveOutlinesOff,
   formatGenerationLabel,
   generationOrder
 });
@@ -670,7 +737,6 @@ multiplayerController = createMultiplayerController({
     modeSelect: multiplayerMode,
     createBtn: multiplayerCreate,
     joinBtn: multiplayerJoin,
-    startBtn: multiplayerStart,
     leaveBtn: multiplayerLeave,
     copyBtn: multiplayerCopy,
     copyCodeBtn: multiplayerCopyCode
@@ -846,12 +912,13 @@ function syncMultiplayerTimer(snapshot = null) {
 }
 
 function syncMultiplayerLockState(snapshot = null) {
-  const { active: inRoom, host, settingsLocked, modalOpen } = getMultiplayerAccessState(snapshot);
-  const filterInputsDisabled = inRoom ? settingsLocked || !host : false;
+  const { active: inRoom, host, modalOpen } = getMultiplayerAccessState(snapshot);
+  const filterInputsDisabled = inRoom ? !host : false;
   const showModalFilters = modalOpen && (!inRoom || host);
+  if (!inRoom) multiplayerVisualSettings = null;
 
-  if (multiplayerGameplayLock) multiplayerGameplayLock.hidden = !inRoom;
-  if (multiplayerGameplayControls) multiplayerGameplayControls.hidden = inRoom;
+  if (multiplayerGameplayLock) multiplayerGameplayLock.hidden = !inRoom || host;
+  if (multiplayerGameplayControls) multiplayerGameplayControls.hidden = inRoom && !host;
   if (multiplayerProgressLock) multiplayerProgressLock.hidden = !inRoom;
   if (multiplayerProgressControls) multiplayerProgressControls.hidden = inRoom;
   setDisabledControl(progressIncludeSettingsEl, inRoom);
@@ -862,11 +929,9 @@ function syncMultiplayerLockState(snapshot = null) {
   setDisabledControl(progressCodeEl, inRoom, { ariaDisabled: true, className: "is-disabled" });
   setDisabledControl(resetBtn, inRoom && !host);
   setDisabledControl(resetBtnCompact, inRoom && !host);
-  if (spriteBoardFilters) {
-    spriteBoardFilters.hidden = inRoom;
-  }
-  setDisabledControl(multiplayerFiltersPanelToggle, inRoom ? settingsLocked || !host : false);
-  setDisabledControl(multiplayerGroupFilter, inRoom ? settingsLocked || !host : false);
+  syncSpriteBoardFiltersVisibility();
+  setDisabledControl(multiplayerFiltersPanelToggle, inRoom ? !host : false);
+  setDisabledControl(multiplayerGroupFilter, inRoom ? !host : false);
   if (multiplayerFiltersSlot) {
     setCheckboxGroupDisabled(
       multiplayerFiltersSlot.querySelectorAll(".chip-grid input[type='checkbox']"),
@@ -878,10 +943,15 @@ function syncMultiplayerLockState(snapshot = null) {
   setDisabledControl(filtersPanelToggle, inRoom);
   setCheckboxGroupDisabled(document.querySelectorAll(".chip-grid input[type='checkbox']"), filterInputsDisabled);
   setDisabledControl(gameModeSelect, inRoom);
+  setDisabledControl(outlineToggle, inRoom);
+  setDisabledControl(showDexToggle, inRoom);
   setDisabledControl(typoModeSelect, inRoom);
   setDisabledControl(autocorrectToggle, inRoom);
-  setDisabledControl(outlineToggle, inRoom && !host);
-  setDisabledControl(showDexToggle, inRoom && !host);
+  setDisabledControl(multiplayerTypoModeSelect, inRoom ? !host : false);
+  setDisabledControl(multiplayerAutocorrectToggle, inRoom ? !host : false);
+  setDisabledControl(multiplayerOutlineToggle, inRoom && !host);
+  setDisabledControl(multiplayerShowDexToggle, inRoom && !host);
+  syncGameplaySettings();
   setMultiplayerFiltersInModal(showModalFilters);
 }
 
@@ -969,16 +1039,38 @@ function closeSettingsModal() {
 
 function openMultiplayerModal() {
   if (multiplayerGroupFilter && groupFilter) multiplayerGroupFilter.value = groupFilter.value;
-  const { active, host } = getMultiplayerAccessState();
-  setMultiplayerFiltersInModal(!active || host);
+  if (!isMultiplayerActive()) {
+    if (multiplayerTypoModeSelect && typoModeSelect) {
+      multiplayerTypoModeSelect.value = typoModeSelect.value;
+    }
+    if (multiplayerAutocorrectToggle && autocorrectToggle) {
+      multiplayerAutocorrectToggle.checked = autocorrectToggle.checked;
+    }
+  }
+  const visualSettings = multiplayerVisualSettings || {
+    outlinesOff: document.body.classList.contains("outlines-off"),
+    showDex: showDexToggle ? showDexToggle.checked : false
+  };
+  if (multiplayerOutlineToggle) {
+    multiplayerOutlineToggle.checked = !visualSettings.outlinesOff;
+  }
+  if (multiplayerShowDexToggle) {
+    multiplayerShowDexToggle.checked = visualSettings.showDex;
+  }
+  openModal(multiplayerModal, multiplayerPlayerName || multiplayerRoomCodeInput || multiplayerCreate);
+  syncMultiplayerLockState();
+  syncSpriteBoardFiltersVisibility();
   syncGameplaySettings();
   updateMultiplayerFilterSummary();
   syncWeeklyChallengeState();
-  openModal(multiplayerModal, multiplayerPlayerName || multiplayerRoomCodeInput || multiplayerCreate);
 }
 
 function closeMultiplayerModal() {
+  if (!isMultiplayerActive()) {
+    clearMultiplayerSetupPreview();
+  }
   closeModal(multiplayerModal);
+  syncSpriteBoardFiltersVisibility();
   setMultiplayerFiltersInModal(false);
   syncGameplaySettings();
   syncWeeklyChallengeState();
@@ -1381,7 +1473,7 @@ function closeInfoModal() {
 }
 
 function getHiddenLabel(entry) {
-  if (showDexToggle && showDexToggle.checked && entry.dexId) {
+  if (getEffectiveShowDex() && entry.dexId) {
     return `#${String(entry.dexId).padStart(3, "0")}`;
   }
   return "???";
@@ -1561,6 +1653,11 @@ function applyFilters(options = {}) {
 
 function applyMultiplayerRoomSettings(settings) {
   if (!settings) return;
+  clearMultiplayerSetupPreview({ restore: false });
+  multiplayerVisualSettings = {
+    outlinesOff: Boolean(settings.outlinesOff),
+    showDex: Boolean(settings.showDex)
+  };
   const group = ["none", "generation", "type"].includes(settings.group) ? settings.group : "generation";
   if (groupFilter) groupFilter.value = group;
   if (multiplayerGroupFilter) multiplayerGroupFilter.value = group;
@@ -1574,9 +1671,11 @@ function applyMultiplayerRoomSettings(settings) {
   );
   if (typoModeSelect) typoModeSelect.value = settings.typoMode || DEFAULT_TYPO_MODE;
   if (autocorrectToggle) autocorrectToggle.checked = settings.autocorrect !== false;
-  if (outlineToggle) outlineToggle.checked = !settings.outlinesOff;
+  if (multiplayerTypoModeSelect) multiplayerTypoModeSelect.value = settings.typoMode || DEFAULT_TYPO_MODE;
+  if (multiplayerAutocorrectToggle) multiplayerAutocorrectToggle.checked = settings.autocorrect !== false;
+  if (multiplayerOutlineToggle) multiplayerOutlineToggle.checked = !settings.outlinesOff;
   document.body.classList.toggle("outlines-off", Boolean(settings.outlinesOff));
-  if (showDexToggle) showDexToggle.checked = Boolean(settings.showDex);
+  if (multiplayerShowDexToggle) multiplayerShowDexToggle.checked = Boolean(settings.showDex);
   syncGameplaySettings();
   multiplayerFiltersController?.applyFilters({ force: true, persist: false });
 }
@@ -1733,6 +1832,14 @@ if (groupFilter) {
     refreshGameplayViews({ stats: false });
     updateFilterSummary();
     saveState();
+    if (multiplayerGroupFilter) {
+      multiplayerGroupFilter.value = groupFilter.value;
+    }
+    const { active, host } = getMultiplayerAccessState();
+    if (active && host) {
+      updateMultiplayerFilterSummary();
+      multiplayerController?.configureRoom?.();
+    }
   });
 }
   if (multiplayerGroupFilter) {
@@ -1781,6 +1888,13 @@ if (outlineToggle) {
   document.body.classList.add("outlines-off");
   outlineToggle.addEventListener("change", () => {
     document.body.classList.toggle("outlines-off", !outlineToggle.checked);
+    if (getMultiplayerAccessState().active) {
+      multiplayerVisualSettings = {
+        outlinesOff: !outlineToggle.checked,
+        showDex: multiplayerVisualSettings ? multiplayerVisualSettings.showDex : Boolean(showDexToggle?.checked)
+      };
+      if (multiplayerOutlineToggle) multiplayerOutlineToggle.checked = outlineToggle.checked;
+    }
     renderSprites();
     saveSettingsAndSyncRoom();
   });
@@ -1883,6 +1997,13 @@ if (criesToggle) {
 
 if (showDexToggle) {
   showDexToggle.addEventListener("change", () => {
+    if (getMultiplayerAccessState().active) {
+      multiplayerVisualSettings = {
+        outlinesOff: multiplayerVisualSettings ? multiplayerVisualSettings.outlinesOff : document.body.classList.contains("outlines-off"),
+        showDex: showDexToggle.checked
+      };
+      if (multiplayerShowDexToggle) multiplayerShowDexToggle.checked = showDexToggle.checked;
+    }
     renderSprites();
     saveSettingsAndSyncRoom();
   });
@@ -1915,7 +2036,12 @@ if (gameModeSelect) {
     }
     showStatusHint("");
     applyFilters();
-    saveSettings();
+    const { active, host } = getMultiplayerAccessState();
+    if (active && host) {
+      saveSettingsAndSyncRoom();
+    } else {
+      saveSettings();
+    }
   });
 }
 
@@ -1944,13 +2070,61 @@ if (studyNextBtn) {
 
 if (typoModeSelect) {
   typoModeSelect.addEventListener("change", () => {
+    if (getMultiplayerAccessState().active && multiplayerTypoModeSelect) {
+      multiplayerTypoModeSelect.value = typoModeSelect.value;
+    }
     syncTypoSettings();
-    saveSettings();
+    saveSettingsAndSyncRoom();
   });
 }
 
 if (autocorrectToggle) {
-  autocorrectToggle.addEventListener("change", saveSettings);
+  autocorrectToggle.addEventListener("change", () => {
+    if (getMultiplayerAccessState().active && multiplayerAutocorrectToggle) {
+      multiplayerAutocorrectToggle.checked = autocorrectToggle.checked;
+    }
+    saveSettingsAndSyncRoom();
+  });
+}
+
+if (multiplayerTypoModeSelect) {
+  multiplayerTypoModeSelect.addEventListener("change", () => {
+    multiplayerController?.syncRoomSettings?.();
+  });
+}
+
+if (multiplayerAutocorrectToggle) {
+  multiplayerAutocorrectToggle.addEventListener("change", () => {
+    multiplayerController?.syncRoomSettings?.();
+  });
+}
+
+if (multiplayerOutlineToggle) {
+  multiplayerOutlineToggle.addEventListener("change", () => {
+    if (!isMultiplayerActive()) {
+      applyMultiplayerSetupPreview();
+      return;
+    }
+    multiplayerVisualSettings = {
+      outlinesOff: !multiplayerOutlineToggle.checked,
+      showDex: multiplayerVisualSettings ? multiplayerVisualSettings.showDex : Boolean(showDexToggle?.checked)
+    };
+    multiplayerController?.syncRoomSettings?.();
+  });
+}
+
+if (multiplayerShowDexToggle) {
+  multiplayerShowDexToggle.addEventListener("change", () => {
+    if (!isMultiplayerActive()) {
+      applyMultiplayerSetupPreview();
+      return;
+    }
+    multiplayerVisualSettings = {
+      outlinesOff: multiplayerVisualSettings ? multiplayerVisualSettings.outlinesOff : document.body.classList.contains("outlines-off"),
+      showDex: multiplayerShowDexToggle.checked
+    };
+    multiplayerController?.syncRoomSettings?.();
+  });
 }
 
 if (darkToggle) {

@@ -44,7 +44,8 @@ export function createSettingsController({
   getGameMode,
   getWeeklyChallengeTheme,
   requestConfirmation,
-  isFiltersLocked = () => false
+  isGameplayLocked = () => false,
+  isTypoSettingsLocked = isGameplayLocked
 }) {
   function setFiltersPanelExpanded(expanded, { persist = true } = {}) {
     if (!filtersPanel || !filtersPanelToggle) return;
@@ -58,7 +59,7 @@ export function createSettingsController({
   function syncTypoSettings() {
     if (!typoModeSelect || !autocorrectToggle) return;
     const isStrict = typoModeSelect.value === "strict";
-    const locked = isFiltersLocked();
+    const locked = isTypoSettingsLocked();
     autocorrectToggle.disabled = locked || isStrict;
     autocorrectToggle
       .closest(".toggle")
@@ -66,10 +67,15 @@ export function createSettingsController({
   }
 
   function syncGameplaySettings() {
-    const locked = isFiltersLocked();
-    if (gameModeSelect) gameModeSelect.disabled = locked;
-    if (groupFilter) groupFilter.disabled = locked;
-    if (typoModeSelect) typoModeSelect.disabled = locked;
+    const locked = isGameplayLocked();
+    if (gameModeSelect) {
+      gameModeSelect.disabled = locked;
+      gameModeSelect.closest(".settings-field")?.classList.toggle("settings-field--disabled", locked);
+    }
+    if (groupFilter) {
+      groupFilter.disabled = locked;
+      groupFilter.closest(".filter")?.classList.toggle("filter--disabled", locked);
+    }
     syncTypoSettings();
   }
 
@@ -221,7 +227,7 @@ export function createSettingsController({
   }
 
   function resetSettings() {
-    const locked = isFiltersLocked();
+    const locked = isGameplayLocked();
     localStorage.removeItem(storageSettingsKey);
     localStorage.removeItem(legacyStorageSettingsKey);
     document.body.classList.remove("compact-mode");

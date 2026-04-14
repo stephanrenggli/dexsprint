@@ -86,7 +86,6 @@ export function createMultiplayerController({
     modeSelect,
     createBtn,
     joinBtn,
-    startBtn,
     leaveBtn,
     copyBtn,
     copyCodeBtn
@@ -99,30 +98,23 @@ export function createMultiplayerController({
   let pendingInviteCode = "";
 
   function isActive() {
-    return Boolean(room && sessionToken);
+    return getRoomAccessState().active && Boolean(sessionToken);
   }
 
   function getRoomAccessState(snapshot = room) {
-    const active = Boolean(snapshot);
-    const host = active && Boolean(snapshot?.players.find((player) => player.id === playerId)?.host);
-    const inLobby = snapshot?.status === "lobby";
-    const settingsLocked = active && !inLobby;
+    const currentRoom = snapshot ?? room;
+    const active = Boolean(currentRoom);
+    const host =
+      active && Boolean(currentRoom?.players.find((player) => player.id === playerId)?.host);
     return {
       active,
-      host,
-      inLobby,
-      settingsLocked
+      host
     };
   }
 
   function canHostControlRoom() {
     const access = getRoomAccessState();
     return access.active && access.host;
-  }
-
-  function canSyncRoomSettings() {
-    const access = getRoomAccessState();
-    return access.active && access.host && access.inLobby;
   }
 
   function getPlayerName() {
@@ -244,9 +236,6 @@ export function createMultiplayerController({
     if (event.type === "guess_accepted" || event.type === "room_completed") {
       return `${playerName} found ${event.label || event.canonical || "Pokemon"}`;
     }
-    if (event.type === "room_started") {
-      return "Room started.";
-    }
     if (event.type === "room_reset") {
       return `${playerName} reset the room.`;
     }
@@ -300,10 +289,6 @@ export function createMultiplayerController({
     if (joinBtn) joinBtn.hidden = Boolean(snapshot);
     if (roomCodeInput) roomCodeInput.disabled = Boolean(snapshot);
     if (modeSelect) modeSelect.disabled = Boolean(snapshot);
-    if (startBtn) {
-      const self = snapshot?.players.find((player) => player.id === playerId);
-      startBtn.hidden = !snapshot || snapshot.status !== "lobby" || !self?.host;
-    }
     if (leaveBtn) leaveBtn.hidden = !snapshot;
     if (copyBtn) copyBtn.hidden = !snapshot;
     if (copyCodeBtn) copyCodeBtn.hidden = !snapshot;
@@ -462,16 +447,13 @@ export function createMultiplayerController({
     }
   }
 
-  function startRoom() {
-    if (!canHostControlRoom()) return;
-    client.send({ type: "room:start" });
-    closeRoomModal();
-    focusInput();
-  }
-
   function resetRoom() {
     if (!canHostControlRoom()) return;
-    client.send({ type: "room:reset" });
+    const sent = client.send({ type: "room:reset" });
+    if (!sent) {
+      setStatus("Multiplayer connection is not open.");
+      return;
+    }
     closeRoomModal();
     focusInput();
   }
@@ -485,8 +467,8 @@ export function createMultiplayerController({
     sessionToken = "";
     if (restoreSolo) restoreSoloProgressSnapshot();
     if (restoreSolo) restoreSoloTimerSnapshot();
-    restoreLocalSettings();
     onRoomStateChange(null);
+    restoreLocalSettings();
     setStatus("Left multiplayer room.");
     render(null);
   }
@@ -499,7 +481,7 @@ export function createMultiplayerController({
   }
 
   function configureRoom() {
-    if (!canSyncRoomSettings()) return;
+    if (!canHostControlRoom()) return;
     client.send({ type: "room:configure", settings: getRoomSettings() });
   }
 
@@ -551,7 +533,6 @@ export function createMultiplayerController({
 
   if (createBtn) createBtn.addEventListener("click", createRoom);
   if (joinBtn) joinBtn.addEventListener("click", joinRoom);
-  if (startBtn) startBtn.addEventListener("click", startRoom);
   if (leaveBtn) leaveBtn.addEventListener("click", () => leaveRoom());
   if (copyBtn) copyBtn.addEventListener("click", copyRoomLink);
   if (copyCodeBtn) copyCodeBtn.addEventListener("click", copyRoomCode);
@@ -565,7 +546,6 @@ export function createMultiplayerController({
     isActive,
     getRoomAccessState,
     canHostControlRoom,
-    canSyncRoomSettings,
     configureRoom,
     syncRoomSettings,
     submitGuess,

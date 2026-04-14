@@ -19,6 +19,7 @@ export function createViewController({
   getSpriteForEntry,
   getHiddenLabel,
   getSpriteCardBadge = () => null,
+  isOutlinesOff = () => document.body.classList.contains("outlines-off"),
   formatGenerationLabel,
   generationOrder
 }) {
@@ -196,7 +197,7 @@ export function createViewController({
     }
     if (isRevealedNow) {
       classes.push("sprite-card--revealed");
-      if (!document.body.classList.contains("outlines-off")) {
+      if (!isOutlinesOff()) {
         classes.push("sprite-card--outline-reveal");
       }
     }
@@ -233,7 +234,7 @@ export function createViewController({
       card.classList.remove("sprite-card--revealed");
       void card.offsetWidth;
       card.classList.add("sprite-card--revealed");
-      if (!document.body.classList.contains("outlines-off")) {
+      if (!isOutlinesOff()) {
         card.classList.add("sprite-card--outline-reveal");
       }
     } else if (!isFound) {

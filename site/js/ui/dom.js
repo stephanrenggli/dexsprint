@@ -63,6 +63,7 @@ export function setCheckboxGroupDisabled(inputs, disabled, container = null) {
   const checkboxInputs = inputs || [];
   [...checkboxInputs].forEach((input) => {
     input.disabled = disabled;
+    input.closest(".chip")?.classList.toggle("chip--disabled", disabled);
   });
 }
 

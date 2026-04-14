@@ -1,7 +1,9 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { findExactGuess } from "../../../shared/src/guess.js";
+import { findExactGuess, type GuessEntry } from "../../../shared/src/guess.js";
+import { findTypoMatch } from "../../../shared/src/typo-match.js";
+import { normalizeGuess } from "../../../shared/src/text.js";
 import {
   defaultRoomSettings,
   type CreateRoomRequest,
@@ -171,7 +173,6 @@ function isRoomEvent(value: unknown): value is RoomEvent {
     typeof event.id === "string" &&
     typeof event.createdAt === "string" &&
     (event.type === "guess_accepted" ||
-      event.type === "room_started" ||
       event.type === "room_completed" ||
       event.type === "room_reset" ||
       event.type === "player_joined")
@@ -350,7 +351,7 @@ export class RoomStore {
     const room: RoomRecord = {
       id: roomId,
       code: roomCode,
-      status: "lobby",
+      status: "active",
       createdAt: now,
       lastActivityAt: now,
       timerStartedAt: null,
@@ -417,30 +418,18 @@ export class RoomStore {
 
   configureRoom(catalog: CatalogSnapshot, room: RoomRecord, player: PlayerRecord, settings: Partial<RoomSettings>): RoomSnapshot {
     if (!player.host) return this.snapshot(room);
-    if (room.status === "lobby") {
-      room.settings = mergeSettings({ ...room.settings, ...settings });
-      room.activeNames = new Set(
-        filterCatalogEntries(catalog, room.settings).map((entry) => entry.canonical)
-      );
-    } else {
-      room.settings = mergeSettings({
-        ...room.settings,
-        outlinesOff: settings.outlinesOff ?? room.settings.outlinesOff,
-        showDex: settings.showDex ?? room.settings.showDex
-      });
+    const previousStatus = room.status;
+    room.settings = mergeSettings({ ...room.settings, ...settings });
+    room.activeNames = new Set(filterCatalogEntries(catalog, room.settings).map((entry) => entry.canonical));
+    const complete = this.#isComplete(room);
+    if (room.status !== "lobby") {
+      room.status = complete ? "complete" : "active";
+    }
+    if (complete && previousStatus !== "complete") {
+      pushEvent(room, { type: "room_completed", playerId: player.id });
     }
     this.#touch(room);
     this.#schedulePersistence();
-    return this.snapshot(room);
-  }
-
-  startRoom(room: RoomRecord, player: PlayerRecord): RoomSnapshot {
-    if (player.host && room.status === "lobby") {
-      room.status = "active";
-      pushEvent(room, { type: "room_started", playerId: player.id });
-      this.#touch(room);
-      this.#schedulePersistence();
-    }
     return this.snapshot(room);
   }
 
@@ -470,11 +459,40 @@ export class RoomStore {
     if (trimmed.length < 3) return this.#reject("too_short", "That guess is too short.");
 
     const canonical = findExactGuess(catalog.guessIndex, trimmed);
-    if (!canonical) return this.#reject("unknown", "Too far off.");
+    if (!canonical) {
+      const normalized = normalizeGuess(trimmed);
+      const typoMatch = findTypoMatch(
+        [...room.activeNames]
+          .map((name) => catalog.guessIndex.entries.get(name))
+          .filter((entry): entry is GuessEntry => Boolean(entry)),
+        normalized,
+        room.settings.typoMode,
+        defaultRoomSettings().typoMode
+      );
+      if (!typoMatch) return this.#reject("unknown", "Too far off.");
+      if (!room.settings.autocorrect) {
+        const typoEntry = catalog.guessIndex.entries.get(typoMatch);
+        const typoLabel = typoEntry?.label || typoMatch;
+        return this.#reject("unknown", `Did you mean ${typoLabel}?`);
+      }
+      if (!room.activeNames.has(typoMatch)) {
+        return this.#reject("filtered_out", "That Pokemon is filtered out for this room.");
+      }
+      return this.#acceptGuess(catalog, room, player, typoMatch);
+    }
     if (!room.activeNames.has(canonical)) {
       return this.#reject("filtered_out", "That Pokemon is filtered out for this room.");
     }
 
+    return this.#acceptGuess(catalog, room, player, canonical);
+  }
+
+  #acceptGuess(
+    catalog: CatalogSnapshot,
+    room: RoomRecord,
+    player: PlayerRecord,
+    canonical: string
+  ): GuessResult {
     const foundSet = room.settings.mode === "coop" ? room.sharedFound : player.found;
     if (foundSet.has(canonical)) {
       return this.#reject("duplicate", "That Pokemon is already found.");

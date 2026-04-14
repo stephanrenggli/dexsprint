@@ -58,7 +58,6 @@ test("RoomStore restores persisted rooms and reconnects players after restart", 
     const host = store.findPlayer(room, created.sessionToken);
     assert.ok(host);
 
-    store.startRoom(room, host);
     const guess = store.submitGuess(catalog, room, host, "Bulbasaur");
     assert.equal(guess.accepted, true);
 

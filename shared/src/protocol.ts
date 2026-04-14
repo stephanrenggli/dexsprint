@@ -31,7 +31,7 @@ export interface PlayerSnapshot {
 
 export interface RoomEvent {
   id: string;
-  type: "guess_accepted" | "room_started" | "room_completed" | "room_reset" | "player_joined";
+  type: "guess_accepted" | "room_completed" | "room_reset" | "player_joined";
   playerId?: string;
   canonical?: string;
   label?: string;
@@ -75,7 +75,6 @@ export interface RoomJoinResponse {
 export type ClientMessage =
   | { type: "player:update"; name: string }
   | { type: "room:configure"; settings: Partial<RoomSettings> }
-  | { type: "room:start" }
   | { type: "room:reset" }
   | { type: "guess:submit"; value: string; clientTs?: number }
   | { type: "room:leave" };

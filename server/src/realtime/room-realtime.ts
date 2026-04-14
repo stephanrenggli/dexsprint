@@ -91,12 +91,9 @@ export function registerRoomRealtime({
         const catalog = await catalogStore.getCatalog();
         const nextSnapshot = roomStore.configureRoom(catalog, currentRoom, currentPlayer, message.settings);
         broadcast(currentRoom.id, { type: "room:snapshot", snapshot: nextSnapshot });
-        return;
-      }
-
-      if (message.type === "room:start") {
-        const nextSnapshot = roomStore.startRoom(currentRoom, currentPlayer);
-        broadcast(currentRoom.id, { type: "room:snapshot", snapshot: nextSnapshot });
+        if (nextSnapshot.status === "complete") {
+          broadcast(currentRoom.id, { type: "room:complete", snapshot: nextSnapshot });
+        }
         return;
       }
 

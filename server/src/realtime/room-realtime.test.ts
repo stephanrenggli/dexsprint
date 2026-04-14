@@ -98,6 +98,7 @@ test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnect
   const created = roomStore.createRoom(catalog, { playerName: "Ash" });
   const joined = roomStore.joinRoom(created.roomCode, { playerName: "Misty" });
   assert.ok(joined);
+  assert.equal(created.snapshot.status, "active");
   const { handler } = createRouteHandler(catalog, roomStore);
   const room = roomStore.getRoomById(created.roomId);
   assert.ok(room);
@@ -126,31 +127,22 @@ test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnect
     Buffer.from(
       JSON.stringify({
         type: "room:configure",
-        settings: { mode: "coop", outlinesOff: true }
+        settings: {
+          mode: "coop",
+          typoMode: "forgiving",
+          autocorrect: false,
+          outlinesOff: true,
+          showDex: true
+        }
       })
     )
   );
-  const configuredRoom = roomStore.getRoomById(created.roomId);
-  assert.equal(configuredRoom?.settings.mode, "coop");
-  assert.equal(configuredRoom?.settings.outlinesOff, true);
-
-  await guestSocket.emit(
-    "message",
-    Buffer.from(
-      JSON.stringify({
-        type: "room:configure",
-        settings: { mode: "race", outlinesOff: false }
-      })
-    )
-  );
-  const afterGuestConfigure = roomStore.getRoomById(created.roomId);
-  assert.equal(afterGuestConfigure?.settings.mode, "coop");
-  assert.equal(afterGuestConfigure?.settings.outlinesOff, true);
-
-  await hostSocket.emit("message", Buffer.from(JSON.stringify({ type: "room:start" })));
-  assert.equal(hostSocket.messages.at(-1)?.type, "room:snapshot");
-  assert.equal(hostSocket.messages.at(-1)?.snapshot.status, "active");
-  assert.equal(guestSocket.messages.at(-1)?.snapshot.status, "active");
+  const reconfiguredRoom = roomStore.getRoomById(created.roomId);
+  assert.equal(reconfiguredRoom?.settings.mode, "coop");
+  assert.equal(reconfiguredRoom?.settings.typoMode, "forgiving");
+  assert.equal(reconfiguredRoom?.settings.autocorrect, false);
+  assert.equal(reconfiguredRoom?.settings.outlinesOff, true);
+  assert.equal(reconfiguredRoom?.settings.showDex, true);
 
   await hostSocket.emit(
     "message",
@@ -159,6 +151,20 @@ test("registerRoomRealtime wires room snapshots, guesses, resets, and disconnect
   assert.equal(hostSocket.messages.at(-1)?.type, "guess:accepted");
   assert.equal(guestSocket.messages.at(-1)?.type, "guess:accepted");
   assert.equal(hostSocket.messages.at(-1)?.snapshot.playerFound[created.playerId]?.[0], "bulbasaur");
+
+  await hostSocket.emit(
+    "message",
+    Buffer.from(
+      JSON.stringify({
+        type: "room:configure",
+        settings: {
+          types: ["grass"]
+        }
+      })
+    )
+  );
+  assert.equal(hostSocket.messages.at(-1)?.type, "room:complete");
+  assert.equal(hostSocket.messages.at(-1)?.snapshot.status, "complete");
 
   await hostSocket.emit("message", Buffer.from(JSON.stringify({ type: "room:reset" })));
   assert.equal(hostSocket.messages.at(-1)?.type, "room:snapshot");
