@@ -12,6 +12,7 @@
     "test:server": "node --import tsx --test \"shared/**/*.test.ts\" \"server/**/*.test.ts\"",
     "test": "npm run test:site && npm run test:server",
     "test:e2e": "playwright test",
+    "test:e2e:remote": "PW_REMOTE_CDP_URL=http://127.0.0.1:9222 playwright test",
     "test:e2e:headed": "playwright test --headed",
     "start": "node dist/server/src/index.js",
     "release": "semantic-release",

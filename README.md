@@ -65,9 +65,22 @@ npm install
 npm run dev:server       # start the TypeScript server in watch mode
 npm run build:server     # compile the server to dist/
 npm run typecheck        # type-check shared and server code
+npm run test             # run browser unit tests plus server/shared tests
+npm run test:e2e         # run Playwright end-to-end tests headless
+npm run test:e2e:headed  # run Playwright end-to-end tests with a visible browser
 npm run test:server      # run server and shared tests
 npm run release:dry-run  # preview the release automation
 ```
+
+### Testing
+
+- `npm run test` runs the in-repo browser unit tests in `site/` and the Node test suites in `shared/` and `server/`
+- `npm run test:e2e` runs the Playwright browser tests against the local server started by the test runner
+- `npm run test:e2e:headed` opens a visible browser window for debugging
+- `npm run test:e2e:remote` runs the same Playwright suite against a Chromium browser connected over CDP
+- Start Chrome on the remote machine with `chrome.exe --user-data-dir="%TEMP%\chrome-debug" --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1`
+- On the remote browser machine, forward Chromium's CDP port back to this host with `ssh -N -R 9222:127.0.0.1:9222 <host>`
+- To connect Playwright to a Chromium browser started elsewhere, set `PW_REMOTE_CDP_URL=http://127.0.0.1:9222` and run `npm run test:e2e`
 
 ### Multiplayer Endpoints
 

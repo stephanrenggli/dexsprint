@@ -1,4 +1,26 @@
-import { expect, test } from "@playwright/test";
+import { chromium, expect, test as base } from "@playwright/test";
+
+const remoteCdpUrl = process.env.PW_REMOTE_CDP_URL?.trim();
+
+const test = base.extend({
+  browser: async ({ browser, browserName }, use) => {
+    if (!remoteCdpUrl) {
+      await use(browser);
+      return;
+    }
+
+    if (browserName !== "chromium") {
+      throw new Error("PW_REMOTE_CDP_URL requires a Chromium browser project");
+    }
+
+    const connectedBrowser = await chromium.connectOverCDP(remoteCdpUrl);
+    try {
+      await use(connectedBrowser);
+    } finally {
+      await connectedBrowser.close();
+    }
+  }
+});
 
 const SETTINGS_STORAGE_KEY = "dexsprint-state:v2:settings";
 
@@ -72,15 +94,17 @@ async function mockPokeApi(context) {
   await context.route("https://pokeapi.co/api/v2/**", async (route) => {
     const url = new URL(route.request().url());
     const { pathname, searchParams } = url;
+    const normalizedPath = pathname.replace(/\/$/, "");
 
-    if (pathname === "/api/v2/pokemon-species" && searchParams.get("limit") === "2000") {
+    if (normalizedPath === "/api/v2/pokemon-species" && searchParams.get("limit") === "2000") {
       await route.fulfill({ json: fixtures.speciesList });
       return;
     }
 
-    if (pathname === "/api/v2/pokemon-species/1/") {
+    if (normalizedPath === "/api/v2/pokemon-species/1") {
       await route.fulfill({
         json: {
+          id: 1,
           name: "bulbasaur",
           names: [{ name: "Bulbasaur", language: { name: "en" } }],
           generation: { name: "generation-i" },
@@ -90,9 +114,10 @@ async function mockPokeApi(context) {
       return;
     }
 
-    if (pathname === "/api/v2/pokemon-species/4/") {
+    if (normalizedPath === "/api/v2/pokemon-species/4") {
       await route.fulfill({
         json: {
+          id: 4,
           name: "charmander",
           names: [{ name: "Charmander", language: { name: "en" } }],
           generation: { name: "generation-i" },
@@ -102,14 +127,15 @@ async function mockPokeApi(context) {
       return;
     }
 
-    if (pathname === "/api/v2/generation" && searchParams.get("limit") === "40") {
+    if (normalizedPath === "/api/v2/generation" && searchParams.get("limit") === "40") {
       await route.fulfill({ json: fixtures.generationList });
       return;
     }
 
-    if (pathname === "/api/v2/generation/1/") {
+    if (normalizedPath === "/api/v2/generation/1") {
       await route.fulfill({
         json: {
+          id: 1,
           name: "generation-i",
           pokemon_species: [{ name: "bulbasaur" }, { name: "charmander" }]
         }
@@ -117,14 +143,15 @@ async function mockPokeApi(context) {
       return;
     }
 
-    if (pathname === "/api/v2/type" && searchParams.get("limit") === "40") {
+    if (normalizedPath === "/api/v2/type" && searchParams.get("limit") === "40") {
       await route.fulfill({ json: fixtures.typeList });
       return;
     }
 
-    if (pathname === "/api/v2/type/12/") {
+    if (normalizedPath === "/api/v2/type/12") {
       await route.fulfill({
         json: {
+          id: 12,
           name: "grass",
           pokemon: [{ pokemon: { name: "bulbasaur" } }]
         }
@@ -132,9 +159,10 @@ async function mockPokeApi(context) {
       return;
     }
 
-    if (pathname === "/api/v2/type/4/") {
+    if (normalizedPath === "/api/v2/type/4") {
       await route.fulfill({
         json: {
+          id: 4,
           name: "poison",
           pokemon: [{ pokemon: { name: "bulbasaur" } }]
         }
@@ -142,9 +170,10 @@ async function mockPokeApi(context) {
       return;
     }
 
-    if (pathname === "/api/v2/type/10/") {
+    if (normalizedPath === "/api/v2/type/10") {
       await route.fulfill({
         json: {
+          id: 10,
           name: "fire",
           pokemon: [{ pokemon: { name: "charmander" } }]
         }
@@ -307,6 +336,14 @@ test("creates a room with customized multiplayer settings", async ({ browser }) 
     await page.locator("#multiplayer-autocorrect-toggle").uncheck();
     await page.locator("#multiplayer-outline-toggle").check();
     await page.locator("#multiplayer-show-dex-toggle").check();
+    await page.locator("#multiplayer-filters-panel-toggle").click();
+    await expect(page.locator("#multiplayer-filters-panel")).toBeVisible();
+    await page.locator("#multiplayer-group-filter").selectOption("type");
+    await page.locator('#multiplayer-type-filter input[value="poison"]').uncheck();
+    await page.locator('#multiplayer-type-filter input[value="grass"]').uncheck();
+    await page.locator('#multiplayer-type-filter input[value="fire"]').check();
+    await expect(page.locator("#multiplayer-filter-summary")).toContainText("Group: Type");
+    await expect(page.locator("#multiplayer-filter-summary")).toContainText("Types: Fire");
 
     const createResponsePromise = page.waitForResponse((response) => {
       return response.url().endsWith("/api/rooms") && response.request().method() === "POST";
@@ -321,9 +358,8 @@ test("creates a room with customized multiplayer settings", async ({ browser }) 
       autocorrect: false,
       outlinesOff: false,
       showDex: true,
-      group: "generation",
-      generations: [],
-      types: []
+      group: "type",
+      types: ["fire"]
     });
   } finally {
     await context.close();
@@ -356,9 +392,18 @@ test("creates a room, joins a second player, accepts a guess, and leaves", async
     await guestPage.locator("#multiplayer-room-code-input").fill(roomCode || "");
     await guestPage.locator("#multiplayer-join").click();
 
-    await expect(guestPage.locator("#multiplayer-panel")).toBeVisible();
     await expect(hostPage.locator("#multiplayer-players")).toContainText("Misty");
     await expect(guestPage.locator("#multiplayer-players")).toContainText("Ash");
+    await expect(hostPage.locator("#reset-btn")).toBeEnabled();
+    await expect(guestPage.locator("#reset-btn")).toBeDisabled();
+    await expect(guestPage.locator("#multiplayer-filters-panel-toggle")).toBeDisabled();
+    await expect(guestPage.locator("#multiplayer-group-filter")).toBeDisabled();
+    await expect(guestPage.locator("#multiplayer-typo-mode")).toBeDisabled();
+    await expect(guestPage.locator("#multiplayer-autocorrect-toggle")).toBeDisabled();
+    await expect(guestPage.locator("#multiplayer-outline-toggle")).toBeDisabled();
+    await expect(guestPage.locator("#multiplayer-show-dex-toggle")).toBeDisabled();
+    await expect(guestPage.locator("#multiplayer-mode")).toBeDisabled();
+    await expect(guestPage.locator("#multiplayer-panel")).toBeVisible();
     await guestPage.locator("#multiplayer-close").click();
 
     await hostPage.locator("#name-input").fill("Bulbasaur");
