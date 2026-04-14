@@ -211,6 +211,53 @@ async function openSettingsModal(page) {
   await expect(page.locator("#settings-modal")).toBeVisible();
 }
 
+async function closeSettingsModal(page) {
+  await page.locator("#settings-close").click();
+  await expect(page.locator("#settings-modal")).toBeHidden();
+}
+
+async function closeMultiplayerModal(page) {
+  await page.locator("#multiplayer-close").click();
+  await expect(page.locator("#multiplayer-modal")).toBeHidden();
+}
+
+async function setCompactMode(page, enabled) {
+  const isCompact = await page.evaluate(() => document.body.classList.contains("compact-mode"));
+  if (Boolean(isCompact) !== Boolean(enabled)) {
+    await page.locator("#compact-toggle").click();
+  }
+}
+
+async function setSettingsSelect(page, selector, value) {
+  await page.locator(selector).selectOption(value);
+}
+
+async function setSettingsToggle(page, selector, checked) {
+  const toggle = page.locator(selector);
+  if (checked) {
+    await toggle.check();
+  } else {
+    await toggle.uncheck();
+  }
+}
+
+async function setTheme(page, theme) {
+  await page.locator(`.theme-chip[data-theme="${theme}"]`).click();
+}
+
+async function setMultiplayerSelect(page, selector, value) {
+  await page.locator(selector).selectOption(value);
+}
+
+async function setMultiplayerToggle(page, selector, checked) {
+  const toggle = page.locator(selector);
+  if (checked) {
+    await toggle.check();
+  } else {
+    await toggle.uncheck();
+  }
+}
+
 async function createMultiplayerRoom(page, { playerName = "Ash", mode } = {}) {
   const createResponsePromise = page.waitForResponse((response) => {
     return response.url().endsWith("/api/rooms") && response.request().method() === "POST";
@@ -288,9 +335,9 @@ test("accepts a valid guess, rejects duplicates, and rejects near-misses", async
     await openApp(page, context);
     await openSettingsModal(page);
 
-    await page.locator("#typo-mode").selectOption("strict");
+    await setSettingsSelect(page, "#typo-mode", "strict");
     await expect(page.locator("#autocorrect-toggle")).toBeDisabled();
-    await page.locator("#settings-close").click();
+    await closeSettingsModal(page);
 
     await page.locator("#name-input").fill("Bulbasaur");
     await page.locator("#name-input").press("Enter");
@@ -318,25 +365,25 @@ test("updates and persists the global settings surface", async ({ browser }) => 
     await openApp(page, context);
     await openSettingsModal(page);
 
-    await page.locator("#compact-toggle").click();
+    await setCompactMode(page, true);
     await expect(page.locator("body")).toHaveClass(/compact-mode/);
     await expect(page.locator("#compact-toggle")).toHaveText("Normal Mode");
 
-    await page.locator("#game-mode").selectOption("practice");
-    await page.locator("#typo-mode").selectOption("strict");
+    await setSettingsSelect(page, "#game-mode", "practice");
+    await setSettingsSelect(page, "#typo-mode", "strict");
     await expect(page.locator("#autocorrect-toggle")).toBeDisabled();
-    await page.locator("#typo-mode").selectOption("forgiving");
+    await setSettingsSelect(page, "#typo-mode", "forgiving");
     await expect(page.locator("#autocorrect-toggle")).toBeEnabled();
-    await page.locator("#autocorrect-toggle").uncheck();
+    await setSettingsToggle(page, "#autocorrect-toggle", false);
 
-    await page.locator("#cries-toggle").check();
-    await page.locator("#legacy-cries-toggle").check();
-    await page.locator("#outline-toggle").check();
-    await page.locator("#dark-toggle").check();
-    await page.locator("#show-dex-toggle").check();
-    await page.locator("#shiny-toggle").check();
+    await setSettingsToggle(page, "#cries-toggle", true);
+    await setSettingsToggle(page, "#legacy-cries-toggle", true);
+    await setSettingsToggle(page, "#outline-toggle", true);
+    await setSettingsToggle(page, "#dark-toggle", true);
+    await setSettingsToggle(page, "#show-dex-toggle", true);
+    await setSettingsToggle(page, "#shiny-toggle", true);
 
-    await page.locator('#theme-chooser .theme-chip[data-theme="fire"]').click();
+    await setTheme(page, "fire");
 
     const storedSettings = await readSettingsRecord(page);
     expect(storedSettings).toMatchObject({
@@ -365,21 +412,21 @@ test("restores the single-player snapshot after leaving multiplayer", async ({ b
     await openApp(page, context);
     await openSettingsModal(page);
 
-    await page.locator("#compact-toggle").click();
-    await page.locator("#typo-mode").selectOption("forgiving");
-    await page.locator("#autocorrect-toggle").uncheck();
-    await page.locator("#cries-toggle").check();
-    await page.locator("#legacy-cries-toggle").check();
-    await page.locator("#outline-toggle").check();
-    await page.locator("#dark-toggle").check();
-    await page.locator("#show-dex-toggle").check();
-    await page.locator("#shiny-toggle").check();
-    await page.locator('#theme-chooser .theme-chip[data-theme="fire"]').click();
-    await page.locator("#group-filter").selectOption("none");
+    await setCompactMode(page, true);
+    await setSettingsSelect(page, "#typo-mode", "forgiving");
+    await setSettingsToggle(page, "#autocorrect-toggle", false);
+    await setSettingsToggle(page, "#cries-toggle", true);
+    await setSettingsToggle(page, "#legacy-cries-toggle", true);
+    await setSettingsToggle(page, "#outline-toggle", true);
+    await setSettingsToggle(page, "#dark-toggle", true);
+    await setSettingsToggle(page, "#show-dex-toggle", true);
+    await setSettingsToggle(page, "#shiny-toggle", true);
+    await setTheme(page, "fire");
+    await setSettingsSelect(page, "#group-filter", "none");
 
     const soloSettingsBeforeRoom = await readSettingsRecord(page);
 
-    await page.locator("#settings-close").click();
+    await closeSettingsModal(page);
 
     await page.locator("#name-input").fill("Bulbasaur");
     await page.locator("#name-input").press("Enter");
@@ -398,10 +445,10 @@ test("restores the single-player snapshot after leaving multiplayer", async ({ b
 
     await openMultiplayerModal(page);
     await page.locator("#multiplayer-player-name").fill("Ash");
-    await page.locator("#multiplayer-mode").selectOption("race");
-    await page.locator("#multiplayer-typo-mode").selectOption("strict");
-    await page.locator("#multiplayer-outline-toggle").uncheck();
-    await page.locator("#multiplayer-show-dex-toggle").uncheck();
+    await setMultiplayerSelect(page, "#multiplayer-mode", "race");
+    await setMultiplayerSelect(page, "#multiplayer-typo-mode", "strict");
+    await setMultiplayerToggle(page, "#multiplayer-outline-toggle", false);
+    await setMultiplayerToggle(page, "#multiplayer-show-dex-toggle", false);
 
     const createResponsePromise = page.waitForResponse((response) => {
       return response.url().endsWith("/api/rooms") && response.request().method() === "POST";
@@ -461,21 +508,21 @@ test("keeps the single-player snapshot after reloading from multiplayer", async 
     await openApp(page, context);
     await openSettingsModal(page);
 
-    await page.locator("#compact-toggle").click();
-    await page.locator("#typo-mode").selectOption("forgiving");
-    await page.locator("#autocorrect-toggle").uncheck();
-    await page.locator("#cries-toggle").check();
-    await page.locator("#legacy-cries-toggle").check();
-    await page.locator("#outline-toggle").check();
-    await page.locator("#dark-toggle").check();
-    await page.locator("#show-dex-toggle").check();
-    await page.locator("#shiny-toggle").check();
-    await page.locator('#theme-chooser .theme-chip[data-theme="fire"]').click();
-    await page.locator("#group-filter").selectOption("none");
+    await setCompactMode(page, true);
+    await setSettingsSelect(page, "#typo-mode", "forgiving");
+    await setSettingsToggle(page, "#autocorrect-toggle", false);
+    await setSettingsToggle(page, "#cries-toggle", true);
+    await setSettingsToggle(page, "#legacy-cries-toggle", true);
+    await setSettingsToggle(page, "#outline-toggle", true);
+    await setSettingsToggle(page, "#dark-toggle", true);
+    await setSettingsToggle(page, "#show-dex-toggle", true);
+    await setSettingsToggle(page, "#shiny-toggle", true);
+    await setTheme(page, "fire");
+    await setSettingsSelect(page, "#group-filter", "none");
 
     const soloSettingsBeforeRoom = await readSettingsRecord(page);
 
-    await page.locator("#settings-close").click();
+    await closeSettingsModal(page);
 
     await page.locator("#name-input").fill("Bulbasaur");
     await page.locator("#name-input").press("Enter");
@@ -484,10 +531,10 @@ test("keeps the single-player snapshot after reloading from multiplayer", async 
 
     await openMultiplayerModal(page);
     await page.locator("#multiplayer-player-name").fill("Ash");
-    await page.locator("#multiplayer-mode").selectOption("race");
-    await page.locator("#multiplayer-typo-mode").selectOption("strict");
-    await page.locator("#multiplayer-outline-toggle").uncheck();
-    await page.locator("#multiplayer-show-dex-toggle").uncheck();
+    await setMultiplayerSelect(page, "#multiplayer-mode", "race");
+    await setMultiplayerSelect(page, "#multiplayer-typo-mode", "strict");
+    await setMultiplayerToggle(page, "#multiplayer-outline-toggle", false);
+    await setMultiplayerToggle(page, "#multiplayer-show-dex-toggle", false);
 
     const createResponsePromise = page.waitForResponse((response) => {
       return response.url().endsWith("/api/rooms") && response.request().method() === "POST";
@@ -547,7 +594,7 @@ test("updates the main board filter controls", async ({ browser }) => {
   try {
     await openApp(page, context);
 
-    await page.locator("#group-filter").selectOption("type");
+    await setSettingsSelect(page, "#group-filter", "type");
     await page.locator("#filters-panel-toggle").click();
     await expect(page.locator("#filters-panel")).toBeVisible();
     await expect(page.locator("#filters-panel-toggle")).toHaveText("Hide Filters");
@@ -570,9 +617,9 @@ test("resets the global settings surface", async ({ browser }) => {
     await openApp(page, context);
     await openSettingsModal(page);
 
-    await page.locator("#compact-toggle").click();
-    await page.locator("#dark-toggle").check();
-    await page.locator("#show-dex-toggle").check();
+    await setCompactMode(page, true);
+    await setSettingsToggle(page, "#dark-toggle", true);
+    await setSettingsToggle(page, "#show-dex-toggle", true);
     await page.locator("#settings-reset").click();
     await expect(page.locator("#confirm-modal")).toBeVisible();
     await page.locator("#confirm-accept").click();
@@ -599,17 +646,17 @@ test("creates a room with customized multiplayer settings", async ({ browser }) 
     await openMultiplayerModal(page);
 
     await page.locator("#multiplayer-player-name").fill("Ash");
-    await page.locator("#multiplayer-mode").selectOption("race");
-    await page.locator("#multiplayer-typo-mode").selectOption("forgiving");
-    await page.locator("#multiplayer-autocorrect-toggle").uncheck();
-    await page.locator("#multiplayer-outline-toggle").check();
-    await page.locator("#multiplayer-show-dex-toggle").check();
+    await setMultiplayerSelect(page, "#multiplayer-mode", "race");
+    await setMultiplayerSelect(page, "#multiplayer-typo-mode", "forgiving");
+    await setMultiplayerToggle(page, "#multiplayer-autocorrect-toggle", false);
+    await setMultiplayerToggle(page, "#multiplayer-outline-toggle", true);
+    await setMultiplayerToggle(page, "#multiplayer-show-dex-toggle", true);
     await page.locator("#multiplayer-filters-panel-toggle").click();
     await expect(page.locator("#multiplayer-filters-panel")).toBeVisible();
-    await page.locator("#multiplayer-group-filter").selectOption("type");
-    await page.locator('#multiplayer-type-filter input[value="poison"]').uncheck();
-    await page.locator('#multiplayer-type-filter input[value="grass"]').uncheck();
-    await page.locator('#multiplayer-type-filter input[value="fire"]').check();
+    await setMultiplayerSelect(page, "#multiplayer-group-filter", "type");
+    await setMultiplayerToggle(page, '#multiplayer-type-filter input[value="poison"]', false);
+    await setMultiplayerToggle(page, '#multiplayer-type-filter input[value="grass"]', false);
+    await setMultiplayerToggle(page, '#multiplayer-type-filter input[value="fire"]', true);
     await expect(page.locator("#multiplayer-filter-summary")).toContainText("Group: Type");
     await expect(page.locator("#multiplayer-filter-summary")).toContainText("Types: Fire");
 
@@ -647,10 +694,10 @@ test("resets a multiplayer room as the host", async ({ browser }) => {
     ]);
 
     const { roomCode } = await createMultiplayerRoom(hostPage, { playerName: "Ash" });
-    await hostPage.locator("#multiplayer-close").click();
+    await closeMultiplayerModal(hostPage);
 
     await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
-    await guestPage.locator("#multiplayer-close").click();
+    await closeMultiplayerModal(guestPage);
 
     await expect(hostPage.locator("#reset-btn")).toBeEnabled();
     await expect(guestPage.locator("#reset-btn")).toBeDisabled();
@@ -692,7 +739,7 @@ test("creates a room, joins a second player, accepts a guess, and leaves", async
 
     await expect(hostPage.locator("#multiplayer-panel")).toBeVisible();
     expect(roomCode).toMatch(/^[A-Z0-9_-]+$/);
-    await hostPage.locator("#multiplayer-close").click();
+    await closeMultiplayerModal(hostPage);
 
     await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
 
@@ -708,7 +755,7 @@ test("creates a room, joins a second player, accepts a guess, and leaves", async
     await expect(guestPage.locator("#multiplayer-show-dex-toggle")).toBeDisabled();
     await expect(guestPage.locator("#multiplayer-mode")).toBeDisabled();
     await expect(guestPage.locator("#multiplayer-panel")).toBeVisible();
-    await guestPage.locator("#multiplayer-close").click();
+    await closeMultiplayerModal(guestPage);
 
     await hostPage.locator("#name-input").fill("Bulbasaur");
     await hostPage.locator("#name-input").press("Enter");
@@ -739,10 +786,10 @@ test("rejoins a disconnected multiplayer player with the stored session", async 
     ]);
 
     const { roomCode } = await createMultiplayerRoom(hostPage, { playerName: "Ash" });
-    await hostPage.locator("#multiplayer-close").click();
+    await closeMultiplayerModal(hostPage);
 
     await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
-    await guestPage.locator("#multiplayer-close").click();
+    await closeMultiplayerModal(guestPage);
 
     await expect(hostPage.locator("#multiplayer-players .multiplayer-player")).toHaveCount(2);
     await expect(hostPage.locator("#multiplayer-players .multiplayer-player.is-disconnected")).toHaveCount(0);
@@ -756,7 +803,7 @@ test("rejoins a disconnected multiplayer player with the stored session", async 
     await expect(hostPage.locator("#multiplayer-players .multiplayer-player.is-disconnected")).toHaveCount(1);
 
     await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
-    await guestPage.locator("#multiplayer-close").click();
+    await closeMultiplayerModal(guestPage);
 
     await expect(hostPage.locator("#multiplayer-players .multiplayer-player")).toHaveCount(2);
     await expect(hostPage.locator("#multiplayer-players .multiplayer-player.is-disconnected")).toHaveCount(0);
