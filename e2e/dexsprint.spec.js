@@ -196,12 +196,18 @@ async function openApp(page, context) {
 }
 
 async function openMultiplayerModal(page) {
-  await page.locator("#multiplayer-open").click();
+  const trigger = (await page.evaluate(() => document.body.classList.contains("compact-mode")))
+    ? "#multiplayer-open-compact"
+    : "#multiplayer-open";
+  await page.locator(trigger).click();
   await expect(page.locator("#multiplayer-modal")).toBeVisible();
 }
 
 async function openSettingsModal(page) {
-  await page.locator("#filters-toggle").click();
+  const trigger = (await page.evaluate(() => document.body.classList.contains("compact-mode")))
+    ? "#filters-toggle-compact"
+    : "#filters-toggle";
+  await page.locator(trigger).click();
   await expect(page.locator("#settings-modal")).toBeVisible();
 }
 
@@ -210,6 +216,21 @@ async function readSettingsRecord(page) {
     const raw = localStorage.getItem(storageKey);
     return raw ? JSON.parse(raw) : null;
   }, SETTINGS_STORAGE_KEY);
+}
+
+function parseTimerText(value) {
+  const parts = (value || "")
+    .trim()
+    .split(":")
+    .map((part) => Number(part));
+  if (parts.some((part) => Number.isNaN(part))) return 0;
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  }
+  if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  return 0;
 }
 
 test("loads the quiz shell and catalog data", async ({ browser }) => {
@@ -267,6 +288,85 @@ test("updates and persists the global settings surface", async ({ browser }) => 
       dark: true,
       theme: "fire",
     });
+  } finally {
+    await context.close();
+  }
+});
+
+test("restores the single-player snapshot after leaving multiplayer", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    await openApp(page, context);
+    await openSettingsModal(page);
+
+    await page.locator("#compact-toggle").click();
+    await page.locator("#typo-mode").selectOption("forgiving");
+    await page.locator("#autocorrect-toggle").uncheck();
+    await page.locator("#cries-toggle").check();
+    await page.locator("#legacy-cries-toggle").check();
+    await page.locator("#outline-toggle").check();
+    await page.locator("#dark-toggle").check();
+    await page.locator("#show-dex-toggle").check();
+    await page.locator("#shiny-toggle").check();
+    await page.locator('#theme-chooser .theme-chip[data-theme="fire"]').click();
+    await page.locator("#group-filter").selectOption("none");
+
+    const soloSettingsBeforeRoom = await readSettingsRecord(page);
+
+    await page.locator("#settings-close").click();
+
+    await page.locator("#name-input").fill("Bulbasaur");
+    await page.locator("#name-input").press("Enter");
+    await expect(page.locator("#found-count")).toHaveText("1/2");
+    await expect(page.locator("#timer")).not.toHaveText("00:00");
+
+    await expect
+      .poll(
+        async () => {
+          const text = (await page.locator("#timer").textContent()) || "";
+          return parseTimerText(text);
+        },
+        { timeout: 5000 }
+      )
+      .toBeGreaterThan(0);
+
+    await openMultiplayerModal(page);
+    await page.locator("#multiplayer-player-name").fill("Ash");
+    await page.locator("#multiplayer-mode").selectOption("race");
+    await page.locator("#multiplayer-typo-mode").selectOption("strict");
+    await page.locator("#multiplayer-outline-toggle").uncheck();
+    await page.locator("#multiplayer-show-dex-toggle").uncheck();
+
+    const createResponsePromise = page.waitForResponse((response) => {
+      return response.url().endsWith("/api/rooms") && response.request().method() === "POST";
+    });
+    await page.locator("#multiplayer-create").click();
+    const createResponse = await createResponsePromise;
+    const roomJoinResponse = await createResponse.json();
+
+    expect(roomJoinResponse.snapshot.settings).toMatchObject({
+      mode: "race",
+      typoMode: "strict",
+      outlinesOff: true,
+      showDex: false
+    });
+
+    await expect(page.locator("#multiplayer-panel")).toBeVisible();
+    await expect(page.locator("#found-count")).toHaveText("0/2");
+    await expect(page.locator("#timer")).toHaveText("00:00");
+
+    await page.locator("#multiplayer-leave").click();
+    await expect(page.locator("#multiplayer-panel")).toBeHidden();
+
+    await expect(page.locator("body")).toHaveClass(/compact-mode/);
+    await expect(page.locator("html")).toHaveClass(/dark-mode/);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "fire");
+    expect(await readSettingsRecord(page)).toEqual(soloSettingsBeforeRoom);
+
+    await expect(page.locator("#found-count")).toHaveText("1/2");
+    await expect(page.locator("#timer")).not.toHaveText("00:00");
   } finally {
     await context.close();
   }
