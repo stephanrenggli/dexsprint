@@ -9,9 +9,9 @@ const roomsPersistencePath = path.resolve(repoRoot, ".tmp/playwright-rooms.json"
 
 export default defineConfig({
   testDir: "./e2e",
-  timeout: 60_000,
+  timeout: 20_000,
   expect: {
-    timeout: 10_000
+    timeout: 4_000
   },
   use: {
     baseURL: `http://127.0.0.1:${serverPort}`,

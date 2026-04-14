@@ -195,11 +195,11 @@ async function openApp(page, context) {
   await expect(page.locator("#status")).toBeHidden();
 }
 
-async function openMultiplayerModal(page) {
+async function openMultiplayerModal(page, { force = false } = {}) {
   const trigger = (await page.evaluate(() => document.body.classList.contains("compact-mode")))
     ? "#multiplayer-open-compact"
     : "#multiplayer-open";
-  await page.locator(trigger).click();
+  await page.locator(trigger).click({ force });
   await expect(page.locator("#multiplayer-modal")).toBeVisible();
 }
 
@@ -209,6 +209,40 @@ async function openSettingsModal(page) {
     : "#filters-toggle";
   await page.locator(trigger).click();
   await expect(page.locator("#settings-modal")).toBeVisible();
+}
+
+async function createMultiplayerRoom(page, { playerName = "Ash", mode } = {}) {
+  const createResponsePromise = page.waitForResponse((response) => {
+    return response.url().endsWith("/api/rooms") && response.request().method() === "POST";
+  });
+
+  await openMultiplayerModal(page);
+  if (playerName) {
+    await page.locator("#multiplayer-player-name").fill(playerName);
+  }
+  if (mode) {
+    await page.locator("#multiplayer-mode").selectOption(mode);
+  }
+  await page.locator("#multiplayer-create").click();
+
+  const createResponse = await createResponsePromise;
+  const createPayload = await createResponse.json();
+  const roomCode =
+    (await page.locator("#multiplayer-room-code").textContent())?.trim() ||
+    createPayload.roomCode ||
+    "";
+
+  return {
+    createPayload,
+    roomCode
+  };
+}
+
+async function joinMultiplayerRoom(page, { roomCode, playerName = "Misty", force = false } = {}) {
+  await openMultiplayerModal(page, { force });
+  await page.locator("#multiplayer-player-name").fill(playerName);
+  await page.locator("#multiplayer-room-code-input").fill(roomCode || "");
+  await page.locator("#multiplayer-join").click();
 }
 
 async function readSettingsRecord(page) {
@@ -363,10 +397,27 @@ test("restores the single-player snapshot after leaving multiplayer", async ({ b
     await expect(page.locator("body")).toHaveClass(/compact-mode/);
     await expect(page.locator("html")).toHaveClass(/dark-mode/);
     await expect(page.locator("html")).toHaveAttribute("data-theme", "fire");
+    await expect(page.locator("#compact-toggle")).toHaveText("Normal Mode");
+    await expect(page.locator("#typo-mode")).toHaveValue("forgiving");
+    await expect(page.locator("#autocorrect-toggle")).not.toBeChecked();
+    await expect(page.locator("#cries-toggle")).toBeChecked();
+    await expect(page.locator("#legacy-cries-toggle")).toBeChecked();
+    await expect(page.locator("#outline-toggle")).toBeChecked();
+    await expect(page.locator("#dark-toggle")).toBeChecked();
+    await expect(page.locator("#show-dex-toggle")).toBeChecked();
+    await expect(page.locator("#shiny-toggle")).toBeChecked();
     expect(await readSettingsRecord(page)).toEqual(soloSettingsBeforeRoom);
 
     await expect(page.locator("#found-count")).toHaveText("1/2");
-    await expect(page.locator("#timer")).not.toHaveText("00:00");
+    await expect
+      .poll(
+        async () => {
+          const text = (await page.locator("#timer").textContent()) || "";
+          return parseTimerText(text);
+        },
+        { timeout: 5000 }
+      )
+      .toBeGreaterThan(0);
   } finally {
     await context.close();
   }
@@ -466,6 +517,48 @@ test("creates a room with customized multiplayer settings", async ({ browser }) 
   }
 });
 
+test("resets a multiplayer room as the host", async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext();
+  const hostPage = await hostContext.newPage();
+  const guestPage = await guestContext.newPage();
+
+  try {
+    await Promise.all([
+      openApp(hostPage, hostContext),
+      openApp(guestPage, guestContext)
+    ]);
+
+    const { roomCode } = await createMultiplayerRoom(hostPage, { playerName: "Ash" });
+    await hostPage.locator("#multiplayer-close").click();
+
+    await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
+    await guestPage.locator("#multiplayer-close").click();
+
+    await expect(hostPage.locator("#reset-btn")).toBeEnabled();
+    await expect(guestPage.locator("#reset-btn")).toBeDisabled();
+
+    await hostPage.locator("#name-input").fill("Bulbasaur");
+    await hostPage.locator("#name-input").press("Enter");
+
+    await expect(hostPage.locator("#found-count")).toHaveText(/^1\/\d+$/);
+    await expect(guestPage.locator("#found-count")).toHaveText(/^1\/\d+$/);
+
+    await hostPage.locator("#reset-btn").click();
+    await expect(hostPage.locator("#confirm-modal")).toBeVisible();
+    await hostPage.locator("#confirm-accept").click();
+
+    await expect(hostPage.locator("#found-count")).toHaveText("0/2");
+    await expect(guestPage.locator("#found-count")).toHaveText("0/2");
+    await expect(hostPage.locator("#timer")).toHaveText("00:00");
+    await expect(guestPage.locator("#timer")).toHaveText("00:00");
+    await expect(hostPage.locator("#multiplayer-events")).toContainText("No multiplayer events yet.");
+    await expect(guestPage.locator("#multiplayer-events")).toContainText("No multiplayer events yet.");
+  } finally {
+    await Promise.all([hostContext.close(), guestContext.close()]);
+  }
+});
+
 test("creates a room, joins a second player, accepts a guess, and leaves", async ({ browser }) => {
   const hostContext = await browser.newContext();
   const guestContext = await browser.newContext();
@@ -478,19 +571,13 @@ test("creates a room, joins a second player, accepts a guess, and leaves", async
       openApp(guestPage, guestContext)
     ]);
 
-    await openMultiplayerModal(hostPage);
-    await hostPage.locator("#multiplayer-player-name").fill("Ash");
-    await hostPage.locator("#multiplayer-create").click();
+    const { roomCode } = await createMultiplayerRoom(hostPage, { playerName: "Ash" });
 
     await expect(hostPage.locator("#multiplayer-panel")).toBeVisible();
-    const roomCode = (await hostPage.locator("#multiplayer-room-code").textContent())?.trim();
     expect(roomCode).toMatch(/^[A-Z0-9_-]+$/);
     await hostPage.locator("#multiplayer-close").click();
 
-    await openMultiplayerModal(guestPage);
-    await guestPage.locator("#multiplayer-player-name").fill("Misty");
-    await guestPage.locator("#multiplayer-room-code-input").fill(roomCode || "");
-    await guestPage.locator("#multiplayer-join").click();
+    await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
 
     await expect(hostPage.locator("#multiplayer-players")).toContainText("Misty");
     await expect(guestPage.locator("#multiplayer-players")).toContainText("Ash");
@@ -517,6 +604,47 @@ test("creates a room, joins a second player, accepts a guess, and leaves", async
     await guestPage.locator("#multiplayer-leave").click();
     await expect(guestPage.locator("#multiplayer-status")).toHaveText("Left multiplayer room.");
     await expect(guestPage.locator("#multiplayer-panel")).toBeHidden();
+  } finally {
+    await Promise.all([hostContext.close(), guestContext.close()]);
+  }
+});
+
+test("rejoins a disconnected multiplayer player with the stored session", async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext();
+  const hostPage = await hostContext.newPage();
+  const guestPage = await guestContext.newPage();
+
+  try {
+    await Promise.all([
+      openApp(hostPage, hostContext),
+      openApp(guestPage, guestContext)
+    ]);
+
+    const { roomCode } = await createMultiplayerRoom(hostPage, { playerName: "Ash" });
+    await hostPage.locator("#multiplayer-close").click();
+
+    await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
+    await guestPage.locator("#multiplayer-close").click();
+
+    await expect(hostPage.locator("#multiplayer-players .multiplayer-player")).toHaveCount(2);
+    await expect(hostPage.locator("#multiplayer-players .multiplayer-player.is-disconnected")).toHaveCount(0);
+
+    await openMultiplayerModal(guestPage);
+    await guestPage.locator("#multiplayer-leave").click();
+    await expect(guestPage.locator("#multiplayer-status")).toHaveText("Left multiplayer room.");
+    await expect(guestPage.locator("#multiplayer-panel")).toBeHidden();
+
+    await expect(hostPage.locator("#multiplayer-players .multiplayer-player")).toHaveCount(2);
+    await expect(hostPage.locator("#multiplayer-players .multiplayer-player.is-disconnected")).toHaveCount(1);
+
+    await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
+    await guestPage.locator("#multiplayer-close").click();
+
+    await expect(hostPage.locator("#multiplayer-players .multiplayer-player")).toHaveCount(2);
+    await expect(hostPage.locator("#multiplayer-players .multiplayer-player.is-disconnected")).toHaveCount(0);
+    await expect(hostPage.locator("#multiplayer-players")).toContainText("Misty");
+    await expect(hostPage.locator("#multiplayer-players")).toContainText("Ash");
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()]);
   }
