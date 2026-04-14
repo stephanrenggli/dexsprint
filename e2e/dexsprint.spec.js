@@ -453,6 +453,93 @@ test("restores the single-player snapshot after leaving multiplayer", async ({ b
   }
 });
 
+test("keeps the single-player snapshot after reloading from multiplayer", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    await openApp(page, context);
+    await openSettingsModal(page);
+
+    await page.locator("#compact-toggle").click();
+    await page.locator("#typo-mode").selectOption("forgiving");
+    await page.locator("#autocorrect-toggle").uncheck();
+    await page.locator("#cries-toggle").check();
+    await page.locator("#legacy-cries-toggle").check();
+    await page.locator("#outline-toggle").check();
+    await page.locator("#dark-toggle").check();
+    await page.locator("#show-dex-toggle").check();
+    await page.locator("#shiny-toggle").check();
+    await page.locator('#theme-chooser .theme-chip[data-theme="fire"]').click();
+    await page.locator("#group-filter").selectOption("none");
+
+    const soloSettingsBeforeRoom = await readSettingsRecord(page);
+
+    await page.locator("#settings-close").click();
+
+    await page.locator("#name-input").fill("Bulbasaur");
+    await page.locator("#name-input").press("Enter");
+    await expect(page.locator("#found-count")).toHaveText("1/2");
+    await expect(page.locator("#timer")).not.toHaveText("00:00");
+
+    await openMultiplayerModal(page);
+    await page.locator("#multiplayer-player-name").fill("Ash");
+    await page.locator("#multiplayer-mode").selectOption("race");
+    await page.locator("#multiplayer-typo-mode").selectOption("strict");
+    await page.locator("#multiplayer-outline-toggle").uncheck();
+    await page.locator("#multiplayer-show-dex-toggle").uncheck();
+
+    const createResponsePromise = page.waitForResponse((response) => {
+      return response.url().endsWith("/api/rooms") && response.request().method() === "POST";
+    });
+    await page.locator("#multiplayer-create").click();
+    const createResponse = await createResponsePromise;
+    const roomJoinResponse = await createResponse.json();
+
+    expect(roomJoinResponse.snapshot.settings).toMatchObject({
+      mode: "race",
+      typoMode: "strict",
+      outlinesOff: true,
+      showDex: false
+    });
+
+    await expect(page.locator("#multiplayer-panel")).toBeVisible();
+    await page.locator("#multiplayer-leave").click();
+    await expect(page.locator("#multiplayer-panel")).toBeHidden();
+
+    await page.reload();
+    await expect(page.locator("#name-input")).toBeEnabled();
+    await expect(page.locator("#status")).toBeHidden();
+
+    await expect(page.locator("body")).toHaveClass(/compact-mode/);
+    await expect(page.locator("html")).toHaveClass(/dark-mode/);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "fire");
+    await expect(page.locator("#compact-toggle")).toHaveText("Normal Mode");
+    await expect(page.locator("#typo-mode")).toHaveValue("forgiving");
+    await expect(page.locator("#autocorrect-toggle")).not.toBeChecked();
+    await expect(page.locator("#cries-toggle")).toBeChecked();
+    await expect(page.locator("#legacy-cries-toggle")).toBeChecked();
+    await expect(page.locator("#outline-toggle")).toBeChecked();
+    await expect(page.locator("#dark-toggle")).toBeChecked();
+    await expect(page.locator("#show-dex-toggle")).toBeChecked();
+    await expect(page.locator("#shiny-toggle")).toBeChecked();
+    expect(await readSettingsRecord(page)).toEqual(soloSettingsBeforeRoom);
+
+    await expect(page.locator("#found-count")).toHaveText("1/2");
+    await expect
+      .poll(
+        async () => {
+          const text = (await page.locator("#timer").textContent()) || "";
+          return parseTimerText(text);
+        },
+        { timeout: 4000 }
+      )
+      .toBeGreaterThan(0);
+  } finally {
+    await context.close();
+  }
+});
+
 test("updates the main board filter controls", async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
