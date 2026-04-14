@@ -239,6 +239,47 @@ test("registerRoomRealtime advances versus rooms after the reveal window", async
   assert.notEqual(latest?.snapshot.versusCurrent, current);
 });
 
+test("registerRoomRealtime advances versus rooms after all connected players skip", async () => {
+  const catalog = createCatalog();
+  const roomStore = new RoomStore();
+  const created = roomStore.createRoom(catalog, {
+    playerName: "Ash",
+    settings: { mode: "versus" }
+  });
+  const joined = roomStore.joinRoom(created.roomCode, { playerName: "Misty" });
+  assert.ok(joined);
+  const { handler } = createRouteHandler(catalog, roomStore);
+  const hostSocket = createFakeSocket();
+  const guestSocket = createFakeSocket();
+
+  await handler(hostSocket, {
+    params: { roomId: created.roomId },
+    query: { sessionToken: created.sessionToken }
+  });
+  await handler(guestSocket, {
+    params: { roomId: created.roomId },
+    query: { sessionToken: joined.sessionToken }
+  });
+
+  const current = created.snapshot.versusCurrent;
+  assert.ok(current);
+
+  await hostSocket.emit("message", Buffer.from(JSON.stringify({ type: "room:skip" })));
+  assert.equal(hostSocket.messages.at(-1)?.type, "room:snapshot");
+  assert.deepEqual(hostSocket.messages.at(-1)?.snapshot.versusSkipVotes, [created.playerId]);
+  assert.equal(hostSocket.messages.at(-1)?.snapshot.versusCurrent, current);
+  assert.equal(hostSocket.messages.at(-1)?.snapshot.events[0]?.type, "room_skip_voted");
+  assert.equal(hostSocket.messages.at(-1)?.snapshot.events[0]?.skipCount, 1);
+
+  await guestSocket.emit("message", Buffer.from(JSON.stringify({ type: "room:skip" })));
+  assert.equal(hostSocket.messages.at(-1)?.type, "room:snapshot");
+  assert.equal(guestSocket.messages.at(-1)?.type, "room:snapshot");
+  assert.equal(hostSocket.messages.at(-1)?.snapshot.versusSkipVotes.length, 0);
+  assert.notEqual(hostSocket.messages.at(-1)?.snapshot.versusCurrent, current);
+  assert.equal(hostSocket.messages.at(-1)?.snapshot.events[0]?.type, "room_skipped");
+  assert.equal(hostSocket.messages.at(-1)?.snapshot.events[1]?.type, "room_skip_voted");
+});
+
 test("registerRoomRealtime logs room leave before disconnect", async () => {
   const catalog = createCatalog();
   const roomStore = new RoomStore();

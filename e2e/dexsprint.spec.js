@@ -704,7 +704,10 @@ test("creates a versus room and accepts a correct guess", async ({ browser }) =>
 
     await expect(hostPage.locator("#study-panel")).toBeVisible();
     await expect(hostPage.locator(".study-panel__eyebrow")).toHaveText("Versus Mode");
-    await expect(hostPage.locator("#study-actions")).toBeHidden();
+    await expect(hostPage.locator("#study-actions")).toBeVisible();
+    await expect(hostPage.locator("#study-reveal")).toBeHidden();
+    await expect(hostPage.locator("#study-next")).toBeHidden();
+    await expect(hostPage.locator("#study-skip")).toBeVisible();
     await expect(hostPage.locator("#study-card")).toHaveClass(/study-card--versus/);
     await expect(hostPage.locator("#study-sprite")).toHaveClass(/study-card__sprite--versus-hidden/);
     await expect(hostPage.locator("#study-meta")).toBeHidden();
@@ -714,6 +717,10 @@ test("creates a versus room and accepts a correct guess", async ({ browser }) =>
     await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
     await expect(guestPage.locator("#study-panel")).toBeVisible();
     await expect(guestPage.locator(".study-panel__eyebrow")).toHaveText("Versus Mode");
+    await expect(guestPage.locator("#study-actions")).toBeVisible();
+    await expect(guestPage.locator("#study-reveal")).toBeHidden();
+    await expect(guestPage.locator("#study-next")).toBeHidden();
+    await expect(guestPage.locator("#study-skip")).toBeVisible();
     await expect(guestPage.locator("#study-card")).toHaveClass(/study-card--versus/);
     await expect(guestPage.locator("#study-sprite")).toHaveClass(/study-card__sprite--versus-hidden/);
     await expect(guestPage.locator("#study-meta")).toBeHidden();
@@ -727,6 +734,49 @@ test("creates a versus room and accepts a correct guess", async ({ browser }) =>
     await expect(guestPage.locator("#multiplayer-players")).toContainText(/Misty: 0\/\d+/);
     await expect(hostPage.locator("#study-card")).toHaveClass(/study-card--versus/);
     await expect(guestPage.locator("#study-card")).toHaveClass(/study-card--versus/);
+  } finally {
+    await Promise.all([hostContext.close(), guestContext.close()]);
+  }
+});
+
+test("skips a versus room when all active players vote", async ({ browser }) => {
+  const hostContext = await browser.newContext();
+  const guestContext = await browser.newContext();
+  const hostPage = await hostContext.newPage();
+  const guestPage = await guestContext.newPage();
+
+  try {
+    await Promise.all([
+      openApp(hostPage, hostContext),
+      openApp(guestPage, guestContext)
+    ]);
+
+    const { roomCode } = await createMultiplayerRoom(hostPage, {
+      playerName: "Ash",
+      mode: "versus"
+    });
+    await closeMultiplayerModal(hostPage);
+
+    await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
+    await closeMultiplayerModal(guestPage);
+
+    await expect(hostPage.locator("#study-skip")).toBeVisible();
+    await expect(guestPage.locator("#study-skip")).toBeVisible();
+
+    await hostPage.locator("#study-skip").click();
+    await expect(hostPage.locator("#study-skip")).toBeDisabled();
+    await expect(hostPage.locator("#study-skip")).toHaveText("Skip (1/2)");
+    await expect(guestPage.locator("#study-skip")).toHaveText("Skip (1/2)");
+    await expect(guestPage.locator("#study-skip")).toBeEnabled();
+
+    await guestPage.locator("#study-skip").click();
+
+    await expect(hostPage.locator("#multiplayer-events")).toContainText("voted to skip");
+    await expect(hostPage.locator("#multiplayer-events")).toContainText("Skipped the current card");
+    await expect(guestPage.locator("#multiplayer-events")).toContainText("voted to skip");
+    await expect(guestPage.locator("#multiplayer-events")).toContainText("Skipped the current card");
+    await expect(hostPage.locator("#study-skip")).toBeEnabled();
+    await expect(guestPage.locator("#study-skip")).toBeEnabled();
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()]);
   }

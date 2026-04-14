@@ -250,6 +250,14 @@ export function createMultiplayerController({
     if (event.type === "guess_accepted" || event.type === "room_completed") {
       return `${playerName} found ${event.label || event.canonical || "Pokemon"}`;
     }
+    if (event.type === "room_skip_voted") {
+      const skipCount = Number.isFinite(event.skipCount) ? event.skipCount : 1;
+      const skipTotal = Number.isFinite(event.skipTotal) ? event.skipTotal : 1;
+      return `${playerName} voted to skip (${skipCount}/${skipTotal}).`;
+    }
+    if (event.type === "room_skipped") {
+      return `Skipped the current card.`;
+    }
     if (event.type === "room_reset") {
       return `${playerName} reset the room.`;
     }
@@ -502,6 +510,13 @@ export function createMultiplayerController({
     return sent;
   }
 
+  function skipRoom() {
+    if (!isActive()) return false;
+    const sent = client.send({ type: "room:skip" });
+    if (!sent) setStatus("Multiplayer connection is not open.");
+    return sent;
+  }
+
   function configureRoom() {
     if (!canHostControlRoom()) return;
     client.send({ type: "room:configure", settings: getRoomSettings() });
@@ -572,9 +587,11 @@ export function createMultiplayerController({
     configureRoom,
     syncRoomSettings,
     submitGuess,
+    skipRoom,
     resetRoom,
     restoreFromHashOrSession,
     leaveRoom,
+    getCurrentPlayerId: () => playerId,
     getSpriteCardBadge
   };
 }

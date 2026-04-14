@@ -17,6 +17,7 @@ export function createStudyController({
   studyTypes,
   studyRevealBtn,
   studyNextBtn,
+  studySkipBtn,
   inputEl,
   paletteByType,
   getSpriteForEntry,
@@ -30,7 +31,8 @@ export function createStudyController({
   saveState,
   isStudyMode,
   isVersusMode = () => false,
-  getVersusSnapshot = () => null
+  getVersusSnapshot = () => null,
+  getCurrentPlayerId = () => ""
 }) {
   function isPracticeStyleMode() {
     return isStudyMode() || isVersusMode();
@@ -132,6 +134,31 @@ export function createStudyController({
     }
   }
 
+  function syncStudyActions() {
+    if (!studyActions) return;
+    const versusMode = isVersusMode();
+    studyActions.hidden = !isPracticeStyleMode();
+
+    if (studyRevealBtn) studyRevealBtn.hidden = versusMode;
+    if (studyNextBtn) studyNextBtn.hidden = versusMode;
+    if (studySkipBtn) studySkipBtn.hidden = !versusMode;
+
+    if (studyRevealBtn) studyRevealBtn.disabled = versusMode || state.studyRevealed;
+    if (studyNextBtn) studyNextBtn.disabled = versusMode ? true : false;
+
+    if (studySkipBtn) {
+      const snapshot = versusMode ? getVersusSnapshot() : null;
+      const currentPlayerId = versusMode ? getCurrentPlayerId() : "";
+      const skipVotes = new Set(snapshot?.versusSkipVotes || []);
+      const activePlayers = snapshot?.players.filter((player) => player.status === "connected") || [];
+      const voted = Boolean(currentPlayerId) && skipVotes.has(currentPlayerId);
+      studySkipBtn.disabled = !versusMode || !snapshot || voted;
+      studySkipBtn.textContent = skipVotes.size
+        ? `Skip (${skipVotes.size}/${Math.max(activePlayers.length, 1)})`
+        : "Skip";
+    }
+  }
+
   function getMaskedStudyName(label) {
     return [...(label || "")]
       .map((char) => (/\s/.test(char) ? char : "?"))
@@ -199,6 +226,7 @@ export function createStudyController({
     clearStudyNameReveal();
     syncStudyModeLabel();
     syncVersusCardState();
+    syncStudyActions();
     if (studyCard) studyCard.hidden = true;
     if (studyActions) studyActions.hidden = true;
     if (studySubtitle) {
@@ -227,8 +255,9 @@ export function createStudyController({
   function renderStudyEntryState(entry, currentName, candidates, revealed = false) {
     syncStudyModeLabel();
     syncVersusCardState();
+    syncStudyActions();
     if (studyCard) studyCard.hidden = false;
-    if (studyActions) studyActions.hidden = isVersusMode();
+    if (studyActions) studyActions.hidden = false;
     if (studySubtitle) {
       if (isVersusMode()) {
         studySubtitle.textContent = revealed
@@ -266,8 +295,7 @@ export function createStudyController({
     if (!inputEl?.value.trim()) {
       setInputStatus(DEFAULT_STATUS);
     }
-    if (studyRevealBtn) studyRevealBtn.disabled = state.studyRevealed;
-    if (studyNextBtn) studyNextBtn.disabled = false;
+    syncStudyActions();
   }
 
   function renderStudyPanel() {

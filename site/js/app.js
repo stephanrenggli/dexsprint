@@ -210,6 +210,7 @@ const studyName = document.getElementById("study-name");
 const studyActions = document.getElementById("study-actions");
 const studyRevealBtn = document.getElementById("study-reveal");
 const studyNextBtn = document.getElementById("study-next");
+const studySkipBtn = document.getElementById("study-skip");
 const multiplayerPanel = document.getElementById("multiplayer-panel");
 const multiplayerStatus = document.getElementById("multiplayer-status");
 const multiplayerPlayers = document.getElementById("multiplayer-players");
@@ -668,6 +669,7 @@ studyController = createStudyController({
   studyTypes,
   studyRevealBtn,
   studyNextBtn,
+  studySkipBtn,
   inputEl,
   paletteByType: STUDY_SCENE_PALETTE_BY_TYPE,
   getSpriteForEntry,
@@ -681,7 +683,8 @@ studyController = createStudyController({
   saveState,
   isStudyMode,
   isVersusMode: isMultiplayerVersusMode,
-  getVersusSnapshot: () => multiplayerController?.getRoomSnapshot?.()
+  getVersusSnapshot: () => multiplayerController?.getRoomSnapshot?.(),
+  getCurrentPlayerId: () => multiplayerController?.getCurrentPlayerId?.() || ""
 });
 
 viewController = createViewController({
@@ -2098,6 +2101,13 @@ if (studyNextBtn) {
     if (!state.studyCurrent) return;
     startTimer();
     advanceStudyCard({ repeat: true });
+  });
+}
+
+if (studySkipBtn) {
+  studySkipBtn.addEventListener("click", () => {
+    if (!isMultiplayerVersusMode()) return;
+    multiplayerController?.skipRoom?.();
   });
 }
 

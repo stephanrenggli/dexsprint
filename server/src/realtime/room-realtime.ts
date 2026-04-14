@@ -308,6 +308,48 @@ export function registerRoomRealtime({
         return;
       }
 
+      if (message.type === "room:skip") {
+        const catalog = await catalogStore.getCatalog();
+        const result = roomStore.skipVersusRound(catalog, currentRoom, currentPlayer);
+        if (!result.accepted) {
+          log.info(
+            {
+              roomId: currentRoom.id,
+              playerId: currentPlayer.id,
+              host: currentPlayer.host,
+              reason: result.reason,
+              messageType: message.type,
+              room: summarizeRoom(roomStore, currentRoom)
+            },
+            "multiplayer skip rejected"
+          );
+          send(socket, {
+            type: "error",
+            code: "SKIP_REJECTED",
+            message: result.message
+          });
+          return;
+        }
+
+        const snapshot = result.snapshot;
+        log.info(
+          {
+            roomId: currentRoom.id,
+            roomCode: currentRoom.code,
+            playerId: currentPlayer.id,
+            host: currentPlayer.host,
+            room: summarizeRoom(roomStore, currentRoom)
+          },
+          "multiplayer skip voted"
+        );
+        broadcast(currentRoom.id, { type: "room:snapshot", snapshot });
+        scheduleVersusAdvance(roomStore, catalogStore, currentRoom.id, snapshot);
+        if (snapshot.status === "complete") {
+          broadcast(currentRoom.id, { type: "room:complete", snapshot });
+        }
+        return;
+      }
+
       if (message.type === "room:leave") {
         log.info(
           {

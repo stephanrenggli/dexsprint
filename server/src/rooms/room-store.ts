@@ -19,7 +19,7 @@ import {
 import { filterCatalogEntries, type CatalogSnapshot } from "../catalog/catalog.js";
 
 const ROOM_CODE_BYTES = 4;
-const MAX_EVENTS = 25;
+const MAX_EVENTS = 10;
 const DEFAULT_ROOM_TTL_MS = 60 * 60 * 1000;
 const DEFAULT_PERSISTENCE_DELAY_MS = 50;
 const VERSUS_REVEAL_DELAY_MS = 1200;
@@ -67,6 +67,7 @@ interface RoomRecord {
   versusCurrent: string | null;
   versusRevealed: boolean;
   versusAdvanceAt: Date | null;
+  versusSkipVotes: Set<string>;
   versusTotal: number;
 }
 
@@ -96,6 +97,7 @@ interface PersistedRoomRecord {
   versusCurrent: string | null;
   versusRevealed: boolean;
   versusAdvanceAt: string | null;
+  versusSkipVotes: string[];
   versusTotal: number;
 }
 
@@ -210,6 +212,8 @@ function isRoomEvent(value: unknown): value is RoomEvent {
     (event.type === "guess_accepted" ||
       event.type === "room_completed" ||
       event.type === "room_reset" ||
+      event.type === "room_skip_voted" ||
+      event.type === "room_skipped" ||
       event.type === "player_joined")
   );
 }
@@ -239,6 +243,7 @@ function serializeRoom(room: RoomRecord): PersistedRoomRecord {
     versusCurrent: room.versusCurrent,
     versusRevealed: room.versusRevealed,
     versusAdvanceAt: room.versusAdvanceAt ? room.versusAdvanceAt.toISOString() : null,
+    versusSkipVotes: [...room.versusSkipVotes],
     versusTotal: room.versusTotal
   };
 }
@@ -293,6 +298,7 @@ function deserializeRoom(
   const versusAdvanceAtRaw = persisted.versusAdvanceAt;
   const versusAdvanceAt =
     typeof versusAdvanceAtRaw === "string" ? new Date(versusAdvanceAtRaw) : null;
+  const versusSkipVotes = isStringArray(persisted.versusSkipVotes) ? new Set(persisted.versusSkipVotes) : new Set<string>();
   const versusTotal =
     typeof persisted.versusTotal === "number" ? persisted.versusTotal : record.activeNames.length;
 
@@ -318,6 +324,7 @@ function deserializeRoom(
     versusCurrent,
     versusRevealed,
     versusAdvanceAt: versusAdvanceAt && !Number.isNaN(versusAdvanceAt.getTime()) ? versusAdvanceAt : null,
+    versusSkipVotes,
     versusTotal
   };
 
@@ -430,6 +437,7 @@ export class RoomStore {
       versusCurrent,
       versusRevealed: false,
       versusAdvanceAt: null,
+      versusSkipVotes: new Set(),
       versusTotal: versusState?.total || 0
     };
 
@@ -543,6 +551,7 @@ export class RoomStore {
     room.versusCurrent = next;
     room.versusRevealed = false;
     room.versusAdvanceAt = null;
+    room.versusSkipVotes.clear();
     room.activeNames = new Set(next ? [next] : []);
 
     if (next) {
@@ -733,6 +742,7 @@ export class RoomStore {
         room.settings.mode === "versus" && room.versusAdvanceAt
           ? room.versusAdvanceAt.toISOString()
           : null,
+      versusSkipVotes: room.settings.mode === "versus" ? [...room.versusSkipVotes] : [],
       events: room.events
     };
   }
@@ -840,9 +850,68 @@ export class RoomStore {
     room.versusCurrent = versusState.current;
     room.versusRevealed = false;
     room.versusAdvanceAt = null;
+    room.versusSkipVotes.clear();
     room.versusTotal = versusState.total;
     room.activeNames = new Set(versusState.current ? [versusState.current] : []);
     room.status = versusState.current ? "active" : "complete";
+  }
+
+  skipVersusRound(catalog: CatalogSnapshot, room: RoomRecord, player: PlayerRecord): GuessAcceptedResult | GuessRejectedResult {
+    if (room.settings.mode !== "versus") {
+      return this.#reject("room_not_active", "The room has not started yet.");
+    }
+    if (room.status !== "active") {
+      return this.#reject("room_not_active", "The room has not started yet.");
+    }
+    if (!room.versusCurrent) {
+      return this.#reject("room_not_active", "The room has not started yet.");
+    }
+    if (room.versusSkipVotes.has(player.id)) {
+      return this.#reject("duplicate", "Skip already voted.");
+    }
+
+    room.versusSkipVotes.add(player.id);
+    const activePlayers = [...room.players.values()].filter((entry) => entry.connected);
+    const activePlayerIds = new Set(activePlayers.map((entry) => entry.id));
+    room.versusSkipVotes = new Set([...room.versusSkipVotes].filter((id) => activePlayerIds.has(id)));
+    const skipCount = room.versusSkipVotes.size;
+    const skipTotal = activePlayers.length;
+    pushEvent(room, {
+      type: "room_skip_voted",
+      playerId: player.id,
+      skipCount,
+      skipTotal
+    });
+    const allActiveHaveVoted = skipTotal > 0 && activePlayers.every((entry) => room.versusSkipVotes.has(entry.id));
+
+    if (allActiveHaveVoted) {
+      const current = room.versusCurrent;
+      pushEvent(room, {
+        type: "room_skipped",
+        playerId: player.id
+      });
+      room.versusSkipVotes.clear();
+      const snapshot = this.advanceVersusRound(catalog, room);
+      return {
+        accepted: true,
+        playerId: player.id,
+        canonical: current || "",
+        label: current || "Pokemon",
+        complete: snapshot.status === "complete",
+        snapshot
+      };
+    }
+
+    this.#touch(room);
+    this.#schedulePersistence();
+    return {
+      accepted: true,
+      playerId: player.id,
+      canonical: room.versusCurrent || "",
+      label: room.versusCurrent || "Pokemon",
+      complete: false,
+      snapshot: this.snapshot(room)
+    };
   }
 
   #reject(reason: GuessRejectReason, message: string): GuessRejectedResult {

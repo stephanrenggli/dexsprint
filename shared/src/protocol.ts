@@ -31,10 +31,18 @@ export interface PlayerSnapshot {
 
 export interface RoomEvent {
   id: string;
-  type: "guess_accepted" | "room_completed" | "room_reset" | "player_joined";
+  type:
+    | "guess_accepted"
+    | "room_completed"
+    | "room_reset"
+    | "room_skipped"
+    | "room_skip_voted"
+    | "player_joined";
   playerId?: string;
   canonical?: string;
   label?: string;
+  skipCount?: number;
+  skipTotal?: number;
   createdAt: string;
 }
 
@@ -54,6 +62,7 @@ export interface RoomSnapshot {
   versusCurrent: string | null;
   versusRevealed: boolean;
   versusAdvanceAt: string | null;
+  versusSkipVotes: string[];
   events: RoomEvent[];
 }
 
@@ -79,6 +88,7 @@ export type ClientMessage =
   | { type: "player:update"; name: string }
   | { type: "room:configure"; settings: Partial<RoomSettings> }
   | { type: "room:reset" }
+  | { type: "room:skip" }
   | { type: "guess:submit"; value: string; clientTs?: number }
   | { type: "room:leave" };
 

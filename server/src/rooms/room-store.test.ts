@@ -176,6 +176,47 @@ test("RoomStore applies multiplayer typo settings to guess acceptance", () => {
   assert.match(suggestion.message, /Did you mean/i);
 });
 
+test("RoomStore requires all connected versus players to skip the current card", () => {
+  const catalog = createCatalog();
+  const store = new RoomStore();
+  const created = store.createRoom(catalog, {
+    playerName: "Ash",
+    settings: { mode: "versus" }
+  });
+  const joined = store.joinRoom(created.roomCode, { playerName: "Misty" });
+  assert.ok(joined);
+
+  const room = store.getRoomById(created.roomId);
+  assert.ok(room);
+  const host = store.findPlayer(room, created.sessionToken);
+  const guest = store.findPlayer(room, joined.sessionToken);
+  assert.ok(host);
+  assert.ok(guest);
+
+  const current = created.snapshot.versusCurrent;
+  assert.ok(current);
+
+  const firstVote = store.skipVersusRound(catalog, room, host);
+  assert.equal(firstVote.accepted, true);
+  assert.deepEqual(firstVote.accepted && firstVote.snapshot.versusSkipVotes, [host.id]);
+  assert.equal(firstVote.accepted && firstVote.snapshot.versusCurrent, current);
+  assert.equal(firstVote.accepted && firstVote.complete, false);
+  assert.equal(firstVote.accepted && firstVote.snapshot.events[0]?.type, "room_skip_voted");
+  assert.equal(firstVote.accepted && firstVote.snapshot.events[0]?.skipCount, 1);
+  assert.equal(firstVote.accepted && firstVote.snapshot.events[0]?.skipTotal, 2);
+
+  const duplicateVote = store.skipVersusRound(catalog, room, host);
+  assert.equal(duplicateVote.accepted, false);
+  assert.equal(duplicateVote.reason, "duplicate");
+
+  const secondVote = store.skipVersusRound(catalog, room, guest);
+  assert.equal(secondVote.accepted, true);
+  assert.equal(secondVote.accepted && secondVote.snapshot.versusSkipVotes.length, 0);
+  assert.notEqual(secondVote.accepted && secondVote.snapshot.versusCurrent, current);
+  assert.equal(secondVote.accepted && secondVote.snapshot.events[0]?.type, "room_skipped");
+  assert.equal(secondVote.accepted && secondVote.snapshot.events[1]?.type, "room_skip_voted");
+});
+
 test("RoomStore accepts server-authoritative race guesses", () => {
   const catalog = createCatalog();
   const store = new RoomStore();
