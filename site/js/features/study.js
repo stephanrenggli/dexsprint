@@ -270,12 +270,8 @@ export function createStudyController({
       }
     }
     if (studyCounter) {
-      if (isVersusMode()) {
-        studyCounter.textContent = "1 Pokemon in play";
-      } else {
-        const remaining = new Set([...candidates, ...state.studyDeck, currentName]).size;
-        studyCounter.textContent = `${remaining} Pokemon left`;
-      }
+      const remaining = new Set([...candidates, ...state.studyDeck, currentName]).size;
+      studyCounter.textContent = `${remaining} Pokemon left`;
     }
     if (studySprite) {
       studySprite.src = getSpriteForEntry(entry);
