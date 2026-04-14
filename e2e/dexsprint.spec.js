@@ -280,6 +280,36 @@ test("loads the quiz shell and catalog data", async ({ browser }) => {
   }
 });
 
+test("accepts a valid guess, rejects duplicates, and rejects near-misses", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  try {
+    await openApp(page, context);
+    await openSettingsModal(page);
+
+    await page.locator("#typo-mode").selectOption("strict");
+    await expect(page.locator("#autocorrect-toggle")).toBeDisabled();
+    await page.locator("#settings-close").click();
+
+    await page.locator("#name-input").fill("Bulbasaur");
+    await page.locator("#name-input").press("Enter");
+    await expect(page.locator("#found-count")).toHaveText("1/2");
+
+    await page.locator("#name-input").fill("Bulbasaur");
+    await page.locator("#name-input").press("Enter");
+    await expect(page.locator("#status")).toHaveText("Already found!");
+    await expect(page.locator("#found-count")).toHaveText("1/2");
+
+    await page.locator("#name-input").fill("Bulbasar");
+    await page.locator("#name-input").press("Enter");
+    await expect(page.locator("#status")).toHaveText("Too far off. Try English, German, or Spanish names.");
+    await expect(page.locator("#found-count")).toHaveText("1/2");
+  } finally {
+    await context.close();
+  }
+});
+
 test("updates and persists the global settings surface", async ({ browser }) => {
   const context = await browser.newContext();
   const page = await context.newPage();
