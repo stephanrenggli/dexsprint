@@ -1,3 +1,9 @@
+## [2.2.0](https://github.com/stephanrenggli/dexsprint/compare/v2.1.0...v2.2.0) (2026-04-16)
+
+### Features
+
+* add real mobile layout ([c063cdb](https://github.com/stephanrenggli/dexsprint/commit/c063cdb3824173eb97a5a24fe9652f9d1df78bdd))
+
 ## [2.1.0](https://github.com/stephanrenggli/dexsprint/compare/v2.0.5...v2.1.0) (2026-04-14)
 
 ### Features
