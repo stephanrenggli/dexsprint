@@ -354,7 +354,7 @@ export class RoomStore {
 
   async restorePersistedRooms(now = Date.now()): Promise<number> {
     if (!this.#persistPath) return 0;
-    let text = "";
+    let text: string;
     try {
       text = await readFile(this.#persistPath, "utf8");
     } catch (error) {

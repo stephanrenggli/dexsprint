@@ -36,7 +36,7 @@ function createCatalog(): CatalogSnapshot {
 
 function createFakeSocket() {
   const listeners = new Map<string, (...args: unknown[]) => unknown>();
-  const messages: any[] = [];
+  const messages: unknown[] = [];
   const socket = {
     OPEN: 1,
     readyState: 1,
@@ -82,7 +82,12 @@ function createFakeLogger() {
   return log;
 }
 
-type RouteHandler = (socket: ReturnType<typeof createFakeSocket>, request: any) => Promise<void>;
+type RealtimeRequest = {
+  params: { roomId: string };
+  query: { sessionToken: string };
+};
+
+type RouteHandler = (socket: ReturnType<typeof createFakeSocket>, request: RealtimeRequest) => Promise<void>;
 
 function createRouteHandler(catalog: CatalogSnapshot, roomStore = new RoomStore()): {
   handler: RouteHandler;
