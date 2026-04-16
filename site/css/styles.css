@@ -3931,7 +3931,7 @@ textarea {
     gap: 16px;
   }
 
-  :is(.compact-summary, .compact-mode .compact-summary) {
+  .compact-summary {
     position: fixed;
     top: 0;
     left: 0;
@@ -3946,14 +3946,14 @@ textarea {
     box-shadow: 0 4px 14px rgba(28, 27, 25, 0.08);
   }
 
-  :is(.compact-stats, .compact-mode .compact-stats) {
+  .compact-stats {
     display: grid;
     grid-template-columns: auto auto 1fr;
     gap: 10px;
     align-items: center;
   }
 
-  :is(.compact-stats, .compact-mode .compact-stats) .stat {
+  .compact-stats .stat {
     min-width: 0;
     background: var(--surface-3);
     border: 1px solid var(--border);
@@ -3962,16 +3962,16 @@ textarea {
     gap: 6px;
   }
 
-  :is(.compact-stats, .compact-mode .compact-stats) .label {
+  .compact-stats .label {
     font-size: 0.52rem;
     letter-spacing: 0.12em;
   }
 
-  :is(.compact-stats, .compact-mode .compact-stats) .value {
+  .compact-stats .value {
     font-size: 0.8rem;
   }
 
-  :is(.compact-actions, .compact-mode .compact-actions) {
+  .compact-actions {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 34px));
     width: auto;
@@ -3979,7 +3979,7 @@ textarea {
     gap: 6px;
   }
 
-  :is(.compact-actions, .compact-mode .compact-actions) .btn {
+  .compact-actions .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -4030,8 +4030,8 @@ textarea {
     mask-image: var(--icon-multiplayer);
   }
 
-  :is(.compact-actions, .compact-mode .compact-actions) .btn:hover,
-  :is(.compact-actions, .compact-mode .compact-actions) .btn:focus-visible {
+  .compact-actions .btn:hover,
+  .compact-actions .btn:focus-visible {
     background: color-mix(in srgb, var(--surface-2) 88%, transparent);
     box-shadow: none;
     transform: none;
@@ -4305,7 +4305,7 @@ textarea {
     padding-bottom: 0;
   }
 
-  :is(.compact-summary, .compact-mode .compact-summary) {
+  .compact-summary {
     padding: calc(env(safe-area-inset-top, 0px) + 6px) 10px 8px;
     border-radius: 0 0 16px 16px;
   }
@@ -4314,15 +4314,15 @@ textarea {
     padding: var(--mobile-focused-top-space) 10px 16px;
   }
 
-  :is(.compact-stats, .compact-mode .compact-stats) {
+  .compact-stats {
     gap: 8px;
   }
 
-  :is(.compact-actions, .compact-mode .compact-actions) {
+  .compact-actions {
     gap: 4px;
   }
 
-  :is(.compact-actions, .compact-mode .compact-actions) .btn {
+  .compact-actions .btn {
     min-height: 34px;
     padding: 0;
   }
