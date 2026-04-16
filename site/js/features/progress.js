@@ -1,9 +1,7 @@
 export function createProgressController({
   state,
   foundCount,
-  totalCount,
   compactFoundCount,
-  compactTotalCount,
   progressBar,
   progressValue,
   saveState,
@@ -39,12 +37,9 @@ export function createProgressController({
 
   function updateStats() {
     const filteredTotal = state.names.length;
-    const total = state.allNames.length;
     const found = state.activeFoundCount;
     if (foundCount) foundCount.textContent = `${found}/${filteredTotal}`;
-    if (totalCount) totalCount.textContent = total;
     if (compactFoundCount) compactFoundCount.textContent = `${found}/${filteredTotal}`;
-    if (compactTotalCount) compactTotalCount.textContent = total;
     const progress = filteredTotal === 0 ? 0 : (found / filteredTotal) * 100;
     if (progressBar) progressBar.style.width = `${progress.toFixed(1)}%`;
     if (progressValue) progressValue.textContent = `${Math.round(progress)}%`;

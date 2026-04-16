@@ -205,7 +205,7 @@ async function openMultiplayerModal(page, { force = false } = {}) {
 
 async function openSettingsModal(page) {
   const trigger = (await page.evaluate(() => document.body.classList.contains("compact-mode")))
-    ? "#filters-toggle-compact"
+    ? "#settings-open-compact"
     : "#filters-toggle";
   await page.locator(trigger).click();
   await expect(page.locator("#settings-modal")).toBeVisible();
@@ -800,8 +800,11 @@ test("resets a multiplayer room as the host", async ({ browser }) => {
     await joinMultiplayerRoom(guestPage, { roomCode, playerName: "Misty", force: true });
     await closeMultiplayerModal(guestPage);
 
-    await expect(hostPage.locator("#reset-btn")).toBeEnabled();
-    await expect(guestPage.locator("#reset-btn")).toBeDisabled();
+    await openMultiplayerModal(hostPage);
+    await openMultiplayerModal(guestPage, { force: true });
+
+    await expect(hostPage.locator("#multiplayer-reset")).toBeEnabled();
+    await expect(guestPage.locator("#multiplayer-reset")).toBeDisabled();
 
     await hostPage.locator("#name-input").fill("Bulbasaur");
     await hostPage.locator("#name-input").press("Enter");
@@ -809,7 +812,7 @@ test("resets a multiplayer room as the host", async ({ browser }) => {
     await expect(hostPage.locator("#found-count")).toHaveText(/^1\/\d+$/);
     await expect(guestPage.locator("#found-count")).toHaveText(/^1\/\d+$/);
 
-    await hostPage.locator("#reset-btn").click();
+    await hostPage.locator("#multiplayer-reset").click();
     await expect(hostPage.locator("#confirm-modal")).toBeVisible();
     await hostPage.locator("#confirm-accept").click();
 
@@ -846,8 +849,9 @@ test("creates a room, joins a second player, accepts a guess, and leaves", async
 
     await expect(hostPage.locator("#multiplayer-players")).toContainText("Misty");
     await expect(guestPage.locator("#multiplayer-players")).toContainText("Ash");
-    await expect(hostPage.locator("#reset-btn")).toBeEnabled();
-    await expect(guestPage.locator("#reset-btn")).toBeDisabled();
+    await openMultiplayerModal(hostPage);
+    await expect(hostPage.locator("#multiplayer-reset")).toBeEnabled();
+    await expect(guestPage.locator("#multiplayer-reset")).toBeDisabled();
     await expect(guestPage.locator("#multiplayer-filters-panel-toggle")).toBeDisabled();
     await expect(guestPage.locator("#multiplayer-group-filter")).toBeDisabled();
     await expect(guestPage.locator("#multiplayer-typo-mode")).toBeDisabled();
@@ -856,6 +860,7 @@ test("creates a room, joins a second player, accepts a guess, and leaves", async
     await expect(guestPage.locator("#multiplayer-show-dex-toggle")).toBeDisabled();
     await expect(guestPage.locator("#multiplayer-mode")).toBeDisabled();
     await expect(guestPage.locator("#multiplayer-panel")).toBeVisible();
+    await closeMultiplayerModal(hostPage);
     await closeMultiplayerModal(guestPage);
 
     await hostPage.locator("#name-input").fill("Bulbasaur");

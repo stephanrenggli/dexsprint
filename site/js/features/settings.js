@@ -19,7 +19,6 @@ export function createSettingsController({
   compactToggle,
   outlineToggle,
   filtersToggle,
-  filtersToggleCompact,
   criesToggle,
   legacyCriesToggle,
   showDexToggle,
@@ -234,7 +233,6 @@ export function createSettingsController({
     document.documentElement.classList.remove("dark-mode");
     if (compactToggle) compactToggle.textContent = "Compact Mode";
     if (filtersToggle) filtersToggle.textContent = "Settings";
-    if (filtersToggleCompact) filtersToggleCompact.textContent = "Settings";
     if (criesToggle) criesToggle.checked = false;
     if (legacyCriesToggle) legacyCriesToggle.checked = false;
     if (shinyToggle) shinyToggle.checked = false;

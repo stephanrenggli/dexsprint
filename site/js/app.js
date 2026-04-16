@@ -87,10 +87,8 @@ import {
 import { showStateToast as showStateToastUI } from "./ui/toasts.js";
 import { createStatusController } from "./ui/status.js";
 
-const totalCount = document.getElementById("total-count");
 const foundCount = document.getElementById("found-count");
 const timerEl = document.getElementById("timer");
-const compactTotalCount = document.getElementById("compact-total-count");
 const compactFoundCount = document.getElementById("compact-found-count");
 const compactTimerEl = document.getElementById("compact-timer");
 const statusEl = document.getElementById("status");
@@ -106,16 +104,19 @@ const filtersPanel = document.getElementById("filters-panel");
 const filtersPanelToggle = document.getElementById("filters-panel-toggle");
 const filterSummary = document.getElementById("filter-summary");
 const spriteBoardFilters = document.querySelector(".app .sprite-board-filters");
+const filtersMobileModal = document.getElementById("filters-mobile-modal");
+const filtersMobileClose = document.getElementById("filters-mobile-close");
+const filtersMobileSlot = document.getElementById("filters-mobile-slot");
 const spriteGrid = document.getElementById("sprite-grid");
 const progressBar = document.getElementById("progress-bar");
 const progressMilestonesEl = document.getElementById("progress-milestones");
 const progressValue = document.getElementById("progress-value");
-const resetBtn = document.getElementById("reset-btn");
-const resetBtnCompact = document.getElementById("reset-btn-compact");
-const filtersToggleCompact = document.getElementById("filters-toggle-compact");
+const settingsOpenCompactBtn = document.getElementById("settings-open-compact");
+const filtersOpenCompactBtn = document.getElementById("filters-open-compact");
 const outlineToggle = document.getElementById("outline-toggle");
 const filtersToggle = document.getElementById("filters-toggle");
 const compactToggle = document.getElementById("compact-toggle");
+const settingsQuizReset = document.getElementById("settings-quiz-reset");
 const criesToggle = document.getElementById("cries-toggle");
 const legacyCriesToggle = document.getElementById("legacy-cries-toggle");
 const settingsModal = document.getElementById("settings-modal");
@@ -130,6 +131,7 @@ const multiplayerFiltersPanelToggle = document.getElementById("multiplayer-filte
 const multiplayerGroupFilter = document.getElementById("multiplayer-group-filter");
 const multiplayerGenFilter = document.getElementById("multiplayer-gen-filter");
 const multiplayerTypeFilter = document.getElementById("multiplayer-type-filter");
+const multiplayerResetBtn = document.getElementById("multiplayer-reset");
 const multiplayerTypoModeSelect = document.getElementById("multiplayer-typo-mode");
 const multiplayerAutocorrectToggle = document.getElementById("multiplayer-autocorrect-toggle");
 const multiplayerOutlineToggle = document.getElementById("multiplayer-outline-toggle");
@@ -192,6 +194,7 @@ const qrImage = document.getElementById("qr-image");
 const qrLink = document.getElementById("qr-link");
 const qrCopyBtn = document.getElementById("qr-copy");
 const settingsPanelCard = settingsModal ? settingsModal.querySelector(".settings-panel") : null;
+const filtersMobileMedia = window.matchMedia("(max-width: 720px)");
 const multiplayerGameplayLock = document.getElementById("multiplayer-gameplay-lock");
 const multiplayerGameplayControls = document.getElementById("multiplayer-gameplay-controls");
 const multiplayerProgressLock = document.getElementById("multiplayer-progress-lock");
@@ -227,6 +230,13 @@ const multiplayerJoin = document.getElementById("multiplayer-join");
 const multiplayerLeave = document.getElementById("multiplayer-leave");
 const multiplayerCopy = document.getElementById("multiplayer-copy");
 const multiplayerCopyCode = document.getElementById("multiplayer-copy-code");
+const spriteBoardFiltersAnchor = spriteBoardFilters ? document.createElement("div") : null;
+
+if (spriteBoardFilters && spriteBoardFiltersAnchor && spriteBoardFilters.parentNode) {
+  spriteBoardFiltersAnchor.hidden = true;
+  spriteBoardFiltersAnchor.setAttribute("aria-hidden", "true");
+  spriteBoardFilters.parentNode.insertBefore(spriteBoardFiltersAnchor, spriteBoardFilters);
+}
 
 const pokedex = new Pokedex.Pokedex({
   cache: true,
@@ -624,7 +634,6 @@ settingsController = createSettingsController({
   compactToggle,
   outlineToggle,
   filtersToggle,
-  filtersToggleCompact,
   criesToggle,
   legacyCriesToggle,
   showDexToggle,
@@ -714,9 +723,7 @@ viewController = createViewController({
 progressController = createProgressController({
   state,
   foundCount,
-  totalCount,
   compactFoundCount,
-  compactTotalCount,
   progressBar,
   progressValue,
   saveState,
@@ -963,8 +970,10 @@ function syncMultiplayerLockState(snapshot = null) {
   setDisabledControl(progressCopyCodeBtn, inRoom);
   setDisabledControl(progressQrBtn, inRoom);
   setDisabledControl(progressCodeEl, inRoom, { ariaDisabled: true, className: "is-disabled" });
-  setDisabledControl(resetBtn, inRoom && !host);
-  setDisabledControl(resetBtnCompact, inRoom && !host);
+  setDisabledControl(settingsQuizReset, inRoom && !host);
+  setDisabledControl(multiplayerResetBtn, inRoom && !host);
+  if (settingsQuizReset) settingsQuizReset.textContent = inRoom ? "Reset Room" : "Reset Quiz";
+  if (multiplayerResetBtn) multiplayerResetBtn.textContent = inRoom ? "Reset Room" : "Reset Quiz";
   syncSpriteBoardFiltersVisibility();
   setDisabledControl(multiplayerFiltersPanelToggle, inRoom ? !host : false);
   setDisabledControl(multiplayerGroupFilter, inRoom ? !host : false);
@@ -1071,6 +1080,54 @@ function openSettingsModal() {
 
 function closeSettingsModal() {
   modalController?.closeSettingsModal();
+}
+
+function isMobileViewport() {
+  return filtersMobileMedia.matches;
+}
+
+function isMobileFiltersModalEnabled() {
+  return Boolean(isMobileViewport() && filtersMobileModal && filtersMobileSlot && spriteBoardFilters);
+}
+
+function isMobileFiltersModalOpen() {
+  return Boolean(filtersMobileModal && !filtersMobileModal.classList.contains("hidden"));
+}
+
+function setCompactFiltersExpanded(expanded) {
+  filtersOpenCompactBtn?.setAttribute("aria-expanded", expanded ? "true" : "false");
+}
+
+function moveSpriteBoardFiltersToMobileModal() {
+  if (!spriteBoardFilters || !filtersMobileSlot) return;
+  if (spriteBoardFilters.parentElement === filtersMobileSlot) return;
+  filtersMobileSlot.appendChild(spriteBoardFilters);
+}
+
+function restoreSpriteBoardFilters() {
+  if (!spriteBoardFilters || !spriteBoardFiltersAnchor?.parentNode) return;
+  if (spriteBoardFilters.parentElement === spriteBoardFiltersAnchor.parentNode) return;
+  spriteBoardFiltersAnchor.parentNode.insertBefore(spriteBoardFilters, spriteBoardFiltersAnchor.nextSibling);
+}
+
+function openMobileFiltersModal() {
+  if (!isMobileFiltersModalEnabled()) return;
+  if (inputEl && document.activeElement === inputEl) {
+    inputEl.blur();
+  }
+  setFiltersPanelExpanded(true, { persist: false });
+  setCompactFiltersExpanded(true);
+  moveSpriteBoardFiltersToMobileModal();
+  openModal(filtersMobileModal, filtersMobileClose);
+}
+
+function closeMobileFiltersModal({ restoreFocus = true } = {}) {
+  if (isMobileFiltersModalOpen()) {
+    closeModal(filtersMobileModal, { restoreFocus });
+  }
+  restoreSpriteBoardFilters();
+  setFiltersPanelExpanded(false, { persist: false });
+  setCompactFiltersExpanded(false);
 }
 
 function openMultiplayerModal() {
@@ -1683,6 +1740,19 @@ function setFiltersPanelExpanded(expanded, { persist = true } = {}) {
   return filtersController?.setFiltersPanelExpanded(expanded, { persist });
 }
 
+function toggleCompactFiltersPanel() {
+  if (isMobileFiltersModalEnabled()) {
+    openMobileFiltersModal();
+    return;
+  }
+  const shouldExpand = Boolean(filtersPanel?.hidden);
+  if (inputEl && document.activeElement === inputEl) {
+    inputEl.blur();
+  }
+  setFiltersPanelExpanded(shouldExpand);
+  setCompactFiltersExpanded(shouldExpand);
+}
+
 function applyFilters(options = {}) {
   return filtersController?.applyFilters(options);
 }
@@ -1860,8 +1930,8 @@ if (guessForm) {
 }
 inputEl.addEventListener("input", handleInputEvent);
 inputEl.addEventListener("input", handleLiveMatch);
-resetBtn.addEventListener("click", confirmReset);
-if (resetBtnCompact) resetBtnCompact.addEventListener("click", confirmReset);
+if (settingsQuizReset) settingsQuizReset.addEventListener("click", confirmReset);
+if (multiplayerResetBtn) multiplayerResetBtn.addEventListener("click", confirmReset);
 if (retryBtn) retryBtn.addEventListener("click", loadPokemon);
 if (groupFilter) {
   groupFilter.addEventListener("change", () => {
@@ -1893,8 +1963,13 @@ if (groupFilter) {
   }
 if (filtersPanelToggle) {
   filtersPanelToggle.addEventListener("click", () => {
-    setFiltersPanelExpanded(filtersPanel ? filtersPanel.hidden : false);
+    const expanded = filtersPanel ? filtersPanel.hidden : false;
+    setFiltersPanelExpanded(expanded);
+    setCompactFiltersExpanded(expanded);
   });
+}
+if (filtersOpenCompactBtn) {
+  filtersOpenCompactBtn.addEventListener("click", toggleCompactFiltersPanel);
 }
 if (progressCopyBtn) {
   progressCopyBtn.addEventListener("click", () => {
@@ -1949,10 +2024,10 @@ if (compactToggle) {
 if (filtersToggle) {
   filtersToggle.textContent = "Settings";
   filtersToggle.addEventListener("click", openSettingsModal);
-  if (filtersToggleCompact) {
-    filtersToggleCompact.textContent = "Settings";
-    filtersToggleCompact.addEventListener("click", openSettingsModal);
-  }
+}
+
+if (settingsOpenCompactBtn) {
+  settingsOpenCompactBtn.addEventListener("click", openSettingsModal);
 }
 
 if (achievementsOpenBtn) achievementsOpenBtn.addEventListener("click", openAchievementsModal);
@@ -1984,6 +2059,14 @@ if (settingsClose) {
 if (settingsModal) {
   settingsModal.addEventListener("click", (event) => {
     if (event.target === settingsModal) closeSettingsModal();
+  });
+}
+if (filtersMobileClose) {
+  filtersMobileClose.addEventListener("click", () => closeMobileFiltersModal());
+}
+if (filtersMobileModal) {
+  filtersMobileModal.addEventListener("click", (event) => {
+    if (event.target === filtersMobileModal) closeMobileFiltersModal();
   });
 }
 if (multiplayerOpenBtn) multiplayerOpenBtn.addEventListener("click", openMultiplayerModal);
@@ -2217,6 +2300,10 @@ document.addEventListener("keydown", (event) => {
       closeConfirmModal(false);
       return;
     }
+    if (filtersMobileModal && !filtersMobileModal.classList.contains("hidden")) {
+      closeMobileFiltersModal();
+      return;
+    }
     if (settingsModal && !settingsModal.classList.contains("hidden")) {
       closeSettingsModal();
       return;
@@ -2245,6 +2332,11 @@ document.addEventListener("keydown", (event) => {
   trapModalFocus(event);
 });
 
+filtersMobileMedia.addEventListener("change", () => {
+  if (filtersMobileMedia.matches) return;
+  closeMobileFiltersModal({ restoreFocus: false });
+});
+
 if (inputEl) {
   focusInput();
   document.addEventListener("click", (event) => {
@@ -2266,10 +2358,15 @@ if (inputEl) {
   const inputWrap = inputEl.closest(".input-wrap");
   if (inputWrap) {
     const onScroll = () => {
+      if (isMobileViewport()) {
+        inputWrap.classList.remove("is-floating");
+        return;
+      }
       const shouldFloat = window.scrollY > 140;
       inputWrap.classList.toggle("is-floating", shouldFloat);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
     onScroll();
   }
 }

@@ -2,7 +2,7 @@
 <html lang="en" data-theme="normal">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
   <title>DexSprint - A Pokémon Guessing Game</title>
   <meta name="description" content="DexSprint is a browser-based Pokemon name quiz with multilingual guessing, weekly challenge themes, achievements, and live PokeAPI-backed details." />
   <meta name="theme-color" content="#f7f1e5" />
@@ -72,9 +72,12 @@
           <h3>Quick Actions</h3>
           <div class="settings-actions">
             <button id="compact-toggle" class="btn ghost btn-small" type="button">Compact Mode</button>
-            <button id="settings-reset" class="btn ghost btn-small btn-reset" type="button">
-              Reset Settings
-            </button>
+            <div class="settings-actions__group settings-actions__group--end">
+              <button id="settings-reset" class="btn ghost btn-small btn-reset" type="button">
+                Reset Settings
+              </button>
+              <button id="settings-quiz-reset" class="btn ghost btn-small" type="button">Reset Quiz</button>
+            </div>
           </div>
         </div>
         <div class="settings-section">
@@ -218,6 +221,23 @@
     </div>
   </div>
 
+  <div id="filters-mobile-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="filters-mobile-title">
+    <div class="modal-card modal-card--settings settings-panel modal-card--filters-mobile">
+      <div class="settings-header">
+        <div class="settings-header__copy">
+          <h2 id="filters-mobile-title">Filters</h2>
+          <p class="settings-subtitle">Adjust grouping and available Pokemon for the current board.</p>
+        </div>
+        <button id="filters-mobile-close" class="modal-close" type="button" aria-label="Close filters">x</button>
+      </div>
+      <div class="settings-body filters-mobile-body">
+        <div class="settings-section filters-mobile-section">
+          <div id="filters-mobile-slot" class="filters-mobile-slot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="multiplayer-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="multiplayer-title">
     <div class="modal-card modal-card--settings settings-panel multiplayer-modal-card">
       <div class="settings-header">
@@ -256,11 +276,16 @@
             <strong id="multiplayer-room-code-modal">-</strong>
           </div>
           <div class="settings-actions multiplayer-actions">
-            <button id="multiplayer-create" class="btn ghost btn-small" type="button">Create Room</button>
-            <button id="multiplayer-join" class="btn ghost btn-small" type="button">Join Room</button>
-            <button id="multiplayer-copy" class="btn ghost btn-small" type="button" hidden>Copy Link</button>
-            <button id="multiplayer-copy-code" class="btn ghost btn-small" type="button" hidden>Copy Code</button>
-            <button id="multiplayer-leave" class="btn ghost btn-small btn-reset" type="button" hidden>Leave</button>
+            <div class="settings-actions__group">
+              <button id="multiplayer-create" class="btn ghost btn-small" type="button">Create Room</button>
+              <button id="multiplayer-join" class="btn ghost btn-small" type="button">Join Room</button>
+            </div>
+            <div class="settings-actions__group settings-actions__group--end">
+              <button id="multiplayer-reset" class="btn ghost btn-small" type="button">Reset Quiz</button>
+              <button id="multiplayer-copy" class="btn ghost btn-small" type="button" hidden>Copy Link</button>
+              <button id="multiplayer-copy-code" class="btn ghost btn-small" type="button" hidden>Copy Code</button>
+              <button id="multiplayer-leave" class="btn ghost btn-small btn-reset" type="button" hidden>Leave</button>
+            </div>
           </div>
           <p id="multiplayer-status" class="progress-feedback" aria-live="polite">Create or join a private room.</p>
         </div>
@@ -391,10 +416,6 @@
           <span id="found-count" class="value">0/0</span>
         </div>
         <div class="stat">
-          <span class="label">Total</span>
-          <span id="total-count" class="value">...</span>
-        </div>
-        <div class="stat">
           <span class="label">Timer</span>
           <span id="timer" class="value">00:00</span>
         </div>
@@ -414,7 +435,6 @@
           <button id="multiplayer-open" class="btn ghost btn-small" type="button" aria-haspopup="dialog" aria-controls="multiplayer-modal">
             Multiplayer
           </button>
-          <button id="reset-btn" class="btn ghost btn-small btn-reset">Reset</button>
         </div>
       </div>
     </header>
@@ -422,36 +442,62 @@
     <section class="quiz quiz-main">
       <div class="compact-summary">
         <div class="compact-stats">
-          <div class="stat">
+          <div class="stat stat--compact-found">
             <span class="label">Found</span>
             <span id="compact-found-count" class="value">0/0</span>
           </div>
-          <div class="stat">
-            <span class="label">Total</span>
-            <span id="compact-total-count" class="value">...</span>
-          </div>
-          <div class="stat">
+          <div class="stat stat--compact-timer">
             <span class="label">Timer</span>
             <span id="compact-timer" class="value">00:00</span>
           </div>
           <div class="compact-actions">
             <button
               id="achievements-open-compact"
-              class="btn ghost btn-small"
+              class="btn ghost btn-small compact-action compact-action--achievements"
               type="button"
               aria-haspopup="dialog"
               aria-controls="achievements-modal"
+              aria-label="Open achievements"
+              title="Achievements"
             >
-              Achievements
+              <span class="compact-action__icon" aria-hidden="true"></span>
+              <span class="compact-action__label">Achievements</span>
             </button>
-            <button id="filters-toggle-compact" class="btn ghost btn-small" type="button" aria-haspopup="dialog" aria-controls="settings-modal">
-              Settings
+            <button
+              id="settings-open-compact"
+              class="btn ghost btn-small compact-action compact-action--settings"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="settings-modal"
+              aria-label="Open settings"
+              title="Settings"
+            >
+              <span class="compact-action__icon" aria-hidden="true"></span>
+              <span class="compact-action__label">Settings</span>
             </button>
-            <button id="multiplayer-open-compact" class="btn ghost btn-small" type="button" aria-haspopup="dialog" aria-controls="multiplayer-modal">
-              Multiplayer
+            <button
+              id="multiplayer-open-compact"
+              class="btn ghost btn-small compact-action compact-action--multiplayer"
+              type="button"
+              aria-haspopup="dialog"
+              aria-controls="multiplayer-modal"
+              aria-label="Open multiplayer"
+              title="Multiplayer"
+            >
+              <span class="compact-action__icon" aria-hidden="true"></span>
+              <span class="compact-action__label">Multiplayer</span>
             </button>
-            <button id="reset-btn-compact" class="btn ghost btn-small btn-reset" type="button">
-              Reset
+            <button
+              id="filters-open-compact"
+              class="btn ghost btn-small compact-action compact-action--filters"
+              type="button"
+              aria-controls="filters-panel"
+              aria-expanded="false"
+              aria-label="Open filters"
+              title="Filters"
+            >
+              <span class="compact-action__icon" aria-hidden="true"></span>
+              <span class="compact-action__label">Filters</span>
             </button>
           </div>
         </div>
