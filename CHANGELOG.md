@@ -1,3 +1,11 @@
+## [2.2.1](https://github.com/stephanrenggli/dexsprint/compare/v2.2.0...v2.2.1) (2026-04-16)
+
+### Bug Fixes
+
+* fix linting errors ([05762b7](https://github.com/stephanrenggli/dexsprint/commit/05762b7b70d7524cc1cf0abd717cf1151771655d))
+* keep mobile footer behind input bar ([1ed78ed](https://github.com/stephanrenggli/dexsprint/commit/1ed78ed4ace63dfb4841bc14723c6c495b33b5f2))
+* quiet missing catalog snapshot fallback ([b412335](https://github.com/stephanrenggli/dexsprint/commit/b412335bc3728b0ece940d25c7ae50184a6d1750))
+
 ## [2.2.0](https://github.com/stephanrenggli/dexsprint/compare/v2.1.0...v2.2.0) (2026-04-16)
 
 ### Features
