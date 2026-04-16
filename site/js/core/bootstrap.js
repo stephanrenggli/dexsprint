@@ -82,7 +82,9 @@ export function createPokemonBootstrap(deps) {
       if (!snapshot?.entries?.length) return null;
       return snapshot;
     } catch (error) {
-      console.warn("Server catalog snapshot failed to load", error);
+      if (error?.status !== 404) {
+        console.warn("Server catalog snapshot failed to load", error);
+      }
       return null;
     }
   }

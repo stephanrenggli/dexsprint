@@ -7,7 +7,9 @@ const POKEAPI_SPECIES_BASE = "https://pokeapi.co/api/v2/pokemon-species/";
 export async function fetchServerCatalogSnapshot() {
   const response = await fetch("/api/catalog", { cache: "no-store" });
   if (!response.ok) {
-    throw new Error(`Catalog snapshot request failed: ${response.status}`);
+    const error = new Error(`Catalog snapshot request failed: ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
 
   const snapshot = await response.json();

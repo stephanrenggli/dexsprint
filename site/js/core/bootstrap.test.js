@@ -152,11 +152,16 @@ test("createPokemonBootstrap seeds labels from the server catalog snapshot", asy
 
 test("createPokemonBootstrap falls back to the species list when the catalog snapshot fails", async () => {
   const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
   const { calls, deps, state } = createDeps();
+  const warnings = [];
 
   globalThis.fetch = (async () => {
     throw new Error("catalog unavailable");
   });
+  console.warn = (...args) => {
+    warnings.push(args);
+  };
 
   try {
     const bootstrap = createPokemonBootstrap(deps);
@@ -168,7 +173,37 @@ test("createPokemonBootstrap falls back to the species list when the catalog sna
     assert.deepEqual(calls.hydrate, [["https://pokeapi.co/api/v2/pokemon-species/1/"]]);
     assert.equal(calls.hydrateComplete, 1);
     assert.equal(calls.clearInputStatus, 1);
+    assert.equal(warnings.length, 1);
   } finally {
     globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
+  }
+});
+
+test("createPokemonBootstrap quietly falls back when the server catalog endpoint is missing", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  const { calls, deps, state } = createDeps();
+  const warnings = [];
+
+  globalThis.fetch = (async () => createResponse({ error: "NOT_FOUND" }, 404));
+  console.warn = (...args) => {
+    warnings.push(args);
+  };
+
+  try {
+    const bootstrap = createPokemonBootstrap(deps);
+    await bootstrap.loadPokemon();
+
+    assert.deepEqual(state.allNames, ["bulbasaur"]);
+    assert.equal(state.meta.get("bulbasaur")?.label, "bulbasaur");
+    assert.equal(calls.speciesList, 1);
+    assert.deepEqual(calls.hydrate, [["https://pokeapi.co/api/v2/pokemon-species/1/"]]);
+    assert.equal(calls.hydrateComplete, 1);
+    assert.equal(calls.clearInputStatus, 1);
+    assert.equal(warnings.length, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    console.warn = originalWarn;
   }
 });
