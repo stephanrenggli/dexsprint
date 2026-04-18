@@ -26,3 +26,17 @@ if (next === current) {
 }
 
 await writeFile(indexPath, next);
+
+const swPath = new URL("../site/sw.js", import.meta.url);
+const currentSw = await readFile(swPath, "utf8");
+const nextSw = currentSw.replace(
+  /const CACHE_NAME = "dexsprint-shell-v[^"]+";/,
+  `const CACHE_NAME = "dexsprint-shell-v${version}";`
+);
+
+if (nextSw === currentSw) {
+  console.error("Could not find the cache name marker in site/sw.js");
+  process.exit(1);
+}
+
+await writeFile(swPath, nextSw);

@@ -2,7 +2,7 @@
 
 importScripts("./js/vendor/pokeapi-js-wrapper-sw.js");
 
-const CACHE_NAME = "dexsprint-shell-v21";
+const CACHE_NAME = "dexsprint-shell-v2.2.1";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -57,7 +57,12 @@ const APP_SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())
+    caches
+      .open(CACHE_NAME)
+      .then((cache) =>
+        cache.addAll(APP_SHELL.map((entry) => new Request(entry, { cache: "reload" })))
+      )
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -87,7 +92,7 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: "reload" })
         .then((response) => {
           const copy = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put("./index.html", copy));
@@ -102,7 +107,7 @@ self.addEventListener("fetch", (event) => {
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) return cachedResponse;
 
-      return fetch(request).then((response) => {
+      return fetch(request, { cache: "reload" }).then((response) => {
         if (!response || response.status !== 200 || response.type !== "basic") {
           return response;
         }
