@@ -1,3 +1,9 @@
+## [2.2.2](https://github.com/stephanrenggli/dexsprint/compare/v2.2.1...v2.2.2) (2026-04-18)
+
+### Bug Fixes
+
+* use app version for cache ([e6cba06](https://github.com/stephanrenggli/dexsprint/commit/e6cba06db7389bf31e17f663eddce4af4bf79c40))
+
 ## [2.2.1](https://github.com/stephanrenggli/dexsprint/compare/v2.2.0...v2.2.1) (2026-04-16)
 
 ### Bug Fixes

@@ -1,6 +1,6 @@
 {
   "name": "dexsprint",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "private": true,
   "type": "module",
   "description": "DexSprint static site and v2 multiplayer server",
