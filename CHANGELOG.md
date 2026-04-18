@@ -1,3 +1,9 @@
+## [2.2.3](https://github.com/stephanrenggli/dexsprint/compare/v2.2.2...v2.2.3) (2026-04-18)
+
+### Bug Fixes
+
+* fix top bar mobile compact layout ([abf7792](https://github.com/stephanrenggli/dexsprint/commit/abf7792b03e76d3018b0a351c13aef9a84d3eb64))
+
 ## [2.2.2](https://github.com/stephanrenggli/dexsprint/compare/v2.2.1...v2.2.2) (2026-04-18)
 
 ### Bug Fixes
