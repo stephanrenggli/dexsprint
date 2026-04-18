@@ -3556,25 +3556,61 @@ textarea {
     padding: 16px;
   }
 
-  .compact-mode .compact-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
-    align-items: stretch;
+  .compact-summary,
+  .compact-mode .compact-summary {
+    --compact-topbar-padding: calc(env(safe-area-inset-top, 0px) + 8px) 14px 10px;
+    --compact-topbar-radius: 0 0 18px 18px;
+    --compact-stats-gap: 10px;
+    --compact-actions-gap: 6px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 45;
+    display: block;
+    padding: var(--compact-topbar-padding);
+    background: color-mix(in srgb, var(--surface) 94%, var(--surface-2) 6%);
+    border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+    border-top: 0;
+    border-radius: var(--compact-topbar-radius);
+    box-shadow: 0 4px 14px rgba(28, 27, 25, 0.08);
   }
 
+  .compact-stats,
+  .compact-mode .compact-stats {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: var(--compact-stats-gap);
+    align-items: center;
+  }
+
+  .compact-stats .stat,
   .compact-mode .compact-stats .stat {
     min-width: 0;
   }
 
+  .compact-actions,
   .compact-mode .compact-actions {
-    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 34px));
+    width: auto;
     justify-content: flex-end;
-    width: 100%;
+    gap: var(--compact-actions-gap);
   }
 
+  .compact-actions .btn,
   .compact-mode .compact-actions .btn {
-    flex: 0 1 auto;
-    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    inline-size: 34px;
+    min-width: 34px;
+    min-inline-size: 34px;
+    min-height: 34px;
+    padding: 0;
+    border-color: color-mix(in srgb, var(--border-strong) 86%, transparent);
+    background: color-mix(in srgb, var(--surface-3) 82%, transparent);
   }
 
   .compact-mode .input-wrap {
@@ -4305,26 +4341,17 @@ textarea {
     padding-bottom: 0;
   }
 
-  .compact-summary {
-    padding: calc(env(safe-area-inset-top, 0px) + 6px) 10px 8px;
-    border-radius: 0 0 16px 16px;
+  .compact-summary,
+  .compact-mode .compact-summary {
+    --compact-topbar-padding: calc(env(safe-area-inset-top, 0px) + 6px) 10px 8px;
+    --compact-topbar-radius: 0 0 16px 16px;
+    --compact-stats-gap: 8px;
+    --compact-actions-gap: 4px;
   }
 
-  .compact-mode .app {
-    padding: var(--mobile-focused-top-space) 10px 16px;
-  }
-
-  .compact-stats {
-    gap: 8px;
-  }
-
-  .compact-actions {
-    gap: 4px;
-  }
-
-  .compact-actions .btn {
-    min-height: 34px;
-    padding: 0;
+  .compact-stats,
+  .compact-mode .compact-stats {
+    gap: var(--compact-stats-gap);
   }
 
   .compact-mode .input-wrap,
